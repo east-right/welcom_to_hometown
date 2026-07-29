@@ -7,7 +7,7 @@ from google.adk.agents import LlmAgent
 
 from ..config import MODEL
 from ..domain.models import Feed, SlotExtraction
-from ..infrastructure.naver import fetch_page, naver_search
+from ..infrastructure.naver import fetch_pages, naver_search
 from . import prompts
 
 
@@ -23,14 +23,14 @@ class AgentRegistry:
 def _coordinator() -> LlmAgent:
     """검색 도구를 직접 들고 검색·선별까지 하는 코디네이터.
 
-    서브에이전트 없이 naver_search·fetch_page를 직접 호출한다(레벨 1단).
-    모든 검색 원문이 이 에이전트 문맥에 쌓이는 대신, 홉이 적고 흐름이 단순하다.
+    서브에이전트 없이 naver_search·fetch_pages를 직접 호출한다(레벨 1단).
+    본문 취득은 URL 여러 개를 fetch_pages로 한 번에 넘겨 병렬로 처리한다.
     """
     return LlmAgent(
         name="coordinator",
         model=MODEL,
         instruction=prompts.COORDINATOR,
-        tools=[naver_search, fetch_page],
+        tools=[naver_search, fetch_pages],
     )
 
 

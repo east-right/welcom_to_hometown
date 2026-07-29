@@ -62,10 +62,19 @@ class RunTracer:
         self._log.write(
             f"│      ← 반환 ({elapsed:.1f}초) — 이 내용이 그대로 다음 턴 LLM 입력으로 들어간다"
         )
-        if isinstance(value, list):
+        if _is_fetched_bodies(value):
+            self._write_fetched_bodies(value)   # ④ fetch_pages 병렬 원문
+        elif isinstance(value, list):
             self._write_search_hits(value)      # ③ naver_search 결과(URL들)
         else:
-            self._write_fetched_body(str(value))  # ④ fetch_page 원문(bs4 추출)
+            self._write_fetched_body(str(value))  # ④ fetch_page 원문 1건
+
+    def _write_fetched_bodies(self, items: list) -> None:
+        self._log.write(f"│      ④ fetch_pages 병렬 취득 {len(items)}건 (URL별 원문):")
+        for i, item in enumerate(items, 1):
+            body = str(item.get("text", ""))
+            self._log.write(f"│        [{i}] {item.get('url', '')}  (원문 {len(body)}자)")
+            self._write_block(_clip(body, _BODY_PREVIEW))
 
     def _write_search_hits(self, items: list) -> None:
         self._log.write(f"│      ③ naver 검색 결과 {len(items)}건 (제목 · URL):")
@@ -91,6 +100,16 @@ class RunTracer:
 
 def _parts(event) -> list:
     return (event.content.parts if event.content else []) or []
+
+
+def _is_fetched_bodies(value) -> bool:
+    """fetch_pages 반환({url, text} 목록)인지 판별."""
+    return (
+        isinstance(value, list)
+        and bool(value)
+        and isinstance(value[0], dict)
+        and "text" in value[0]
+    )
 
 
 def _unwrap(response):

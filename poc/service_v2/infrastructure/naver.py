@@ -1,10 +1,12 @@
-"""검색·취득 함수툴. 서브 에이전트가 호출한다.
+"""검색·취득 함수툴. 코디네이터가 호출한다.
 
 - naver_search : 발견 (URL + 스니펫)
-- fetch_page   : 취득 (본문 텍스트만 추출)
+- fetch_page   : 취득 1건 (본문 텍스트만 추출)
+- fetch_pages  : 취득 N건을 동시(병렬)로 — 순차보다 빠르다
 
 함수 docstring은 ADK가 LLM에게 넘기는 툴 설명으로 쓰이므로 유지한다.
 """
+import asyncio
 import html
 import re
 
@@ -78,15 +80,48 @@ def fetch_page(url: str) -> str:
         )
         response.raise_for_status()
     except httpx.HTTPError as e:
-        return f"[열기 실패: {type(e).__name__}] 이 URL은 건너뛰세요."
+        return _open_failed(e)
+    return _page_text(response.text)
 
-    text = _extract_body(BeautifulSoup(response.text, "html.parser"))
+
+async def fetch_pages(urls: list[str]) -> list:
+    """여러 웹 페이지의 본문을 동시에(병렬로) 가져온다.
+
+    본문을 확인할 URL 2~3개를 한 번에 넘겨라. 하나씩 순차로 읽는 것보다 빠르다.
+    각 항목은 {url, text} 형태로 돌아온다.
+
+    Args:
+        urls: 읽을 페이지 전체 URL 목록 (2~3개 권장)
+    """
+    async with httpx.AsyncClient(
+        headers={"User-Agent": USER_AGENT}, timeout=10.0, follow_redirects=True
+    ) as client:
+        texts = await asyncio.gather(*(_afetch_one(client, u) for u in urls))
+    return [{"url": u, "text": t} for u, t in zip(urls, texts)]
+
+
+async def _afetch_one(client: httpx.AsyncClient, url: str) -> str:
+    """URL 하나를 비동기로 취득 (fetch_pages의 워커)."""
+    try:
+        response = await client.get(_resolve_naver_url(url))
+        response.raise_for_status()
+    except httpx.HTTPError as e:
+        return _open_failed(e)
+    return _page_text(response.text)
+
+
+# ── 이하 저수준 파싱 세부 ──────────────────────────────
+
+def _page_text(raw_html: str) -> str:
+    """응답 HTML → 본문 텍스트. fetch_page/fetch_pages 공통 후처리."""
+    text = _extract_body(BeautifulSoup(raw_html, "html.parser"))
     if len(text) < 150:
         return "[본문 추출 실패] 이 URL은 근거로 쓰지 마세요."
     return text[:2000]
 
 
-# ── 이하 저수준 파싱 세부 ──────────────────────────────
+def _open_failed(error: httpx.HTTPError) -> str:
+    return f"[열기 실패: {type(error).__name__}] 이 URL은 건너뛰세요."
 
 def _strip_tags(text: str) -> str:
     return html.unescape(re.sub(r"<[^>]+>", "", text or "")).strip()
