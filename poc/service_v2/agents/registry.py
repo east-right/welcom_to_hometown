@@ -4,14 +4,11 @@
 여기서는 '구조'만 조립한다.
 """
 from google.adk.agents import LlmAgent
-from google.adk.tools.agent_tool import AgentTool
 
 from ..config import MODEL
 from ..domain.models import Feed, SlotExtraction
 from ..infrastructure.naver import fetch_page, naver_search
 from . import prompts
-
-_SEARCH_TOOLS = [naver_search, fetch_page]
 
 
 class AgentRegistry:
@@ -24,39 +21,16 @@ class AgentRegistry:
 
 
 def _coordinator() -> LlmAgent:
-    """목적별 검색 서브 에이전트를 위임 호출하는 코디네이터."""
-    subs = [
-        _searcher("restaurant_agent", "식당·맛집"),
-        _searcher("cafe_agent", "카페·디저트"),
-        _festival(),
-        _searcher("spot_agent", "관광지·명소"),
-    ]
+    """검색 도구를 직접 들고 검색·선별까지 하는 코디네이터.
+
+    서브에이전트 없이 naver_search·fetch_page를 직접 호출한다(레벨 1단).
+    모든 검색 원문이 이 에이전트 문맥에 쌓이는 대신, 홉이 적고 흐름이 단순하다.
+    """
     return LlmAgent(
         name="coordinator",
         model=MODEL,
         instruction=prompts.COORDINATOR,
-        tools=[AgentTool(agent=sub) for sub in subs],
-    )
-
-
-def _festival() -> LlmAgent:
-    return LlmAgent(
-        name="festival_agent",
-        model=MODEL,
-        description="축제·행사·공연 정보를 검색한다.",
-        instruction=prompts.FESTIVAL,
-        tools=_SEARCH_TOOLS,
-    )
-
-
-def _searcher(name: str, desc: str) -> LlmAgent:
-    """장소(맛집/카페/명소) 계열 검색 에이전트."""
-    return LlmAgent(
-        name=name,
-        model=MODEL,
-        description=f"{desc}을(를) 네이버에서 검색한다.",
-        instruction=prompts.PLACE.format(desc=desc),
-        tools=_SEARCH_TOOLS,
+        tools=[naver_search, fetch_page],
     )
 
 

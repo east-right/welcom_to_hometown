@@ -31,16 +31,12 @@ class AgentRunner:
             session_id=session.id,
             new_message=self._as_message(text),
         ):
-            self._trace(event)
+            self._tracer.observe(event)
             if event.is_final_response() and event.content:
                 final = self._join_text(event.content.parts)
 
         self._tracer.finished(agent.name, final, time.time() - started_at)
         return final
-
-    def _trace(self, event) -> None:
-        for part in (event.content.parts if event.content else []) or []:
-            self._tracer.observed(event.author, part)
 
     @staticmethod
     def _as_message(text: str) -> types.Content:
