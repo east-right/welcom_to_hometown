@@ -64,4 +64,4 @@ class Card(BaseModel):
 
 
 class Feed(BaseModel):
-    cards: list[Card] = Field(description="추천 카드 목록 (최대 6개)")
+    cards: list[Card] = Field(description="추천 카드 목록 (최대 10개, 우선순위 순)")

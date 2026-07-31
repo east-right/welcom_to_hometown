@@ -24,7 +24,7 @@ const el = {
 function renderPlaceholderFeed() {
   const domains = Object.values(DOMAIN);
   el.feed.innerHTML = "";
-  for (let i = 0; i < 6; i++) {
+  for (let i = 0; i < 10; i++) {
     const d = domains[i % domains.length];
     el.feed.insertAdjacentHTML("beforeend", `
       <article class="card is-placeholder">
