@@ -9,6 +9,7 @@ import asyncio
 from .agents.registry import AgentRegistry
 from .application.recommender import Recommender
 from .infrastructure.logger import RunLogger
+from .infrastructure.recorder import RunRecorder
 from .infrastructure.runner import AgentRunner
 from .infrastructure.tracer import RunTracer
 from .interface import cli
@@ -20,7 +21,8 @@ USER = "u1"
 def build_recommender() -> Recommender:
     """의존성을 조립해 유스케이스 객체를 만든다."""
     tracer = RunTracer(RunLogger())
-    runner = AgentRunner(APP, USER, tracer)
+    recorder = RunRecorder()
+    runner = AgentRunner(APP, USER, tracer, recorder)
     return Recommender(runner, AgentRegistry())
 
 
