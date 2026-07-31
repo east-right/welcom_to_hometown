@@ -24,9 +24,9 @@ class RunTracer:
         self._tool_started_at: dict[str, float] = {}
         self._step = 0
 
-    def started(self, agent_name: str, text: str) -> None:
+    def started(self, agent_name: str, model: str, text: str) -> None:
         self._step = 0
-        self._log.write(f"┌─ [{agent_name}] 시작")
+        self._log.write(f"┌─ [{agent_name}] 시작  (model={model})")
         self._log.write(f"│  ① 첫 입력 (전체 {len(text)}자):")
         self._write_block(_clip(text, _INPUT_PREVIEW))
 

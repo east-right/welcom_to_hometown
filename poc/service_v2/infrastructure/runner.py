@@ -27,7 +27,7 @@ class AgentRunner:
             app_name=self._app, user_id=self._user
         )
 
-        self._tracer.started(agent.name, text)
+        self._tracer.started(agent.name, model_label(agent.model), text)
         started_at = time.time()
 
         final = ""

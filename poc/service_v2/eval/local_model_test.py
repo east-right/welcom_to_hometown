@@ -77,6 +77,13 @@ def slots(query: str) -> None:
     asyncio.run(_understand(query))
 
 
+def _print_cards(feed) -> None:
+    print(f"  카드 {len(feed.cards)}개:")
+    for c in feed.cards:
+        meta = c.period or " / ".join(x for x in (c.hours, c.closed) if x)
+        print(f"   - [{c.domain}] {c.name} | {meta} | {c.source}")
+
+
 def recommend(s: Slots) -> None:
     print(f"[전체 추천] {s.summary()}")
     rec = build_recommender()
@@ -85,10 +92,26 @@ def recommend(s: Slots) -> None:
     except Exception as e:  # 컨텍스트 초과·툴콜링 실패 등을 깔끔히 보여줌
         print(f"  ❌ 실패: {type(e).__name__} — {str(e)[:250]}")
         return
-    print(f"  카드 {len(feed.cards)}개:")
-    for c in feed.cards:
-        meta = c.period or " / ".join(x for x in (c.hours, c.closed) if x)
-        print(f"   - [{c.domain}] {c.name} | {meta} | {c.source}")
+    _print_cards(feed)
+
+
+async def _flow(query: str) -> None:
+    rec = build_recommender()
+    ext = await rec.understand(f"User: {query}")
+    slots = ext.slots
+    if not slots.purpose:                 # 목적 비면 질문 전체를 목적으로
+        slots = Slots(**{**slots.model_dump(), "purpose": query})
+    print(f"  슬롯: {slots.summary()}")
+    _print_cards(await rec.recommend(slots))
+
+
+def flow(query: str) -> None:
+    """질문 하나 → understand→recommend 를 한 번에 (슬롯 수동입력 없음)."""
+    print(f"[전체 플로우] \"{query}\"")
+    try:
+        asyncio.run(_flow(query))
+    except Exception as e:
+        print(f"  ❌ 실패: {type(e).__name__} — {str(e)[:250]}")
 
 
 def main() -> None:
@@ -107,6 +130,9 @@ def main() -> None:
     p_rec.add_argument("--companion", default="부모님")
     p_rec.add_argument("--purpose", default="맛집")
 
+    p_flow = sub.add_parser("flow", help="질문 하나 → understand→recommend 한 번에")
+    p_flow.add_argument("query")
+
     p_all = sub.add_parser("all", help="check → slots → recommend")
     p_all.add_argument("query", nargs="?", default="창원에 부모님이랑 주말에 맛집")
 
@@ -116,6 +142,8 @@ def main() -> None:
         check()
     elif args.cmd == "slots":
         slots(args.query)
+    elif args.cmd == "flow":
+        flow(args.query)
     elif args.cmd == "recommend":
         recommend(Slots(region=args.region, date=args.date,
                         companion=args.companion, purpose=args.purpose))
