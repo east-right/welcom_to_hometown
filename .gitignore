@@ -7,6 +7,6 @@ wheels/
 *.egg-info
 logs/
 .env
-
+CLAUDE.md
 # Virtual environments
 .venv
