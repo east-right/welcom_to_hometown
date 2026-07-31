@@ -40,11 +40,14 @@ class RunTracer:
             elif getattr(part, "function_response", None):
                 self._on_tool_response(part.function_response)
 
-    def finished(self, agent_name: str, final: str, elapsed: float) -> None:
+    def finished(self, agent_name: str, final: str, elapsed: float, model_sec=None) -> None:
         self._log.write("│")
         self._log.write(f"│  ⑤ 최종 출력 (전체 {len(final)}자):")
         self._write_block(_clip(final, _BODY_PREVIEW))
-        self._log.write(f"└─ [{agent_name}] 완료 ({elapsed:.1f}초, 툴 {self._step}회)\n")
+        timing = f"{elapsed:.1f}초(벽시계)"
+        if model_sec is not None:
+            timing += f" / {model_sec:.2f}초(모델, 통신제외)"
+        self._log.write(f"└─ [{agent_name}] 완료 ({timing}, 툴 {self._step}회)\n")
 
     # ── 루프 한 스텝: LLM이 툴을 부른다 ──────────────────
     def _on_tool_call(self, call) -> None:

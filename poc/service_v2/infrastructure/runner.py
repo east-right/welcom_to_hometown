@@ -14,11 +14,12 @@ from .model import model_label
 
 
 class AgentRunner:
-    def __init__(self, app_name: str, user_id: str, tracer, recorder=None) -> None:
+    def __init__(self, app_name: str, user_id: str, tracer, recorder=None, metrics=None) -> None:
         self._app = app_name
         self._user = user_id
         self._tracer = tracer
         self._recorder = recorder
+        self._metrics = metrics   # vLLM 서버측 지표(통신시간 제외). 없으면 벽시계만.
 
     async def run(self, agent, text: str) -> str:
         """에이전트를 한 번 실행하고 최종 응답 텍스트를 반환한다."""
@@ -27,6 +28,7 @@ class AgentRunner:
             app_name=self._app, user_id=self._user
         )
 
+        before = self._metrics.snapshot() if self._metrics else None
         self._tracer.started(agent.name, model_label(agent.model), text)
         started_at = time.time()
 
@@ -43,17 +45,21 @@ class AgentRunner:
                 final = self._join_text(event.content.parts)
 
         elapsed = time.time() - started_at
-        self._tracer.finished(agent.name, final, elapsed)
-        self._record(agent, elapsed, tokens, final)
+        server = self._metrics.step(before, self._metrics.snapshot()) if self._metrics else {}
+        self._tracer.finished(agent.name, final, elapsed, server.get("model_sec"))
+        self._record(agent, elapsed, server, tokens, final)
         return final
 
-    def _record(self, agent, elapsed: float, tokens: "_Tokens", final: str) -> None:
+    def _record(self, agent, elapsed: float, server: dict, tokens: "_Tokens", final: str) -> None:
         if not self._recorder:
             return
         self._recorder.record(
             model=model_label(agent.model),
             agent=agent.name,
-            elapsed_sec=round(elapsed, 2),
+            elapsed_sec=round(elapsed, 2),         # 벽시계(통신 포함) — 참고용
+            model_sec=_round(server.get("model_sec"), 3),  # 서버측 추론시간(통신 제외)
+            ttft=_round(server.get("ttft"), 3),
+            itl=_round(server.get("itl"), 4),
             tokens=tokens.as_dict(),
             chars=len(final),
             output=final,
@@ -66,6 +72,10 @@ class AgentRunner:
     @staticmethod
     def _join_text(parts) -> str:
         return "".join(part.text or "" for part in parts)
+
+
+def _round(value, ndigits):
+    return round(value, ndigits) if value is not None else None
 
 
 class _Tokens:

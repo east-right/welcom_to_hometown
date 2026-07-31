@@ -16,10 +16,12 @@
 import argparse
 import asyncio
 import json
+import os
 import re
 import statistics
 import sys
 import time
+from datetime import datetime
 
 import httpx
 
@@ -174,14 +176,74 @@ async def serving(testset: list[dict]) -> None:
         print(f"  ITL  : {statistics.mean(itls)*1000:6.1f}ms / {statistics.median(itls)*1000:6.1f}ms")
 
 
+def _new_records(path: str, before_size: int) -> list[dict]:
+    """이번 실행이 runs.jsonl에 새로 남긴 레코드만 읽는다."""
+    if not os.path.exists(path):
+        return []
+    with open(path, encoding="utf-8") as f:
+        f.seek(before_size)
+        return [json.loads(line) for line in f if line.strip()]
+
+
+async def report(testset: list[dict]) -> None:
+    """test.json 전체 평가 → recall/precision + 서버측 시간지표(통신 제외) → 파일 저장."""
+    runs = "logs/runs.jsonl"
+    before = os.path.getsize(runs) if os.path.exists(runs) else 0
+
+    rec = build_recommender()
+    per_q = []
+    print(f"[리포트] 모델={MODEL}  문항={len(testset)}\n")
+    for i, item in enumerate(testset, 1):
+        q, answers = item["question"], item["answer"]
+        try:
+            names, _ = await _recommend_names(rec, q)
+            s = score(answers, names)
+        except Exception as e:
+            s = {"recall": 0.0, "precision": 0.0, "matched": 0, "n_answer": len(answers)}
+            print(f"{i}. ❌ {q} — {type(e).__name__}")
+        else:
+            print(f"{i}. {q}  recall={s['recall']:.2f} precision={s['precision']:.2f}")
+        per_q.append({"question": q, **s})
+
+    # 이번 실행이 남긴 서버측 지표(model_sec/ttft/itl = 통신시간 제외)
+    steps = _new_records(runs, before)
+    model_secs = [r["model_sec"] for r in steps if r.get("model_sec") is not None]
+    ttfts = [r["ttft"] for r in steps if r.get("ttft") is not None]
+    itls = [r["itl"] for r in steps if r.get("itl") is not None]
+
+    summary = {
+        "model": MODEL,
+        "questions": len(testset),
+        "recall": round(statistics.mean(x["recall"] for x in per_q), 3),
+        "precision": round(statistics.mean(x["precision"] for x in per_q), 3),
+        "steps": len(steps),
+        "model_sec_mean": round(statistics.mean(model_secs), 3) if model_secs else None,
+        "ttft_mean": round(statistics.mean(ttfts), 3) if ttfts else None,
+        "itl_mean": round(statistics.mean(itls), 4) if itls else None,
+    }
+    print("\n── 리포트 요약 (시간지표는 서버측=통신 제외) ──")
+    for key, value in summary.items():
+        print(f"  {key:16}: {value}")
+    if summary["model_sec_mean"] is None:
+        print("  ⚠️ 서버측 지표 비어있음 — vLLM /metrics 이름이 버전과 다를 수 있음 (metrics.py 후보 확인)")
+
+    out = f"logs/report_{MODEL.replace('/', '_')}_{datetime.now():%Y%m%d_%H%M%S}.json"
+    with open(out, "w", encoding="utf-8") as f:
+        json.dump({"summary": summary, "per_question": per_q}, f, ensure_ascii=False, indent=2)
+    print(f"\n  → 저장: {out}")
+
+
 def main() -> None:
     _utf8_stdout()
-    ap = argparse.ArgumentParser(description="테스트셋 평가 (recall/precision + TTFT/E2EL/ITL)")
-    ap.add_argument("cmd", choices=["quality", "serving", "all"])
+    ap = argparse.ArgumentParser(description="테스트셋 평가 (recall/precision + 서버측 시간지표)")
+    ap.add_argument("cmd", choices=["quality", "serving", "report", "all"])
     ap.add_argument("--testset", default=_DEFAULT_TESTSET)
     args = ap.parse_args()
 
     testset = load_testset(args.testset)
+    if args.cmd == "report":
+        asyncio.run(report(testset))
+        return
     if args.cmd in ("quality", "all"):
         asyncio.run(quality(testset))
     if args.cmd == "all":
