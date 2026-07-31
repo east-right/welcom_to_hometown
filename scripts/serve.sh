@@ -12,6 +12,7 @@ set -euo pipefail
 
 EXTRA=""; TOOL=""; REASON=""
 case "${1:-}" in
+  4b)    M="Qwen/Qwen3-4B";             TOOL=hermes;      REASON=deepseek_r1 ;;
   8b)    M="Qwen/Qwen3-8B";             TOOL=hermes;      REASON=deepseek_r1 ;;
   14b)   M="Qwen/Qwen3-14B";            TOOL=hermes;      REASON=deepseek_r1 ;;
   32b)   M="Qwen/Qwen3-32B";            TOOL=hermes;      REASON=deepseek_r1 ;;
