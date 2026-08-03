@@ -5,10 +5,14 @@
 """
 from google.adk.agents import LlmAgent
 
-from ..config import MODEL
+from ..config import MODEL, MODEL_API_BASE, MODEL_API_KEY
 from ..domain.models import Feed, SlotExtraction
+from ..infrastructure.model import build_model
 from ..infrastructure.naver import fetch_pages, naver_search
 from . import prompts
+
+# WH_MODEL 하나로 모든 에이전트가 같은 모델을 쓴다. (원격 오픈모델이면 LiteLlm 객체)
+_MODEL = build_model(MODEL, MODEL_API_BASE, MODEL_API_KEY)
 
 
 class AgentRegistry:
@@ -28,7 +32,7 @@ def _coordinator() -> LlmAgent:
     """
     return LlmAgent(
         name="coordinator",
-        model=MODEL,
+        model=_MODEL,
         instruction=prompts.COORDINATOR,
         tools=[naver_search, fetch_pages],
     )
@@ -36,4 +40,4 @@ def _coordinator() -> LlmAgent:
 
 def _structured(name: str, instruction: str, schema) -> LlmAgent:
     """JSON 스키마로 출력을 강제하는 에이전트 (툴 없음)."""
-    return LlmAgent(name=name, model=MODEL, instruction=instruction, output_schema=schema)
+    return LlmAgent(name=name, model=_MODEL, instruction=instruction, output_schema=schema)

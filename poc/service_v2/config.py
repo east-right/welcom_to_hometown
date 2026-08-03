@@ -6,6 +6,9 @@ from dotenv import load_dotenv
 load_dotenv()
 
 MODEL = os.environ.get("WH_MODEL", "gemini-3.6-flash")
+# 원격 오픈모델(RunPod의 vLLM/TGI 등 OpenAI 호환 엔드포인트)로 붙을 때만 채운다.
+MODEL_API_BASE = os.environ.get("WH_MODEL_API_BASE", "")
+MODEL_API_KEY = os.environ.get("WH_MODEL_API_KEY", "")
 
 NAVER_CLIENT_ID = os.environ.get("NAVER_CLIENT_ID", "")
 NAVER_CLIENT_SECRET = os.environ.get("NAVER_CLIENT_SECRET", "")

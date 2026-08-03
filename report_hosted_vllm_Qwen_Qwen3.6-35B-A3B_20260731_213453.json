@@ -1,0 +1,61 @@
+{
+  "summary": {
+    "model": "hosted_vllm/Qwen/Qwen3.6-35B-A3B",
+    "questions": 6,
+    "recall": 0.15,
+    "precision": 0.106,
+    "steps": 16,
+    "model_sec_mean": 18.751,
+    "ttft_mean": 0.443,
+    "itl_mean": 0.0073
+  },
+  "per_question": [
+    {
+      "question": "다음주에 창원 귀산 바다가 보이는 커피 맛집",
+      "recall": 0.0,
+      "precision": 0.0,
+      "matched": 0,
+      "n_answer": 5
+    },
+    {
+      "question": "다음주에 신림동에서 맨날 저녁 먹기 좋은 가성비 식당 추천",
+      "recall": 0.5,
+      "precision": 0.2,
+      "matched": 2,
+      "n_answer": 4,
+      "n_reco": 10
+    },
+    {
+      "question": "다음주에 창원 귀산 맛집 추천",
+      "recall": 0.0,
+      "precision": 0.0,
+      "matched": 0,
+      "n_answer": 3,
+      "n_reco": 10
+    },
+    {
+      "question": "다음주에 창원 가포 맛집 추천",
+      "recall": 0.2,
+      "precision": 0.1,
+      "matched": 1,
+      "n_answer": 5,
+      "n_reco": 10
+    },
+    {
+      "question": "다음주에 마산에서 피자집 추천좀 해줘",
+      "recall": 0.2,
+      "precision": 0.3333333333333333,
+      "matched": 1,
+      "n_answer": 5,
+      "n_reco": 3
+    },
+    {
+      "question": "다음주에 창원에서 횟집 추천해줘",
+      "recall": 0.0,
+      "precision": 0.0,
+      "matched": 0,
+      "n_answer": 5,
+      "n_reco": 10
+    }
+  ]
+}
