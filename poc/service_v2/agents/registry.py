@@ -4,14 +4,15 @@
 여기서는 '구조'만 조립한다.
 """
 from google.adk.agents import LlmAgent
-from google.adk.tools.agent_tool import AgentTool
 
-from ..config import MODEL
+from ..config import MODEL, MODEL_API_BASE, MODEL_API_KEY
 from ..domain.models import Feed, SlotExtraction
-from ..infrastructure.naver import fetch_page, naver_search
+from ..infrastructure.model import build_model
+from ..infrastructure.naver import fetch_pages, naver_search
 from . import prompts
 
-_SEARCH_TOOLS = [naver_search, fetch_page]
+# WH_MODEL 하나로 모든 에이전트가 같은 모델을 쓴다. (원격 오픈모델이면 LiteLlm 객체)
+_MODEL = build_model(MODEL, MODEL_API_BASE, MODEL_API_KEY)
 
 
 class AgentRegistry:
@@ -24,42 +25,19 @@ class AgentRegistry:
 
 
 def _coordinator() -> LlmAgent:
-    """목적별 검색 서브 에이전트를 위임 호출하는 코디네이터."""
-    subs = [
-        _searcher("restaurant_agent", "식당·맛집"),
-        _searcher("cafe_agent", "카페·디저트"),
-        _festival(),
-        _searcher("spot_agent", "관광지·명소"),
-    ]
+    """검색 도구를 직접 들고 검색·선별까지 하는 코디네이터.
+
+    서브에이전트 없이 naver_search·fetch_pages를 직접 호출한다(레벨 1단).
+    본문 취득은 URL 여러 개를 fetch_pages로 한 번에 넘겨 병렬로 처리한다.
+    """
     return LlmAgent(
         name="coordinator",
-        model=MODEL,
+        model=_MODEL,
         instruction=prompts.COORDINATOR,
-        tools=[AgentTool(agent=sub) for sub in subs],
-    )
-
-
-def _festival() -> LlmAgent:
-    return LlmAgent(
-        name="festival_agent",
-        model=MODEL,
-        description="축제·행사·공연 정보를 검색한다.",
-        instruction=prompts.FESTIVAL,
-        tools=_SEARCH_TOOLS,
-    )
-
-
-def _searcher(name: str, desc: str) -> LlmAgent:
-    """장소(맛집/카페/명소) 계열 검색 에이전트."""
-    return LlmAgent(
-        name=name,
-        model=MODEL,
-        description=f"{desc}을(를) 네이버에서 검색한다.",
-        instruction=prompts.PLACE.format(desc=desc),
-        tools=_SEARCH_TOOLS,
+        tools=[naver_search, fetch_pages],
     )
 
 
 def _structured(name: str, instruction: str, schema) -> LlmAgent:
     """JSON 스키마로 출력을 강제하는 에이전트 (툴 없음)."""
-    return LlmAgent(name=name, model=MODEL, instruction=instruction, output_schema=schema)
+    return LlmAgent(name=name, model=_MODEL, instruction=instruction, output_schema=schema)
