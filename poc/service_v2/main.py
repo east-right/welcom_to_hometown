@@ -8,7 +8,10 @@ import asyncio
 
 from .agents.registry import AgentRegistry
 from .application.recommender import Recommender
+from .config import MODEL_API_BASE, MODEL_API_KEY
 from .infrastructure.logger import RunLogger
+from .infrastructure.metrics import VllmMetrics
+from .infrastructure.recorder import RunRecorder
 from .infrastructure.runner import AgentRunner
 from .infrastructure.tracer import RunTracer
 from .interface import cli
@@ -20,7 +23,10 @@ USER = "u1"
 def build_recommender() -> Recommender:
     """의존성을 조립해 유스케이스 객체를 만든다."""
     tracer = RunTracer(RunLogger())
-    runner = AgentRunner(APP, USER, tracer)
+    recorder = RunRecorder()
+    # 원격 vLLM이면 서버측 지표(통신시간 제외)를 붙인다. 네이티브(Gemini)면 생략.
+    metrics = VllmMetrics(MODEL_API_BASE, MODEL_API_KEY) if MODEL_API_BASE else None
+    runner = AgentRunner(APP, USER, tracer, recorder, metrics)
     return Recommender(runner, AgentRegistry())
 
 

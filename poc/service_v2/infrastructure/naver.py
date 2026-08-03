@@ -45,7 +45,7 @@ def naver_search(query: str, kind: str = "blog") -> list:
                 "X-Naver-Client-Id": NAVER_CLIENT_ID,
                 "X-Naver-Client-Secret": NAVER_CLIENT_SECRET,
             },
-            params={"query": query, "display": 8, "sort": "sim"},
+            params={"query": query, "display": 6, "sort": "sim"},
             timeout=5.0,
         )
         response.raise_for_status()
@@ -117,7 +117,7 @@ def _page_text(raw_html: str) -> str:
     text = _extract_body(BeautifulSoup(raw_html, "html.parser"))
     if len(text) < 150:
         return "[본문 추출 실패] 이 URL은 근거로 쓰지 마세요."
-    return text[:2000]
+    return text[:1000]   # 컨텍스트 폭발 방지 (여러 본문이 coordinator 문맥에 쌓임)
 
 
 def _open_failed(error: httpx.HTTPError) -> str:

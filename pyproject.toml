@@ -9,6 +9,7 @@ dependencies = [
     "fastapi>=0.139.2",
     "google-adk>=2.5.0",
     "httpx>=0.28.1",
+    "litellm>=1.94.0",
     "nest-asyncio>=1.6.0",
     "openai>=2.46.0",
     "pydantic>=2.13.4",
