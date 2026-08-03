@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Welcome to Hometown</title>
+  <link rel="stylesheet" href="/style.css" />
+</head>
+<body>
+  <main class="stage">
+    <!-- 세로 폰 프레임 -->
+    <div class="phone">
+      <div class="notch"></div>
+      <div class="screen">
+
+        <!-- ── 피드 뷰 ── -->
+        <section id="feed-view" class="view is-active">
+          <header class="feed-header">
+            <div class="brand">
+              <span class="brand-mark">◎</span>
+              <span class="brand-name">홈타운</span>
+            </div>
+            <div class="feed-sub" id="feed-sub">지금 이 지역, 이런 곳 어때요?</div>
+          </header>
+          <div class="feed" id="feed"><!-- 카드 JS 렌더 --></div>
+          <button class="fab" id="open-chat" type="button">
+            <span class="fab-icon">✎</span> 대화로 추천받기
+          </button>
+        </section>
+
+        <!-- ── 채팅 뷰 ── -->
+        <section id="chat-view" class="view">
+          <header class="chat-header">
+            <button class="icon-btn" id="close-chat" type="button" aria-label="뒤로">‹</button>
+            <div class="chat-title">홈타운 도우미</div>
+            <button class="icon-btn" id="reset-chat" type="button" aria-label="새로 시작">↻</button>
+          </header>
+          <div class="messages" id="messages"><!-- 말풍선 JS 렌더 --></div>
+          <form class="composer" id="composer">
+            <input id="chat-input" type="text" autocomplete="off"
+                   placeholder="어디로, 언제, 누구랑 갈지 편하게 말해보세요" />
+            <button class="send-btn" type="submit" aria-label="전송">↑</button>
+          </form>
+        </section>
+
+      </div>
+    </div>
+  </main>
+  <script src="/app.js"></script>
+</body>
+</html>
