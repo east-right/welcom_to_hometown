@@ -3,7 +3,7 @@ import os
 
 from dotenv import load_dotenv
 
-load_dotenv()
+load_dotenv(override=True)
 
 MODEL = os.environ.get("WH_MODEL", "gemini-3.6-flash")
 # 원격 오픈모델(RunPod의 vLLM/TGI 등 OpenAI 호환 엔드포인트)로 붙을 때만 채운다.
