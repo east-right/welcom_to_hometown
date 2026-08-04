@@ -51,6 +51,19 @@ class SlotExtraction(BaseModel):
     )
 
 
+class SearchQuery(BaseModel):
+    """병렬로 던질 검색어 하나. kind로 네이버 검색 종류를 고른다."""
+
+    query: str = Field(description="네이버 검색어. 지역명을 반드시 포함. 예 '창원 귀산 횟집'")
+    kind: str = Field(default="blog", description="blog(후기)/news(일정)/local(장소) 중 하나")
+
+
+class QueryPlan(BaseModel):
+    """슬롯을 여러 각도로 넓힌 검색어 묶음. 한 번에 병렬 검색한다."""
+
+    queries: list[SearchQuery] = Field(description="서로 다른 검색어 8~10개")
+
+
 class Card(BaseModel):
     """추천 카드. 도메인별로 채우는 필드가 다르다."""
 

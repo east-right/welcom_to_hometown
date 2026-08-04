@@ -6,9 +6,8 @@
 from google.adk.agents import LlmAgent
 
 from ..config import MODEL, MODEL_API_BASE, MODEL_API_KEY
-from ..domain.models import Feed, SlotExtraction
+from ..domain.models import Feed, QueryPlan, SlotExtraction
 from ..infrastructure.model import build_model
-from ..infrastructure.naver import fetch_pages, naver_search
 from . import prompts
 
 # WH_MODEL 하나로 모든 에이전트가 같은 모델을 쓴다. (원격 오픈모델이면 LiteLlm 객체)
@@ -16,26 +15,18 @@ _MODEL = build_model(MODEL, MODEL_API_BASE, MODEL_API_KEY)
 
 
 class AgentRegistry:
-    """유스케이스가 직접 부르는 세 진입 에이전트를 보관한다."""
+    """유스케이스가 직접 부르는 세 에이전트. 모두 구조화 출력이고 툴이 없다.
+
+    검색은 유스케이스가 병렬로 지휘하므로, 에이전트는 순수 추론만 한다:
+      slot_extractor → 대화에서 슬롯 추출
+      query_expander → 슬롯을 검색어 8~10개로 증강
+      selector       → 검색 후보를 보고 추천 카드 선별·정렬
+    """
 
     def __init__(self) -> None:
         self.slot_extractor = _structured("slot_extractor", prompts.SLOT_EXTRACTOR, SlotExtraction)
-        self.coordinator = _coordinator()
-        self.formatter = _structured("formatter", prompts.FORMATTER, Feed)
-
-
-def _coordinator() -> LlmAgent:
-    """검색 도구를 직접 들고 검색·선별까지 하는 코디네이터.
-
-    서브에이전트 없이 naver_search·fetch_pages를 직접 호출한다(레벨 1단).
-    본문 취득은 URL 여러 개를 fetch_pages로 한 번에 넘겨 병렬로 처리한다.
-    """
-    return LlmAgent(
-        name="coordinator",
-        model=_MODEL,
-        instruction=prompts.COORDINATOR,
-        tools=[naver_search, fetch_pages],
-    )
+        self.query_expander = _structured("query_expander", prompts.QUERY_EXPANDER, QueryPlan)
+        self.selector = _structured("selector", prompts.SELECTOR, Feed)
 
 
 def _structured(name: str, instruction: str, schema) -> LlmAgent:
