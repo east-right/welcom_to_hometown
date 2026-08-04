@@ -12,8 +12,7 @@ ADK 루프 한 바퀴 = [LLM이 툴 호출] → [툴 실행/반환] → 반환�
 """
 import time
 
-_BODY_PREVIEW = 800   # fetch_page 원문 미리보기 길이(자)
-_INPUT_PREVIEW = 600  # 첫 입력 미리보기 길이(자)
+_BODY_PREVIEW = 800   # 툴 원문 미리보기 길이(자)
 
 
 class RunTracer:
@@ -28,7 +27,7 @@ class RunTracer:
         self._step = 0
         self._log.write(f"┌─ [{agent_name}] 시작  (model={model})")
         self._log.write(f"│  ① 첫 입력 (전체 {len(text)}자):")
-        self._write_block(_clip(text, _INPUT_PREVIEW))
+        self._write_block(text)   # selector 입력(후보+본문)까지 통째로 보이게 자르지 않는다
 
     def observe(self, event) -> None:
         """이벤트 하나(=루프 한 조각)를 보고 툴 호출/응답이면 기록한다."""
@@ -43,7 +42,7 @@ class RunTracer:
     def finished(self, agent_name: str, final: str, elapsed: float, model_sec=None) -> None:
         self._log.write("│")
         self._log.write(f"│  ⑤ 최종 출력 (전체 {len(final)}자):")
-        self._write_block(_clip(final, _BODY_PREVIEW))
+        self._write_block(final)   # 최종 카드 JSON도 자르지 않고 전부 남긴다
         timing = f"{elapsed:.1f}초(벽시계)"
         if model_sec is not None:
             timing += f" / {model_sec:.2f}초(모델, 통신제외)"
