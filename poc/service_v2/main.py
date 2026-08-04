@@ -21,9 +21,13 @@ APP = "wh"
 USER = "u1"
 
 
-def build_recommender() -> Recommender:
-    """의존성을 조립해 유스케이스 객체를 만든다."""
-    logger = RunLogger()
+def build_recommender(logger: RunLogger | None = None) -> Recommender:
+    """의존성을 조립해 유스케이스 객체를 만든다.
+
+    logger를 주면 그 로거로 기록한다(예: report가 실행별 로그 파일을 넘김).
+    없으면 날짜별 기본 로거를 쓴다.
+    """
+    logger = logger or RunLogger()
     tracer = RunTracer(logger)
     recorder = RunRecorder()
     # 원격 vLLM이면 서버측 지표(통신시간 제외)를 붙인다. 네이티브(Gemini)면 생략.

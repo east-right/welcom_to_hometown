@@ -27,6 +27,7 @@ import httpx
 
 from ..config import MODEL, MODEL_API_BASE, MODEL_API_KEY
 from ..domain.models import Slots
+from ..infrastructure.logger import RunLogger
 from ..main import build_recommender
 
 _DEFAULT_TESTSET = "data/test.json"
@@ -186,11 +187,17 @@ def _new_records(path: str, before_size: int) -> list[dict]:
 
 
 async def report(testset: list[dict]) -> None:
-    """test.json 전체 평가 → recall/precision + 서버측 시간지표(통신 제외) → 파일 저장."""
+    """test.json 전체 평가 → recall/precision + 서버측 시간지표(통신 제외) → 파일 저장.
+
+    이 실행의 파이프라인 로그·리포트를 같은 이름(report_<model>_<ts>)으로 짝지어
+    실행별로 분리 저장한다(날짜별 run 로그에 섞지 않음).
+    """
     runs = "logs/runs.jsonl"
     before = os.path.getsize(runs) if os.path.exists(runs) else 0
 
-    rec = build_recommender()
+    stamp = f"{MODEL.replace('/', '_')}_{datetime.now():%Y%m%d_%H%M%S}"
+    logger = RunLogger(name=f"report_{stamp}")   # 이 실행 전용 로그 파일
+    rec = build_recommender(logger)
     per_q = []
     print(f"[리포트] 모델={MODEL}  문항={len(testset)}\n")
     for i, item in enumerate(testset, 1):
@@ -231,10 +238,11 @@ async def report(testset: list[dict]) -> None:
     if summary["model_sec_mean"] is None:
         print("  ⚠️ 서버측 지표 비어있음 — vLLM /metrics 이름이 버전과 다를 수 있음 (metrics.py 후보 확인)")
 
-    out = f"logs/report_{MODEL.replace('/', '_')}_{datetime.now():%Y%m%d_%H%M%S}.json"
+    out = f"logs/report_{stamp}.json"
     with open(out, "w", encoding="utf-8") as f:
         json.dump({"summary": summary, "per_question": per_q}, f, ensure_ascii=False, indent=2)
-    print(f"\n  → 저장: {out}")
+    print(f"\n  → 리포트: {out}")
+    print(f"  → 로그  : logs/report_{stamp}.log")
 
 
 def main() -> None:

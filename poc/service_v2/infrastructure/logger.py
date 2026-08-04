@@ -7,10 +7,12 @@ from pathlib import Path
 class RunLogger:
     """한 줄 로그를 타임스탬프와 함께 콘솔·파일에 기록한다."""
 
-    def __init__(self, log_dir: str = "logs") -> None:
+    def __init__(self, log_dir: str = "logs", name: str = "") -> None:
         directory = Path(log_dir)
         directory.mkdir(exist_ok=True)
-        self._file = directory / f"run_{datetime.now():%Y%m%d}.log"
+        # name을 주면 실행별 파일(예: report_<model>_<ts>.log), 없으면 날짜별 파일.
+        stem = name or f"run_{datetime.now():%Y%m%d}"
+        self._file = directory / f"{stem}.log"
         # Windows 콘솔(cp949) 등에서 이모지·대시가 깨지지 않도록 UTF-8로 전환(가능하면).
         try:
             sys.stdout.reconfigure(encoding="utf-8")
