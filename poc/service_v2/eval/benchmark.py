@@ -199,11 +199,15 @@ async def report(testset: list[dict]) -> None:
             names, _ = await _recommend_names(rec, q)
             s = score(answers, names)
         except Exception as e:
+            names = []
             s = {"recall": 0.0, "precision": 0.0, "matched": 0, "n_answer": len(answers)}
             print(f"{i}. ❌ {q} — {type(e).__name__}")
         else:
             print(f"{i}. {q}  recall={s['recall']:.2f} precision={s['precision']:.2f}")
-        per_q.append({"question": q, **s})
+            print(f"   정답: {answers}")
+            print(f"   추천: {names}")
+        # 정답 매장(test.json)과 실제 모델이 뽑은 매장을 함께 남긴다.
+        per_q.append({"question": q, "answer": answers, "recommended": names, **s})
 
     # 이번 실행이 남긴 서버측 지표(model_sec/ttft/itl = 통신시간 제외)
     steps = _new_records(runs, before)
