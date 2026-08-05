@@ -6,6 +6,9 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 
 MODEL = os.environ.get("WH_MODEL", "gemini-3.6-flash")
+# 판단·탐색하는 메인 coordinator만 더 센 모델을 쓰고 싶을 때. 없으면 WH_MODEL과 동일.
+# (리뷰 요약·슬롯추출 같은 단순 작업은 WH_MODEL로 저렴하게)
+MAIN_MODEL = os.environ.get("WH_MAIN_MODEL") or MODEL
 # 원격 오픈모델(RunPod의 vLLM/TGI 등 OpenAI 호환 엔드포인트)로 붙을 때만 채운다.
 MODEL_API_BASE = os.environ.get("WH_MODEL_API_BASE", "")
 MODEL_API_KEY = os.environ.get("WH_MODEL_API_KEY", "")

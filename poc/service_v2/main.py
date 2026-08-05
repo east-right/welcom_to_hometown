@@ -11,7 +11,7 @@ from .agents import registry
 from .agents.tools import make_find_places, make_read_reviews
 from .application.recommender import Recommender
 from .config import (
-    KAKAO_REST_API_KEY, MODEL, MODEL_API_BASE, MODEL_API_KEY,
+    KAKAO_REST_API_KEY, MAIN_MODEL, MODEL, MODEL_API_BASE, MODEL_API_KEY,
     NAVER_CLIENT_ID, NAVER_CLIENT_SECRET,
 )
 from .infrastructure.kakao import KakaoLocal
@@ -40,17 +40,19 @@ def build_recommender(logger: RunLogger | None = None) -> Recommender:
     main_runner = AgentRunner(APP, USER, RunTracer(logger), recorder, metrics)
     review_runner = AgentRunner(APP, USER, RunTracer(logger), recorder, metrics)
 
-    model = build_model(MODEL, MODEL_API_BASE, MODEL_API_KEY)
+    # coordinator(판단·탐색)는 더 센 모델, review·slot(단순 작업)은 저렴한 기본 모델.
+    main_model = build_model(MAIN_MODEL, MODEL_API_BASE, MODEL_API_KEY)
+    sub_model = build_model(MODEL, MODEL_API_BASE, MODEL_API_KEY)
     kakao = KakaoLocal(KAKAO_REST_API_KEY)
     naver = NaverBlog(NAVER_CLIENT_ID, NAVER_CLIENT_SECRET)
 
-    review = registry.review_agent(model)
+    review = registry.review_agent(sub_model)
     tools = [
         make_find_places(kakao),
         make_read_reviews(naver, review_runner, review),
     ]
-    coordinator = registry.coordinator(model, tools)
-    return Recommender(main_runner, registry.slot_extractor(model), coordinator)
+    coordinator = registry.coordinator(main_model, tools)
+    return Recommender(main_runner, registry.slot_extractor(sub_model), coordinator)
 
 
 def main() -> None:
