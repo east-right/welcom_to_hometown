@@ -28,6 +28,19 @@ class SlotExtraction(BaseModel):
     question: str = ""
 
 
+class KakaoQuery(BaseModel):
+    """카카오 지역검색용 '짧은' 키워드 쿼리. 긴 서술형은 결과가 0이라 쪼개 넣는다."""
+
+    query: str = Field(description="짧은 키워드 검색어. 지역명 포함. 예 '창원 귀산 카페'")
+    category: str = Field("", description="'' | FD6(음식점) | CE7(카페) | AT4(관광명소)")
+
+
+class QueryPlan(BaseModel):
+    """서술형 목적을 카카오가 먹는 짧은 쿼리 여러 개로 분해한 결과."""
+
+    queries: list[KakaoQuery] = Field(description="서로 다른 짧은 검색어 2~5개")
+
+
 class Place(BaseModel):
     """카카오 로컬이 준 '검증된 장소' 엔티티(상호·주소·좌표). 환각 없음."""
 

@@ -14,6 +14,15 @@ _PREVIEW = 800   # 툴 반환/원문 미리보기 길이(자)
 _MAX_ITEMS = 12  # 리스트 반환 미리보기 최대 항목 수
 
 
+class NullTracer:
+    """아무것도 남기지 않는 트레이서. 병렬로 도는 리뷰 요약 등에 쓴다
+    (여러 실행이 상태를 공유하면 로그가 엉키므로, 그럴 땐 무음으로)."""
+
+    def started(self, *args) -> None: ...
+    def observe(self, *args) -> None: ...
+    def finished(self, *args) -> None: ...
+
+
 class RunTracer:
     """에이전트 실행의 시작·툴 호출·응답·종료를 사람이 읽게 기록한다."""
 

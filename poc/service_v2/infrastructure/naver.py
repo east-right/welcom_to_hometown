@@ -1,7 +1,8 @@
-"""네이버 blog 후기 검색 + 본문 병렬 취득.
+"""네이버 blog 후기 검색 + 본문 취득.
 
 카카오가 못 주는 '살'(영업시간·기간·후기·광고여부)의 소스.
-검색으로 후기 URL을 찾고, 본문을 병렬로 긁어 요약 에이전트에 넘긴다.
+collect() 하나가 한 장소의 검색→본문까지 async로 처리하므로, 여러 장소를
+asyncio.gather로 동시에 요약 파이프라인에 태울 수 있다.
 """
 import asyncio
 import html
@@ -10,9 +11,10 @@ import re
 import httpx
 from bs4 import BeautifulSoup
 
-from ..config import NAVER_CLIENT_ID, NAVER_CLIENT_SECRET, USER_AGENT
+from ..config import NAVER_CLIENT_ID, NAVER_CLIENT_SECRET, USER_AGENT  # noqa: F401 (호환)
 
-# 본문 컨테이너 후보 (우선순위대로)
+_SEARCH_URL = "https://openapi.naver.com/v1/search/blog.json"
+
 _BODY_SELECTORS = [
     ".se-main-container", "#postViewArea", "#dic_area", "#articleBodyContents",
     "article", "#article-view-content-div",
@@ -24,19 +26,23 @@ _DROP_TAGS = ["script", "style", "nav", "header", "footer", "aside",
 
 class NaverBlog:
     def __init__(self, client_id: str, client_secret: str) -> None:
-        self._headers = {
+        self._api_headers = {
             "X-Naver-Client-Id": client_id,
             "X-Naver-Client-Secret": client_secret,
         }
 
-    def search(self, query: str, n: int = 3) -> list[dict]:
-        """blog 후기를 검색해 [{title, url}] 목록을 돌려준다. 실패하면 빈 목록."""
+    async def collect(self, query: str, n: int = 3) -> list[dict]:
+        """검색 → 상위 n개 후기 본문 병렬 취득까지. [{title, url, text}] 목록."""
+        async with httpx.AsyncClient(timeout=10.0, follow_redirects=True) as client:
+            hits = await self._search(client, query, n)
+            bodies = await asyncio.gather(*(_afetch_one(client, h["url"]) for h in hits))
+        return [{**hit, "text": body} for hit, body in zip(hits, bodies)]
+
+    async def _search(self, client: httpx.AsyncClient, query: str, n: int) -> list[dict]:
         try:
-            response = httpx.get(
-                "https://openapi.naver.com/v1/search/blog.json",
-                headers=self._headers,
+            response = await client.get(
+                _SEARCH_URL, headers=self._api_headers,
                 params={"query": query, "display": n, "sort": "sim"},
-                timeout=5.0,
             )
             response.raise_for_status()
         except httpx.HTTPError:
@@ -46,17 +52,10 @@ class NaverBlog:
             for item in response.json().get("items", [])
         ]
 
-    async def fetch(self, urls: list[str]) -> list[str]:
-        """여러 URL의 본문을 동시에(병렬로) 긁어 텍스트 목록으로 돌려준다."""
-        async with httpx.AsyncClient(
-            headers={"User-Agent": USER_AGENT}, timeout=10.0, follow_redirects=True
-        ) as client:
-            return await asyncio.gather(*(_afetch_one(client, u) for u in urls))
-
 
 async def _afetch_one(client: httpx.AsyncClient, url: str) -> str:
     try:
-        response = await client.get(_resolve_naver_url(url))
+        response = await client.get(_resolve_naver_url(url), headers={"User-Agent": USER_AGENT})
         response.raise_for_status()
     except httpx.HTTPError as error:
         return f"[열기 실패: {type(error).__name__}]"

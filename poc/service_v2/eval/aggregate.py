@@ -19,7 +19,7 @@ import json
 import statistics
 from collections import defaultdict
 
-_AGENT_ORDER = {"slot_extractor": 0, "coordinator": 1, "review_agent": 2}
+_AGENT_ORDER = {"slot_extractor": 0, "review_agent": 1, "selector": 2}
 
 
 def load(path: str) -> list[dict]:
@@ -45,10 +45,10 @@ def is_ok(agent: str, output: str) -> bool:
         return False
     if agent == "slot_extractor":
         return isinstance(data, dict) and "slots" in data and "ready" in data
-    if agent == "coordinator":
-        return isinstance(data, dict) and "cards" in data
     if agent == "review_agent":
         return isinstance(data, dict)          # 후기가 비어도 유효 JSON이면 성공
+    if agent == "selector":
+        return isinstance(data, dict) and "cards" in data
     return bool(output)
 
 
