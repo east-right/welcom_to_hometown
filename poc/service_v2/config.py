@@ -13,6 +13,9 @@ MODEL_API_KEY = os.environ.get("WH_MODEL_API_KEY", "")
 NAVER_CLIENT_ID = os.environ.get("NAVER_CLIENT_ID", "")
 NAVER_CLIENT_SECRET = os.environ.get("NAVER_CLIENT_SECRET", "")
 
+# 카카오 로컬(키워드 장소검색) REST API 키 — 장소 엔티티(상호/주소/좌표)의 소스.
+KAKAO_REST_API_KEY = os.environ.get("KAKAO_REST_API_KEY", "")
+
 USER_AGENT = (
     "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
     "AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Safari/537.36"
@@ -26,6 +29,7 @@ def check_keys() -> None:
         for name, value in (
             ("NAVER_CLIENT_ID", NAVER_CLIENT_ID),
             ("NAVER_CLIENT_SECRET", NAVER_CLIENT_SECRET),
+            ("KAKAO_REST_API_KEY", KAKAO_REST_API_KEY),
         )
         if not value
     ]

@@ -152,7 +152,7 @@ def main() -> None:
         print()
         ext = asyncio.run(_understand(args.query))
         print()
-        if ext.slots.is_full():
+        if ext.slots.region and ext.slots.purpose:
             recommend(ext.slots)
         else:
             print("  (슬롯이 덜 차서 recommend 생략 — 한 문장에 지역/일자/동반/목적 다 넣어봐)")

@@ -1,80 +1,81 @@
-"""도메인 모델. 수집할 정보(슬롯)와 결과(카드).
+"""도메인 모델. 데이터와 그 규칙만 담는다. 외부 라이브러리·I/O는 모른다."""
+from typing import Literal
 
-이 계층은 외부 라이브러리 연동·I/O 없이 데이터와 그 규칙만 담는다.
-"""
 from pydantic import BaseModel, Field
+
+Domain = Literal["restaurant", "cafe", "festival", "spot"]
 
 
 class Slots(BaseModel):
-    """멀티턴에서 채워야 하는 기본 정보. 빈 값이면 아직 안 받은 것."""
+    """멀티턴에서 채우는 조건. 빈 값이면 아직 못 받은 것."""
 
-    region: str = Field(default="", description="지역. 예 '창원', '창원 근교'")
-    date: str = Field(default="", description="방문 일자/기간. 예 '7월 25~27일', '이번 주말'")
-    companion: str = Field(default="", description="동반자. 예 '부모님', '친구', '연인', '혼자'")
-    purpose: str = Field(default="", description="목적/관심사. 예 '축제 구경', '맛집', '카페', '나들이'")
-
-    def missing(self) -> list[str]:
-        """아직 안 채워진 슬롯 이름 목록."""
-        return [name for name, value in self._fields() if not value]
-
-    def is_full(self) -> bool:
-        return not self.missing()
+    region: str = ""
+    date: str = ""
+    companion: str = ""
+    purpose: str = ""
 
     def summary(self) -> str:
-        return " / ".join(
-            f"{label}={value or '?'}"
-            for label, value in (
-                ("지역", self.region),
-                ("일자", self.date),
-                ("동반", self.companion),
-                ("목적", self.purpose),
-            )
-        )
-
-    def _fields(self) -> tuple[tuple[str, str], ...]:
-        return (
-            ("region", self.region),
-            ("date", self.date),
-            ("companion", self.companion),
-            ("purpose", self.purpose),
-        )
+        pairs = (("지역", self.region), ("일자", self.date),
+                 ("동반", self.companion), ("목적", self.purpose))
+        return " / ".join(f"{label}={value or '?'}" for label, value in pairs)
 
 
 class SlotExtraction(BaseModel):
-    """사용자 발화에서 슬롯을 추출하고, 부족하면 되물을 질문을 담는다."""
+    """발화에서 뽑은 슬롯 + 부족하면 되물을 질문."""
 
-    slots: Slots = Field(description="현재까지 파악된 슬롯. 못 채운 건 빈 문자열")
-    ready: bool = Field(description="검색을 시작해도 될 만큼 정보가 충분한가")
-    question: str = Field(
-        default="",
-        description="아직 부족하면 사용자에게 물어볼 질문 한 개. 충분하면 빈 문자열",
-    )
+    slots: Slots
+    ready: bool
+    question: str = ""
 
 
-class SearchQuery(BaseModel):
-    """병렬로 던질 검색어 하나. kind로 네이버 검색 종류를 고른다."""
+class Place(BaseModel):
+    """카카오 로컬이 준 '검증된 장소' 엔티티(상호·주소·좌표). 환각 없음."""
 
-    query: str = Field(description="네이버 검색어. 지역명을 반드시 포함. 예 '창원 귀산 횟집'")
-    kind: str = Field(default="blog", description="blog(후기)/news(일정)/local(장소) 중 하나")
+    id: str = ""
+    name: str = ""
+    category: str = ""
+    address: str = ""
+    phone: str = ""
+    url: str = ""
+    x: float | None = None   # 경도
+    y: float | None = None   # 위도
+
+    @classmethod
+    def from_kakao(cls, doc: dict) -> "Place":
+        return cls(
+            id=doc.get("id", ""),
+            name=doc.get("place_name", ""),
+            category=doc.get("category_name", ""),
+            address=doc.get("road_address_name") or doc.get("address_name", ""),
+            phone=doc.get("phone", ""),
+            url=doc.get("place_url", ""),
+            x=float(doc["x"]) if doc.get("x") else None,
+            y=float(doc["y"]) if doc.get("y") else None,
+        )
 
 
-class QueryPlan(BaseModel):
-    """슬롯을 여러 각도로 넓힌 검색어 묶음. 한 번에 병렬 검색한다."""
+class Review(BaseModel):
+    """한 장소의 블로그 후기 요약(살). read_reviews 도구가 돌려준다."""
 
-    queries: list[SearchQuery] = Field(description="서로 다른 검색어 8~10개")
+    hours: str = ""      # 운영시간
+    closed: str = ""     # 휴무일
+    period: str = ""     # 축제·행사 기간
+    ad: bool = False     # 광고/협찬 여부
+    reason: str = ""     # 추천 이유 한 줄
+    source: str = ""     # 근거 URL
 
 
 class Card(BaseModel):
-    """추천 카드. 도메인별로 채우는 필드가 다르다."""
+    """최종 추천 카드. 도메인별로 채우는 시간 필드가 다르다."""
 
-    domain: str = Field(description="restaurant/cafe/festival/spot 중 하나")
-    name: str = Field(description="장소/행사 이름")
-    reason: str = Field(description="추천 이유 한 줄")
-    period: str = Field(default="", description="행사 기간. festival만. 확인 못하면 빈 문자열")
-    hours: str = Field(default="", description="운영시간. 매장/장소만. 확인 못하면 빈 문자열")
-    closed: str = Field(default="", description="휴무일. 매장/장소만. 확인 못하면 빈 문자열")
-    source: str = Field(description="근거 URL")
+    domain: Domain
+    name: str
+    reason: str
+    period: str = ""     # festival만
+    hours: str = ""      # 매장/명소
+    closed: str = ""     # 매장/명소
+    source: str
 
 
 class Feed(BaseModel):
-    cards: list[Card] = Field(description="추천 카드 목록 (최대 10개, 우선순위 순)")
+    cards: list[Card] = Field(default_factory=list)
