@@ -17,13 +17,14 @@ _BODY_CLIP = 400   # selector에 보여줄 후기 이유 길이
 
 
 class Recommender:
-    def __init__(self, runner, slot_extractor, query_planner, selector, kakao, enricher) -> None:
+    def __init__(self, runner, slot_extractor, query_planner, selector, kakao, enricher, flow) -> None:
         self._runner = runner
         self._slot_extractor = slot_extractor
         self._query_planner = query_planner
         self._selector = selector
         self._kakao = kakao
         self._enricher = enricher
+        self._flow = flow   # 파이프라인 데이터 흐름 로그
 
     async def understand(self, conversation: str) -> SlotExtraction:
         """대화에서 슬롯을 추출하고, 부족하면 되물을 질문을 얻는다."""
@@ -43,7 +44,9 @@ class Recommender:
 
     async def _plan(self, slots: Slots) -> QueryPlan:
         raw = await self._runner.run(self._query_planner, _plan_request(slots))
-        return QueryPlan.model_validate_json(json_only(raw))
+        plan = QueryPlan.model_validate_json(json_only(raw))
+        self._flow.plan(plan.queries)
+        return plan
 
     def _collect(self, plan: QueryPlan) -> list[Place]:
         """여러 짧은 쿼리로 검색해 id 기준 중복을 제거한 장소 목록."""
@@ -54,7 +57,9 @@ class Recommender:
                 if place.id and place.id not in seen:
                     seen.add(place.id)
                     places.append(place)
-        return places[:_MAX_PLACES]
+        places = places[:_MAX_PLACES]
+        self._flow.kakao(places)
+        return places
 
 
 def _plan_request(slots: Slots) -> str:

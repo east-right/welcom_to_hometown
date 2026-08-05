@@ -27,7 +27,6 @@ import httpx
 
 from ..config import MODEL, MODEL_API_BASE, MODEL_API_KEY
 from ..domain.models import Slots
-from ..infrastructure.logger import RunLogger
 from ..main import build_recommender
 
 _DEFAULT_TESTSET = "data/test.json"
@@ -195,9 +194,8 @@ async def report(testset: list[dict]) -> None:
     runs = "logs/runs.jsonl"
     before = os.path.getsize(runs) if os.path.exists(runs) else 0
 
-    stamp = f"{MODEL.replace('/', '_')}_{datetime.now():%Y%m%d_%H%M%S}"
-    logger = RunLogger(name=f"report_{stamp}")   # 이 실행 전용 로그 파일
-    rec = build_recommender(logger)
+    stem = f"report_{MODEL.replace('/', '_')}_{datetime.now():%Y%m%d_%H%M%S}"
+    rec = build_recommender(log_name=stem)   # 이 실행 전용 flow/agents 로그
     per_q = []
     print(f"[리포트] 모델={MODEL}  문항={len(testset)}\n")
     for i, item in enumerate(testset, 1):
@@ -238,11 +236,12 @@ async def report(testset: list[dict]) -> None:
     if summary["model_sec_mean"] is None:
         print("  ⚠️ 서버측 지표 비어있음 — vLLM /metrics 이름이 버전과 다를 수 있음 (metrics.py 후보 확인)")
 
-    out = f"logs/report_{stamp}.json"
+    out = f"logs/{stem}.json"
     with open(out, "w", encoding="utf-8") as f:
         json.dump({"summary": summary, "per_question": per_q}, f, ensure_ascii=False, indent=2)
     print(f"\n  → 리포트: {out}")
-    print(f"  → 로그  : logs/report_{stamp}.log")
+    print(f"  → flow  : logs/{stem}.flow.log")
+    print(f"  → agents: logs/{stem}.agents.log")
 
 
 def main() -> None:
