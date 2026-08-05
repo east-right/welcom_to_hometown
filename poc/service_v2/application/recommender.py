@@ -4,6 +4,8 @@
 recommend는 coordinator(agentic 에이전트)를 한 번 돌릴 뿐 — '어떻게 찾을지'(검색·후기 확인·
 멈출 시점)는 그 에이전트가 도구를 써서 스스로 정한다.
 """
+from pydantic import ValidationError
+
 from ..domain.models import Feed, SlotExtraction, Slots
 from ..infrastructure.parsing import json_only
 
@@ -20,9 +22,15 @@ class Recommender:
         return SlotExtraction.model_validate_json(json_only(raw))
 
     async def recommend(self, slots: Slots) -> Feed:
-        """조건을 coordinator에게 넘겨, 스스로 검색·확인해 만든 카드 피드를 받는다."""
+        """조건을 coordinator에게 넘겨, 스스로 검색·확인해 만든 카드 피드를 받는다.
+
+        coordinator가 (드물게) 카드 대신 산문으로 답하면 빈 피드로 안전하게 처리한다.
+        """
         raw = await self._runner.run(self._coordinator, _request(slots))
-        return Feed.model_validate_json(json_only(raw))
+        try:
+            return Feed.model_validate_json(json_only(raw))
+        except ValidationError:
+            return Feed(cards=[])
 
 
 def _request(slots: Slots) -> str:
