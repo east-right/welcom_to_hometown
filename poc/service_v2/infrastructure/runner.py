@@ -24,7 +24,7 @@ class AgentRunner:
     async def run(self, agent, text: str, tag: str = "") -> str:
         """에이전트를 한 번 실행하고 최종 응답 텍스트를 반환한다.
 
-        tag는 로그에서 이 실행을 구분하는 꼬리표(예: review_agent의 매장명).
+        tag는 로그에서 이 실행을 구분하는 선택적 꼬리표.
         """
         runner = InMemoryRunner(agent=agent, app_name=self._app)
         session = await runner.session_service.create_session(

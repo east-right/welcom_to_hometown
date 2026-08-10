@@ -40,31 +40,37 @@ def _now() -> str:
 
 
 class FlowLog:
-    """파이프라인 데이터 흐름. 사람이 흐름을 눈으로 따라가게 한 줄씩."""
+    """실행 흐름 트레이스: 질문 → 각 툴 호출(입력/출력) → 결과 카드.
+
+    툴의 '입력(무슨 인자)'과 '출력(무슨 결과)'을 다 남기되, 크롤링 원문(본문)은 넣지 않는다.
+    """
 
     def __init__(self, sink: FileSink) -> None:
         self._sink = sink
 
-    def plan(self, queries) -> None:
+    def question(self, text: str) -> None:
+        bar = "═" * 58
+        self._sink.write(f"\n{bar}\n[질문] {text}\n{bar}")
+
+    def queries(self, queries) -> None:
         parts = " · ".join(f"{q.query}({q.category or '-'})" for q in queries)
-        self._sink.write(f"{_now()} [쿼리증강] {len(queries)}개: {parts}")
+        self._sink.write(f"\n{_now()} [1. 쿼리분해] {len(queries)}개: {parts}")
 
-    def kakao(self, places) -> None:
+    def places(self, places) -> None:
         names = " · ".join(p.name for p in places) or "(없음)"
-        self._sink.write(f"{_now()} [카카오] {len(places)}곳: {names}")
+        self._sink.write(f"{_now()} [2. 카카오 수집] {len(places)}곳: {names}")
 
-    def reviews(self, place_name: str, items) -> None:
-        """items: [(url, ok, length)] — 한 매장의 후기 URL과 fetch 성패."""
-        lines = [f"  {place_name}"]
-        for url, ok, length in items:
-            lines.append(f"    ✓ {url}  ({length}자)" if ok else f"    ✗ {url}  [fetch 실패]")
-        self._sink.write("\n".join(lines))
+    def enrich_header(self, n: int) -> None:
+        self._sink.write(f"{_now()} [3. 리뷰수집 {n}곳 전부 병렬] (매장 → blog URL, ✓취득/✗실패)")
 
-    def reviews_header(self) -> None:
-        self._sink.write(f"{_now()} [네이버 후기 URL + fetch]")
+    def enrich_one(self, name: str, urls) -> None:
+        """urls: [(url, ok)] — 한 매장의 blog URL과 취득 성패(원문 제외)."""
+        marks = " · ".join((f"✓ {u}" if ok else f"✗ {u}") for u, ok in urls) or "(없음)"
+        self._sink.write(f"    {name}  →  {marks}")
 
-    def note(self, line: str) -> None:
-        self._sink.write(f"{_now()} {line}")
+    def cards(self, feed) -> None:
+        names = " · ".join(c.name for c in feed.cards) or "(없음)"
+        self._sink.write(f"\n{_now()} [4. 결과] 카드 {len(feed.cards)}개: {names}\n")
 
 
 class AgentLog:

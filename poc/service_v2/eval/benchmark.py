@@ -25,8 +25,7 @@ from datetime import datetime
 import httpx
 
 from ..config import MODEL, MODEL_API_BASE, MODEL_API_KEY
-from ..domain.models import Slots
-from ..main import build_recommender
+from ..main import build_search
 
 _DEFAULT_TESTSET = "data/test.json"
 
@@ -66,14 +65,10 @@ def recall_of(answers: list[str], recommended: list[str]) -> dict:
             "matched": hit, "n_answer": len(answers)}
 
 
-async def _recommend_names(rec, question: str) -> tuple[list[str], str]:
-    """질문 → 슬롯 추출 → 추천. 추천 카드 이름 목록을 돌려준다."""
-    ext = await rec.understand(f"User: {question}")
-    slots = ext.slots
-    if not slots.purpose:                 # 최소 목적은 있어야 검색 의미가 있음
-        slots = Slots(**{**slots.model_dump(), "purpose": question})
-    feed = await rec.recommend(slots)
-    return [c.name for c in feed.cards], slots.summary()
+async def _recommend_names(search, question: str) -> tuple[list[str], str]:
+    """질문 → search_agent 단발 호출 → 추천 카드 이름 목록."""
+    feed = await search.find(question)
+    return [c.name for c in feed.cards], ""
 
 
 # ── 서빙 지표: 직접 스트리밍 ─────────────────────────────
@@ -159,13 +154,13 @@ async def report(testset: list[dict]) -> None:
     before = os.path.getsize(runs) if os.path.exists(runs) else 0
 
     stem = f"report_{MODEL.replace('/', '_')}_{datetime.now():%Y%m%d_%H%M%S}"
-    rec = build_recommender(log_name=stem)   # 이 실행 전용 flow/agents 로그
+    search = build_search(log_name=stem)   # 이 실행 전용 flow/agents 로그
     per_q = []
     print(f"[리포트] 모델={MODEL}  문항={len(testset)}\n")
     for i, item in enumerate(testset, 1):
         q, answers = item["question"], item.get("answer", [])
         try:
-            names, _ = await _recommend_names(rec, q)
+            names, _ = await _recommend_names(search, q)
             s = recall_of(answers, names)
         except Exception as e:
             names, s = [], {"recall": 0.0, "matched": 0, "n_answer": len(answers)}

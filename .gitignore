@@ -8,5 +8,6 @@ wheels/
 logs/
 .env
 CLAUDE.md
+tool_file
 # Virtual environments
 .venv

@@ -6,7 +6,7 @@ logs/runs.jsonl 에 append 한다. 모델을 바꿔가며 돌린 뒤 이 파일�
 
 한 줄 예:
   {"ts": "...", "model": "openai/meta-llama/Llama-3.1-8B-Instruct",
-   "agent": "slot_extractor", "elapsed_sec": 2.3,
+   "agent": "search_agent", "elapsed_sec": 2.3,
    "tokens": {"prompt": 812, "output": 64, "total": 876},
    "chars": 210, "output": "{...}"}
 """

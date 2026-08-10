@@ -1,20 +1,13 @@
-"""에이전트 배선. '구조'만 조립한다(내용은 prompts, 실행은 runner).
+"""에이전트 배선. '구조'만 조립한다(내용은 prompts). 셋 다 툴 없는 구조화 출력.
 
-- slot_extractor : 대화 → 슬롯 (구조화 출력)
-- query_planner  : 슬롯 → 카카오용 짧은 검색어 2~5개 (구조화 출력)
-- review_agent   : 후기 원문 → 요약 (구조화 출력) — enricher가 장소마다 병렬로 돌린다
-- selector       : 요약된 후보 전부 → 카드 선택·랭킹 (구조화 출력)
-
-넷 다 툴 없는 구조화 출력 에이전트. 수집·요약은 코드가 지휘하고, 모델은 추론만 한다.
+- query_planner : 질문 → 짧은 카카오 검색어 여러 개  (메인 모델, 판단)
+- review_agent  : 질문 + 후기 원문 → 질문 연관 3줄 요약  (서브 모델, 병렬)
+- selector      : 요약된 후보 전부 → 카드 10개 선택      (메인 모델, 판단)
 """
 from google.adk.agents import LlmAgent
 
-from ..domain.models import Feed, QueryPlan, Review, SlotExtraction
+from ..domain.models import Feed, QueryPlan, Review
 from . import prompts
-
-
-def slot_extractor(model) -> LlmAgent:
-    return _structured(model, "slot_extractor", prompts.SLOT_EXTRACTOR, SlotExtraction)
 
 
 def query_planner(model) -> LlmAgent:
