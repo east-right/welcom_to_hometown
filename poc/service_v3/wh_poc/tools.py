@@ -30,8 +30,8 @@ from .core import (
 )
 
 # collect_places 수집 기준
-MIN_COUNT = 20      # 이 미만이면 부족하다고 보고 재시도/폴백
-MAX_COUNT = 30      # 이만큼 모이면 수집 종료
+MIN_COUNT = 12      # 이 미만이면 부족하다고 보고 재시도/폴백
+MAX_COUNT = 20      # 이만큼 모이면 수집 종료
 MAX_ATTEMPTS = 3
 
 INFO_PER_PLACE = 5  # 매장당 채택할 블로그 글 수
