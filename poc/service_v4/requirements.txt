@@ -1,0 +1,7 @@
+google-adk
+google-genai
+httpx
+requests
+beautifulsoup4
+pydantic
+python-dotenv
