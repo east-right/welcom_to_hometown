@@ -47,7 +47,7 @@ REFINE_TARGET = 15       # 정제 후 파일에 남길 개수. collect_info·요
 DINING_QUOTA_RATIO = 4   # 정제 결과 중 다이닝코드 유래 최소 비율 (target // 4)
 DINING_QUOTA_MIN = 3     # 다이닝코드 유래 최소 개수
 
-INFO_PER_PLACE = 5  # 매장당 채택할 블로그 글 수
+INFO_PER_PLACE = 3  # 매장당 채택할 블로그 글 수
 INFO_BODY_CHARS = 2000
 CONTEXT_BODY_CHARS = 4000
 
@@ -171,7 +171,8 @@ async def collect_places(
 
     # 4) RRF 병합 후 정제
     all_lists = kakao_lists + ([dc_places] if dc_places else [])
-    merged = rrf_merge(all_lists)[:MAX_COUNT]
+    weights = [1.0] * len(kakao_lists) + ([3.0] if dc_places else [])
+    merged = rrf_merge(all_lists, weights=weights)[:MAX_COUNT]
     refined = _refine(merged, REFINE_TARGET)
 
     file_path = dump("collect_places", refined, _run_id(tool_context))

@@ -169,18 +169,22 @@ def verify_names(names: list[str], region_hint: str = "") -> list[dict]:
 
 # ---------------------------------------------------------------- RRF
 
-def rrf_merge(result_lists: list[list[dict]], k: int = 60) -> list[dict]:
+def rrf_merge(result_lists: list[list[dict]], k: int = 60, weights: list[float] | None = None) -> list[dict]:
     """여러 검색 결과를 Reciprocal Rank Fusion으로 병합.
 
-    RRF(d) = Σ 1/(k + rank). k=60은 업계 표준값(Cormack et al. 2009).
-    여러 쿼리·소스에서 반복 등장 = 관점 간 합의이므로 상위로 올라간다.
-    단순 등장 횟수(마케팅 물량)와 달리, 서로 다른 업종어·소스로 검색했을 때도
-    걸린다는 뜻이라 실제 관련성 신호에 가깝다.
+    RRF(d) = Σ w_i / (k + rank). 기본 가중치는 전부 1.0.
+    다이닝코드처럼 '카카오가 놓친 걸 보강하는 단일 소스'는 다른 리스트와
+    경쟁하면 구조적으로 밀린다 — 카카오 여러 쿼리에 걸린 매장은 hit_lists가
+    자연히 높아지는데, 다이닝코드 전용 매장은 그 리스트 하나에만 있어 항상
+    최하위 점수를 받기 때문이다(우동한그릇·개성순대가 RRF 20위 밖으로
+    밀려 정제에서 잘린 게 이 경우). weights로 다이닝코드 리스트만
+    가중치를 올리면, 소스 하나뿐이어도 카카오 상위권과 경쟁 가능해진다.
     """
+    weights = weights or [1.0] * len(result_lists)
     scores, store = {}, {}
-    for places in result_lists:
+    for w, places in zip(weights, result_lists):
         for rank, p in enumerate(places, 1):
-            scores[p["id"]] = scores.get(p["id"], 0.0) + 1.0 / (k + rank)
+            scores[p["id"]] = scores.get(p["id"], 0.0) + w / (k + rank)
             store.setdefault(p["id"], p)
 
     ranked = sorted(scores.items(), key=lambda kv: -kv[1])
