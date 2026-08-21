@@ -197,64 +197,7 @@ def rrf_merge(result_lists: list[list[dict]], k: int = 60, weights: list[float] 
     return out
 
 
-# ---------------------------------------------------------------- 다이닝코드 수확
-
-def diningcode_names(query: str, display: int = 30) -> dict:
-    """네이버 웹문서 검색으로 다이닝코드 스니펫을 긁어 매장명을 뽑는다.
-
-    다이닝코드 리스트 페이지('X 맛집 Top45')는 스니펫에 상위 매장이
-    '매장명 (카테고리, ★평점)' 형태로 나열된다. 페이지 자체는 봇 차단이
-    있지만 네이버 검색 스니펫으로는 우회해서 읽을 수 있다.
-
-    쿼리에 'Top'을 넣어야 리스트 페이지가 걸린다. 개별 매장 페이지가 아니라
-    리스트 페이지를 노려야 한 번에 여러 매장이 나온다.
-
-    카카오 '맛집' 태그가 없어 kakao_all이 놓치는 로컬 매장을 보강하는 용도.
-    포괄어 쿼리("X 맛집")에서 특히 값어치가 크다 — 업종을 특정하지 못하는
-    쿼리는 fanout_queries가 확장을 포기하므로, 그 빈자리를 다이닝코드가 채운다.
-
-    반환: {매장명: {"category":..., "rating":..., "src": 스니펫제목}}
-    """
-    resp = requests.get(
-        "https://openapi.naver.com/v1/search/webkr",
-        headers={
-            "X-Naver-Client-Id": os.environ["NAVER_CLIENT_ID"],
-            "X-Naver-Client-Secret": os.environ["NAVER_CLIENT_SECRET"],
-        },
-        params={"query": query, "display": display},
-        timeout=5,
-    )
-    resp.raise_for_status()
-
-    def clean(t):
-        return re.sub(r"<[^>]+>", "", t or "").strip()
-
-    out = {}
-    for item in resp.json()["items"]:
-        if "diningcode.com" not in item.get("link", ""):
-            continue
-        title = clean(item["title"])
-        desc = clean(item["description"])
-
-        # 패턴 1: "매장명 (카테고리, ★4.3)"  ← Top 리스트 페이지
-        for m in re.finditer(r"([^,()]+?)\s*\(([^,()]+?),\s*★([\d.]+)\)", desc):
-            name = re.sub(r"^.*?(맛집|랭킹|Top\d*|등)\s+", "", m.group(1).strip()).strip()
-            if 1 < len(name) <= 30:
-                out.setdefault(name, {
-                    "category": m.group(2).strip(),
-                    "rating": float(m.group(3)),
-                    "src": title[:40],
-                })
-
-        # 패턴 2: "가게A 마산 ; 가게B 마산 ; ..."  ← 세미콜론 나열형
-        if "★" not in desc and ";" in desc:
-            for chunk in desc.split(";"):
-                name = re.sub(r"\s+(마산|창원|서울|부산)\s*$", "", chunk.strip())
-                if 1 < len(name) <= 30 and not name.startswith('"'):
-                    out.setdefault(name, {"category": "", "rating": None, "src": title[:40]})
-
-    return out
-
+# ---------------------------------------------------------------- 수확 보강 (지역 일치 판정)
 
 def in_same_region(place: dict, base: list[dict]) -> bool:
     """place가 base(1차 카카오 결과)와 같은 구(區)에 있는지.

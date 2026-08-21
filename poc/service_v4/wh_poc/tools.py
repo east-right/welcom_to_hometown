@@ -19,10 +19,12 @@ from google.adk.tools import ToolContext
 
 from . import prompts
 from .clients import (
+    in_same_region,
     kakao_all,
     llm_async,
     naver_search,
     scrape_urls,
+    verify_names,
 )
 from .core import (
     FAIL_PREFIX,
@@ -82,9 +84,12 @@ async def collect_places(
 ) -> dict:
     """지역 키워드로 장소 후보 목록을 수집한다. 모든 작업의 첫 단계다.
 
-    카카오 로컬 키워드 검색으로 후보를 모은다. 페이지당 15개씩 최대 45개까지 받고,
-    카카오가 더 줄 게 없으면(is_end) 조기 종료한다. 수집한 후보를 자르지 않고 전량
-    파일에 남긴다.
+    카카오 로컬 검색만으로는 '맛집' 태그가 없는 로컬 노포(동네 순대집, 국숫집 등)를
+    놓친다. 그래서 두 갈래로 모은다.
+      1) 카카오 로컬 키워드 검색 전량 (최대 45개, is_end면 조기 종료)
+      2) 수확 보강 — 네이버 웹검색 스니펫에서 상호명을 뽑아(LLM) 카카오로 역조회.
+         카카오가 놓친 로컬 매장이 여기서 잡힌다.
+    수집한 후보를 자르지 않고 전량 파일에 남긴다.
 
     검색어는 '지역 + 짧은 명사' 형태여야 한다. 서술형 문장은 결과가 거의 나오지 않는다.
       좋은 예: '성수동 카페', '진해 군항제', '가평 캠핑장'
@@ -105,8 +110,36 @@ async def collect_places(
         tool_context.state.get("temp:collect_attempts", 0) + 1
     )
 
+    # 1) 카카오 로컬 전량 — 기준점이자 수확분의 지역 필터 근거
     places = kakao_all(query, category_code=category_code)
-    log(f"[collect_places] '{query}' 카카오 {len(places)}개")
+    base = list(places)                 # 지역 필터 기준 스냅샷
+    base_n = len(base)                  # too_broad 판정은 카카오 base 기준 (수확분 제외)
+    log(f"[collect_places] '{query}' 카카오 {base_n}개")
+
+    # 2) 수확 보강 — 웹검색 스니펫에서 상호명만 LLM으로 뽑아 카카오로 역조회.
+    #    카카오 '맛집' 태그가 없는 로컬 노포는 카카오가 놓치지만 웹 스니펫엔 리스트로
+    #    잡힌다. 역조회로 실존·주소를 확보하고, 같은 구가 아니면 버린다.
+    #    'Top'을 붙여 랭킹 리스트 페이지를 노린다 — 한 스니펫에 로컬 매장이 촘촘히
+    #    나열돼 수확 밀도가 높다(지역 무관한 일반 바이어스라 하드코딩이 아니다).
+    web_items, _ = await naver_search(f"{query} Top", kind="webkr", display=30)
+    snippets = "\n".join(f"{w['title']} | {w['description']}" for w in web_items)
+    try:
+        names = json.loads(
+            await llm_async(f"{prompts.EXTRACT_NAMES}\n{snippets}", json_mode=True)
+        )
+        names = [n.strip() for n in names if isinstance(n, str) and n.strip()]
+    except (json.JSONDecodeError, TypeError):
+        names = []
+
+    seen = {p["id"] for p in places}
+    n_harvest = 0
+    for p in verify_names(names, region_hint=(query.split() or [""])[0]):
+        if p["id"] not in seen and in_same_region(p, base):
+            p["source"] = "web_harvest"
+            places.append(p)
+            seen.add(p["id"])
+            n_harvest += 1
+    log(f"[collect_places] 수확 후보 {len(names)}개 → 신규 확보 {n_harvest}개")
 
     file_path = dump("collect_places", places, _run_id(tool_context))
 
@@ -115,12 +148,16 @@ async def collect_places(
     tool_context.state["last_places_file"] = file_path
     tool_context.state["last_query"] = query
 
-    payload = {"count": len(places), "file": file_path}
+    payload = {
+        "count": len(places),
+        "source_breakdown": {"kakao": base_n, "web_harvest": n_harvest},
+        "file": file_path,
+    }
 
-    # 45개를 다 채웠다는 건 is_end 전에 상한에 닿았다는 뜻 — 카카오에 아직 더 있다.
+    # base(카카오)가 45개 상한을 채웠다는 건 is_end 전에 상한에 닿았다는 뜻 — 아직 더 있다.
     # 후보가 넘친다는 사실만 알려주고, 좁힐지 진행할지는 에이전트가 판단한다. 발화에
     # 이미 기준점이 있는지(예: "역"이 붙었는지)는 코드가 알 수 없다.
-    if len(places) >= MAX_COUNT:
+    if base_n >= MAX_COUNT:
         payload["status"] = "too_broad"
         payload["message"] = (
             f"'{query}' 후보가 {MAX_COUNT}개 이상입니다. "
