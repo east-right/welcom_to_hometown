@@ -9,6 +9,7 @@
 
 import asyncio
 import json
+import math
 import time
 from collections import Counter
 from datetime import datetime
@@ -19,6 +20,7 @@ from google.adk.tools import ToolContext
 
 from . import prompts
 from .clients import (
+    embed_texts,
     in_same_region,
     kakao_all,
     llm_async,
@@ -38,7 +40,9 @@ from .core import (
 # collect_places 수집 기준
 MAX_COUNT = 45  # 카카오가 노출하는 상한. 이만큼 채우면 후보가 넘친다는 신호(too_broad).
 
-INFO_PER_PLACE = 3  # 매장당 채택할 블로그 글 수
+INFO_PER_PLACE = 3      # 최종 요약에 쓸 매장당 블로그 본문 수
+RERANK_KEEP = 15        # HyDE 리랭크로 남길 매장 수 (크롤링·요약 비용이 여기 비례)
+RERANK_SNIPPETS = 5     # 매장당 리랭크 점수에 쓸 블로그 스니펫 수 (max 유사도)
 INFO_BODY_CHARS = 2000
 CONTEXT_BODY_CHARS = 4000
 
@@ -50,6 +54,14 @@ def _run_id(tool_context: ToolContext) -> str:
         rid = str(int(time.time() * 1000))
         tool_context.state["temp:run_id"] = rid
     return rid
+
+
+def _cos(a: list[float], b: list[float]) -> float:
+    """코사인 유사도. 임베딩 벡터 두 개의 방향 일치도(-1~1)."""
+    dot = sum(x * y for x, y in zip(a, b))
+    na = math.sqrt(sum(x * x for x in a))
+    nb = math.sqrt(sum(x * x for x in b))
+    return dot / (na * nb) if na and nb else 0.0
 
 
 # ---------------------------------------------------------------- get_today
@@ -191,8 +203,12 @@ async def collect_info(
                     예: '신림역' → '신림', '관악구 관천로' → '신림',
                         '금천구 가산디지털2로' → '가산'
 
+    내부적으로 후보가 많으면 HyDE 리랭크로 상위 일부만 골라 요약한다. 사용자 요청에
+    맞는 '이상적인 리뷰'를 한 편 생성해 임베딩하고, 각 매장의 블로그 스니펫과 의미
+    유사도를 재 상위 매장만 남긴다. 크롤링·요약 비용이 그 매장 수에 비례하기 때문이다.
+
     Returns:
-        {"count": int, "no_info": int, "url_file": str, "summary_file": str}
+        {"count", "no_info", "reranked_from", "url_file", "rerank_file", "summary_file"}
         count는 요약이 만들어진 장소 수, no_info는 후기를 못 찾은 장소 수.
         판단 근거는 summary_file에 있다. read_file로 읽어라.
     """
@@ -206,12 +222,11 @@ async def collect_info(
     places = load_json(places_file)
     run_id = _run_id(tool_context)
 
-    # --- 1) 매장별 블로그 URL 수집 ---
+    # --- 1) 매장별 블로그 스니펫 수집 (크롤링은 리랭크 뒤 상위만) ---
     # 도로명은 행정 표기라 실제 리뷰에서 쓰는 생활권 이름과 다르다("관천" vs "신림").
     # 그 매핑은 지역 상식이라 코드가 못 하므로 에이전트가 준 region_prefix를 쓴다.
     # sim/date는 매장마다 유리한 쪽이 달라 사전 판단이 불가능하므로 둘 다 던지고 합친다.
     queries = [f"{region_prefix} {p['name']}".strip() for p in places]
-
     raw = await asyncio.gather(
         *[
             naver_search(q, kind="blog", display=10, sort=s)
@@ -220,39 +235,91 @@ async def collect_info(
         ]
     )
 
-    urls, reasons = {}, {}
+    hits, reasons = {}, {}
     for i, p in enumerate(places):
         merged = raw[i * 2][0] + raw[i * 2 + 1][0]
         statuses = (raw[i * 2][1], raw[i * 2 + 1][1])
-
-        seen, hits = set(), []
+        seen, kept_hits = set(), []
         for b in merged:
             if b["link"] in seen:
                 continue
             seen.add(b["link"])
             # 검색어가 통해도 무관한 글이 섞이므로 상호명 실제 등장 여부로 한 번 더 거른다
             if p["name"] in b["title"] or p["name"] in b["description"]:
-                hits.append(b)
-
-        urls[p["name"]] = hits[:INFO_PER_PLACE]
-        if not hits:
+                kept_hits.append(b)
+        hits[p["name"]] = kept_hits[:RERANK_SNIPPETS]
+        if not kept_hits:
             reasons[p["name"]] = (
                 "empty" if all(s == "empty" for s in statuses) else "no_match_after_filter"
             )
-
-    url_file = dump("info_urls", urls, run_id)
+    url_file = dump("info_urls", hits, run_id)
     if reasons:
         log(f"[collect_info] 후기 미확보 {len(reasons)}개 → {dict(Counter(reasons.values()))}")
 
-    # --- 2) 본문 크롤링 (파일로 남기지 않음: 요약이 나오면 원문은 용도 끝) ---
+    # --- 2) HyDE 리랭크 — 요청에 맞는 '이상적 리뷰'를 생성해 임베딩하고,
+    #        각 매장 스니펫과의 최대(max) 유사도로 상위 RERANK_KEEP개만 남긴다.
+    #        질문 문장이 아니라 가짜 리뷰를 쓰는 건 리뷰끼리 같은 텍스트 공간에 있어
+    #        유사도가 더 잘 맞기 때문(HyDE). 평균이 아니라 max인 건, 딱 맞는 글 한 편이
+    #        일반글 여러 편에 희석되지 않게 하려는 것.
+    hypo = (await llm_async(prompts.HYDE_REVIEW.format(user_query=user_query))).strip()
+    hypo = hypo or user_query
+
+    snip_texts, snip_owner = [], []
+    for p in places:
+        for b in hits[p["name"]]:
+            snip_texts.append(f"{b['title']} {b['description']}")
+            snip_owner.append(p["name"])
+
+    vecs = await embed_texts([hypo] + snip_texts)
+    hypo_vec, snip_vecs = vecs[0], vecs[1:]
+
+    score = {p["name"]: -1.0 for p in places}  # 스니펫 없는 매장은 -1로 바닥에
+    for name, v in zip(snip_owner, snip_vecs):
+        score[name] = max(score[name], _cos(hypo_vec, v))
+
+    ranked = sorted(places, key=lambda p: -score[p["name"]])
+    kept = ranked[:RERANK_KEEP]
+    kept_ids = {p["id"] for p in kept}
+
+    # 세세한 로그 + 파일 — 리랭크가 무슨 근거로 뭘 남기고 버렸는지 확인용
+    log(f"[collect_info] HyDE 가상리뷰: {hypo[:150]}")
+    log(
+        f"[collect_info] 리랭크 {len(places)}→{len(kept)} "
+        f"(스니펫 {len(snip_texts)}개 임베딩, max 유사도)"
+    )
+    for rank, p in enumerate(ranked, 1):
+        mark = "✓" if p["id"] in kept_ids else " "
+        log(f"   [{mark}] {rank:2} {score[p['name']]:+.3f} {p['name']}  ({len(hits[p['name']])}글)")
+    rerank_file = dump(
+        "info_rerank",
+        {
+            "user_query": user_query,
+            "hypo_review": hypo,
+            "keep": RERANK_KEEP,
+            "ranking": [
+                {
+                    "rank": r,
+                    "name": p["name"],
+                    "score": round(score[p["name"]], 4),
+                    "n_snippets": len(hits[p["name"]]),
+                    "kept": p["id"] in kept_ids,
+                    "source": p.get("source", ""),
+                }
+                for r, p in enumerate(ranked, 1)
+            ],
+        },
+        run_id,
+    )
+
+    # --- 3) 본문 크롤링 + 요약 (남긴 매장만) ---
     links, owner = [], []
-    for name, items in urls.items():
-        for item in items:
-            links.append(item["link"])
-            owner.append(name)
+    for p in kept:
+        for b in hits[p["name"]][:INFO_PER_PLACE]:
+            links.append(b["link"])
+            owner.append(p["name"])
 
     scraped = await scrape_urls(links)
-    bodies: dict[str, list[str]] = {name: [] for name in urls}
+    bodies: dict[str, list[str]] = {p["name"]: [] for p in kept}
     for name, s in zip(owner, scraped):
         if not s["text"].startswith(FAIL_PREFIX):
             bodies[name].append(s["text"])
@@ -261,8 +328,7 @@ async def collect_info(
         f"성공 {sum(len(v) for v in bodies.values())}건"
     )
 
-    # --- 3) 매장당 후기 전체를 한 번에 넣어 통합 요약 ---
-    # 후기를 개별 요약하면 반복 빈도(=신뢰도) 정보가 사라진다.
+    # 매장당 후기 전체를 한 번에 넣어 통합 요약 (개별 요약하면 반복 빈도 정보가 사라진다)
     async def summarize_one(name: str, texts: list[str]) -> dict:
         joined = "\n\n---\n\n".join(
             f"[후기 {i + 1}]\n{t[:INFO_BODY_CHARS]}" for i, t in enumerate(texts)
@@ -282,12 +348,13 @@ async def collect_info(
     names = [n for n, t in bodies.items() if t]
     results = await asyncio.gather(*[summarize_one(n, bodies[n]) for n in names])
 
-    # 주소·URL을 요약에 병합 — 이게 없으면 최종 답변에서 주소를 지어낸다
+    # 주소·URL·리랭크 점수를 요약에 병합 — 주소가 없으면 최종 답변에서 지어낸다
     meta = {p["name"]: p for p in places}
     summaries = {
         n: {
             **r,
             "review_count": len(bodies[n]),
+            "rerank_score": round(score[n], 4),
             "address": meta[n].get("address", ""),
             "category": meta[n].get("category", ""),
             "url": meta[n].get("url", ""),
@@ -298,8 +365,10 @@ async def collect_info(
 
     return {
         "count": len(summaries),
-        "no_info": len(places) - len(summaries),
+        "no_info": len(kept) - len(summaries),
+        "reranked_from": len(places),
         "url_file": url_file,
+        "rerank_file": rerank_file,
         "summary_file": summary_file,
     }
 

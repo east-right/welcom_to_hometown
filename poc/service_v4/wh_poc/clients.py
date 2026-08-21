@@ -78,6 +78,35 @@ async def llm_async(
     return resp.text
 
 
+# ---------------------------------------------------------------- 임베딩
+
+EMBED_MODEL = os.getenv("WH_EMBED_MODEL", "gemini-embedding-001")
+EMBED_DIM = 768  # 3072 기본에서 축소 — 벡터가 가벼워지고 코사인도 빨라진다
+
+
+@track("embed")
+async def embed_texts(texts: list[str]) -> list[list[float]]:
+    """텍스트 목록을 임베딩 벡터로. 100개씩 배치로 병렬 호출한다.
+
+    RAG처럼 저장해두는 게 아니라, 한 요청 안에서 리랭크에 쓰고 버리는 일회성 벡터다.
+    """
+    if not texts:
+        return []
+
+    async def one_batch(batch: list[str]) -> list[list[float]]:
+        async with LLM_SEM:
+            resp = await _client.aio.models.embed_content(
+                model=EMBED_MODEL,
+                contents=batch,
+                config=types.EmbedContentConfig(output_dimensionality=EMBED_DIM),
+            )
+        return [e.values for e in resp.embeddings]
+
+    chunks = [texts[i : i + 100] for i in range(0, len(texts), 100)]
+    batched = await asyncio.gather(*[one_batch(c) for c in chunks])
+    return [v for b in batched for v in b]
+
+
 # ---------------------------------------------------------------- 카카오
 
 @track("kakao")

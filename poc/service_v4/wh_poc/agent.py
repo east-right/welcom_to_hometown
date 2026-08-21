@@ -157,7 +157,7 @@ STATUS_TEXT = {
     "read_file": "내용을 정리하고 있어요",
 }
 
-_FILE_KEYS = ("file", "url_file", "summary_file", "source_file", "context_file")
+_FILE_KEYS = ("file", "url_file", "rerank_file", "summary_file", "source_file", "context_file")
 
 
 class Chat:
