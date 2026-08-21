@@ -9,7 +9,6 @@
 
 import asyncio
 import json
-import re
 import time
 from collections import Counter
 from datetime import datetime
@@ -20,17 +19,10 @@ from google.adk.tools import ToolContext
 
 from . import prompts
 from .clients import (
-    diningcode_names,
-    fanout_queries,
-    in_same_region,
     kakao_all,
-    kakao_keyword,
-    llm,
     llm_async,
     naver_search,
-    rrf_merge,
     scrape_urls,
-    verify_names,
 )
 from .core import (
     FAIL_PREFIX,
@@ -42,10 +34,7 @@ from .core import (
 )
 
 # collect_places 수집 기준
-MAX_COUNT = 45           # 카카오 1차 수집 상한 (API 한계)
-REFINE_TARGET = 15       # 정제 후 파일에 남길 개수. collect_info·요약 비용이 여기에 비례
-DINING_QUOTA_RATIO = 4   # 정제 결과 중 다이닝코드 유래 최소 비율 (target // 4)
-DINING_QUOTA_MIN = 3     # 다이닝코드 유래 최소 개수
+MAX_COUNT = 45  # 카카오가 노출하는 상한. 이만큼 채우면 후보가 넘친다는 신호(too_broad).
 
 INFO_PER_PLACE = 3  # 매장당 채택할 블로그 글 수
 INFO_BODY_CHARS = 2000
@@ -83,26 +72,7 @@ def get_today() -> dict:
     }
 
 
-# ---------------------------------------------------------------- collect_places (v2)
-
-def _refine(places: list[dict], target: int = REFINE_TARGET) -> list[dict]:
-    """RRF 상위를 뽑되, 소스가 한쪽으로 쏠리지 않게 쿼터를 둔다.
-
-    다이닝코드 유래는 카카오 쿼리 여러 개에 안 걸려 RRF 점수가 낮지만,
-    카카오 '맛집' 태그가 놓치는 로컬 매장이라 정답률이 높다(우동한그릇, 개성순대 등
-    4회 반복 평가에서 카카오만으로는 계속 놓치던 매장이 여기서만 잡혔다).
-    상위 점수 컷만 하면 이들이 통째로 날아가므로 쿼터로 자리를 보전한다.
-    """
-    kakao = [p for p in places if p.get("source") != "diningcode"]
-    dining = [p for p in places if p.get("source") == "diningcode"]
-
-    n_dining = min(len(dining), max(DINING_QUOTA_MIN, target // DINING_QUOTA_RATIO))
-    n_kakao = target - n_dining
-
-    picked = kakao[:n_kakao] + dining[:n_dining]
-    picked.sort(key=lambda p: -p["rrf"])
-    return picked
-
+# ---------------------------------------------------------------- collect_places
 
 @timed_tool
 async def collect_places(
@@ -112,20 +82,9 @@ async def collect_places(
 ) -> dict:
     """지역 키워드로 장소 후보 목록을 수집한다. 모든 작업의 첫 단계다.
 
-    카카오 로컬 검색만으로는 '맛집' 태그가 없는 로컬 노포(동네 순대집, 국숫집 등)를
-    놓치고, 카테고리 분류가 사람들이 부르는 이름과 달라(화덕피자집이 '이탈리안'으로
-    등록되는 식) 검색어 하나로는 결과가 반쪽만 나온다. 이를 보강하기 위해 세 갈래로
-    수집한 뒤 병합한다.
-
-    1) 업종어 확장 검색 — 요청에 구체적 업종·메뉴어가 있으면 카카오맵이 쓸 법한
-       다른 분류명으로 3~4개 검색어를 만들어 병렬 검색한다.
-    2) 다이닝코드 수확 — '{query} Top' 형태로 다이닝코드 랭킹 리스트를 찾아
-       매장명을 뽑고 카카오로 역조회해 실존·주소를 확보한다. '맛집'처럼 업종을
-       특정할 수 없는 포괄어 쿼리에서 특히 유효하다.
-    3) 위 결과를 Reciprocal Rank Fusion으로 병합해 관점 간 합의가 높은 순으로 정렬한다.
-
-    최종적으로 상위 일부만 파일에 남긴다(카카오·다이닝코드 쿼터 유지). 전량을
-    다음 단계(리뷰 수집)로 넘기면 크롤링·요약 비용이 과도해지기 때문이다.
+    카카오 로컬 키워드 검색으로 후보를 모은다. 페이지당 15개씩 최대 45개까지 받고,
+    카카오가 더 줄 게 없으면(is_end) 조기 종료한다. 수집한 후보를 자르지 않고 전량
+    파일에 남긴다.
 
     검색어는 '지역 + 짧은 명사' 형태여야 한다. 서술형 문장은 결과가 거의 나오지 않는다.
       좋은 예: '성수동 카페', '진해 군항제', '가평 캠핑장'
@@ -139,64 +98,29 @@ async def collect_places(
     Returns:
         status가 'too_broad'면 카카오 상한(45개)을 채운 것이다. message를 읽고
         그대로 진행할지 사용자에게 좁힐 기준을 되물을지 판단한다.
-        status가 'ok'면 수집·정제가 끝난 것이므로 다음 단계로 넘어간다.
+        status가 'ok'면 수집이 끝난 것이므로 다음 단계로 넘어간다.
         축제나 특정 시설처럼 대상이 하나뿐인 경우 결과가 적어도 'ok'가 나온다. 정상이다.
     """
     tool_context.state["temp:collect_attempts"] = (
         tool_context.state.get("temp:collect_attempts", 0) + 1
     )
 
-    # 1) 카카오 원 쿼리 전량 (다른 수집의 기준점이자 지역 필터 근거)
-    base = kakao_all(query, category_code=category_code)
-    base_gu = {b["address"].split()[2] for b in base if len(b["address"].split()) > 2}
-    log(f"[collect_places] '{query}' 카카오 1차 {len(base)}개")
+    places = kakao_all(query, category_code=category_code)
+    log(f"[collect_places] '{query}' 카카오 {len(places)}개")
 
-    # 2) 업종어 확장 — 포괄어면 fanout_queries가 원 쿼리만 반환한다
-    fan_queries = fanout_queries(query)
-    kakao_lists = [base] + [
-        kakao_all(q, category_code=category_code) for q in fan_queries[1:]
-    ]
-    if len(fan_queries) > 1:
-        log(f"[collect_places] 업종 확장 → {fan_queries[1:]}")
-
-    # 3) 다이닝코드 수확 — 항상 시도. 포괄어일수록 값어치가 크다.
-    dc_names = diningcode_names(f"{query} Top", display=30)
-    dc_places: list[dict] = []
-    if dc_names:
-        verified = verify_names(list(dc_names), region_hint=query.split()[0])
-        dc_places = [p for p in verified if in_same_region(p, base)]
-        for p in dc_places:
-            p["source"] = "diningcode"
-        log(f"[collect_places] 다이닝코드 {len(dc_names)} → 지역필터 후 {len(dc_places)}")
-
-    # 4) RRF 병합 후 정제
-    all_lists = kakao_lists + ([dc_places] if dc_places else [])
-    weights = [1.0] * len(kakao_lists) + ([3.0] if dc_places else [])
-    merged = rrf_merge(all_lists, weights=weights)[:MAX_COUNT]
-    refined = _refine(merged, REFINE_TARGET)
-
-    file_path = dump("collect_places", refined, _run_id(tool_context))
+    file_path = dump("collect_places", places, _run_id(tool_context))
 
     # 파일 경로는 temp: 없이 저장한다. temp:는 invocation 스코프라 다음 턴에 사라지는데,
     # 멀티턴에서는 되묻고 답을 받은 뒤에도 이 경로가 필요하다.
     tool_context.state["last_places_file"] = file_path
     tool_context.state["last_query"] = query
 
-    payload = {
-        "count": len(refined),
-        "collected_before_refine": len(merged),
-        "source_breakdown": {
-            "kakao": sum(1 for p in refined if p.get("source") != "diningcode"),
-            "diningcode": sum(1 for p in refined if p.get("source") == "diningcode"),
-        },
-        "file": file_path,
-    }
+    payload = {"count": len(places), "file": file_path}
 
-    # base(원 쿼리)가 45개 상한을 채웠다는 건 카카오만으로도 후보가 넘친다는 뜻이다.
-    # 이 사실만 알려주고, 좁힐지 진행할지는 에이전트가 판단한다. 발화에 이미 기준점이
-    # 있는지(예: "역"이 붙었는지)는 코드가 알 수 없다.
-    base_exhausted = len(base) < MAX_COUNT  # kakao_all이 is_end로 조기 종료했으면 True
-    if not base_exhausted:
+    # 45개를 다 채웠다는 건 is_end 전에 상한에 닿았다는 뜻 — 카카오에 아직 더 있다.
+    # 후보가 넘친다는 사실만 알려주고, 좁힐지 진행할지는 에이전트가 판단한다. 발화에
+    # 이미 기준점이 있는지(예: "역"이 붙었는지)는 코드가 알 수 없다.
+    if len(places) >= MAX_COUNT:
         payload["status"] = "too_broad"
         payload["message"] = (
             f"'{query}' 후보가 {MAX_COUNT}개 이상입니다. "
