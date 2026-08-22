@@ -111,7 +111,8 @@ async def eval_one(case: dict, idx: int, total: int) -> dict:
     kind = result.get("kind", "?")
     final_names = [p.get("name", "") for p in result.get("places", [])]
 
-    # 수집 단계 결과 — 툴이 남긴 파일에서 읽는다
+    # 파이프라인 단계별 후보 — 각 툴이 남긴 파일에서 읽는다.
+    # 수집(collect_places) → 1차필터·리랭크(collect_info의 info_rerank) → 최종.
     pool_names: list[str] = []
     if pf := out["files"].get("file"):
         try:
@@ -119,7 +120,16 @@ async def eval_one(case: dict, idx: int, total: int) -> dict:
         except Exception:
             pass
 
-    # 정답별 히트 위치
+    filter_names, rerank_names = [], []
+    if rf := out["files"].get("rerank_file"):
+        try:
+            rr_data = load_json(rf)
+            filter_names = [x["name"] for x in rr_data["ranking"]]                 # 1차 필터 통과
+            rerank_names = [x["name"] for x in rr_data["ranking"] if x["kept"]]    # 리랭크 채택
+        except Exception:
+            pass
+
+    # 정답별 단계 통과 위치
     detail = []
     for a in answers:
         pool_rank = _hit(a, pool_names)
@@ -128,19 +138,24 @@ async def eval_one(case: dict, idx: int, total: int) -> dict:
             "answer": a,
             "in_pool": pool_rank >= 0,
             "pool_rank": pool_rank + 1 if pool_rank >= 0 else None,
+            "in_filter": _hit(a, filter_names) >= 0,
+            "in_rerank": _hit(a, rerank_names) >= 0,
             "in_final": final_rank >= 0,
             "final_rank": final_rank + 1 if final_rank >= 0 else None,
         })
 
     n_pool = sum(1 for d in detail if d["in_pool"])
+    n_filter = sum(1 for d in detail if d["in_filter"])
+    n_rerank = sum(1 for d in detail if d["in_rerank"])
     n_final = sum(1 for d in detail if d["in_final"])
     ranks = [d["final_rank"] for d in detail if d["final_rank"]]
     rr = 1.0 / min(ranks) if ranks else 0.0
 
     # 콘솔 요약
     mark = "O" if n_final else ("~" if n_pool else "X")
-    print(f"   [{mark}] 수집 {n_pool}/{len(answers)} | 최종 {n_final}/{len(answers)} "
-          f"| RR {rr:.2f} | {kind} | {elapsed:.1f}초")
+    na = len(answers)
+    print(f"   [{mark}] 수집 {n_pool}/{na} | 필터 {n_filter}/{na} | 리랭크 {n_rerank}/{na} "
+          f"| 최종 {n_final}/{na} | RR {rr:.2f} | {kind} | {elapsed:.1f}초")
     for d in detail:
         if d["in_final"]:
             s = f"최종 {d['final_rank']}위"
@@ -163,6 +178,8 @@ async def eval_one(case: dict, idx: int, total: int) -> dict:
         "detail": detail,
         "n_answer": len(answers),
         "n_pool_hit": n_pool,
+        "n_filter_hit": n_filter,
+        "n_rerank_hit": n_rerank,
         "n_final_hit": n_final,
         "rr": rr,
         "elapsed": elapsed,
@@ -182,6 +199,8 @@ def summarize(rows: list[dict]) -> dict:
 
     n_ans = sum(r["n_answer"] for r in ok)
     n_pool = sum(r["n_pool_hit"] for r in ok)
+    n_filter = sum(r.get("n_filter_hit", 0) for r in ok)
+    n_rerank = sum(r.get("n_rerank_hit", 0) for r in ok)
     n_final = sum(r["n_final_hit"] for r in ok)
 
     # 케이스 단위: 정답을 하나라도 맞혔나
@@ -195,9 +214,11 @@ def summarize(rows: list[dict]) -> dict:
 
     print(f"\n{'=' * 64}")
     print(f"케이스 {len(ok)}개 (오류 {len(rows) - len(ok)}개) | 정답 총 {n_ans}개\n")
-    print(f"  정답 단위")
-    print(f"    Recall@수집   {n_pool}/{n_ans}  ({n_pool / n_ans * 100:5.1f}%)")
-    print(f"    Recall@최종   {n_final}/{n_ans}  ({n_final / n_ans * 100:5.1f}%)")
+    print(f"  정답 단위 funnel (단계별 recall, 괄호=직전 단계 대비 손실)")
+    print(f"    수집     {n_pool}/{n_ans}  ({n_pool / n_ans * 100:5.1f}%)")
+    print(f"    1차필터  {n_filter}/{n_ans}  ({n_filter / n_ans * 100:5.1f}%)   (-{n_pool - n_filter})")
+    print(f"    리랭크   {n_rerank}/{n_ans}  ({n_rerank / n_ans * 100:5.1f}%)   (-{n_filter - n_rerank})")
+    print(f"    최종     {n_final}/{n_ans}  ({n_final / n_ans * 100:5.1f}%)   (-{n_rerank - n_final})")
     print(f"\n  케이스 단위 (하나라도 맞힘)")
     print(f"    Recall@수집   {case_pool}/{len(ok)}  ({case_pool / len(ok) * 100:5.1f}%)")
     print(f"    Recall@최종   {case_final}/{len(ok)}  ({case_final / len(ok) * 100:5.1f}%)")
@@ -205,15 +226,20 @@ def summarize(rows: list[dict]) -> dict:
     print(f"  평균 소요      {avg_sec:.1f}초")
     print(f"  토큰          in {tok_in:,} / out {tok_out:,}")
 
-    # 수집은 됐는데 최종에서 떨어진 것 = 랭킹 문제
+    # 수집은 됐는데 최종에서 떨어진 것 = 어느 단계에서 샜나
     lost = n_pool - n_final
     if lost:
-        print(f"\n  수집됐지만 최종 탈락: {lost}개  ← 랭킹 개선 여지")
+        print(f"\n  수집됐지만 최종 탈락: {lost}개  ← 단계별 누수")
         for r in ok:
             for d in r["detail"]:
                 if d["in_pool"] and not d["in_final"]:
-                    print(f"    {d['answer'][:20]:22} (수집 {d['pool_rank']}위) "
-                          f"| {r['question'][:28]}")
+                    if not d.get("in_filter"):
+                        stage = "1차필터 탈락"
+                    elif not d.get("in_rerank"):
+                        stage = "리랭크 탈락"
+                    else:
+                        stage = "최종LLM 탈락"
+                    print(f"    {d['answer'][:18]:20} {stage:12} | {r['question'][:26]}")
 
     missed = n_ans - n_pool
     if missed:
@@ -231,7 +257,10 @@ def summarize(rows: list[dict]) -> dict:
 
     return {
         "n_case": len(ok), "n_answer": n_ans,
-        "recall_pool": n_pool / n_ans, "recall_final": n_final / n_ans,
+        "recall_pool": n_pool / n_ans,
+        "recall_filter": n_filter / n_ans,
+        "recall_rerank": n_rerank / n_ans,
+        "recall_final": n_final / n_ans,
         "case_recall_pool": case_pool / len(ok), "case_recall_final": case_final / len(ok),
         "mrr": mrr, "avg_sec": avg_sec,
         "tokens_in": tok_in, "tokens_out": tok_out,
