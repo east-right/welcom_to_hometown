@@ -15,6 +15,7 @@ import asyncio
 import json
 import os
 import re
+from urllib.parse import urlparse
 
 import httpx
 import requests
@@ -287,15 +288,49 @@ def fanout_queries(query: str) -> list[str]:
 
 # ---------------------------------------------------------------- 크롤링
 
-async def scrape_urls(urls: list[str], max_chars: int = 0) -> list[dict]:
-    """URL 병렬 크롤링 → [{'url', 'text'}].
+# 협찬/체험단 판정용. 내돈내산 후기는 자기 사진을 올려 이미지가 네이버(pstatic)에 재호스팅되지만,
+# 협찬 배지는 대행사 서버(레뷰·리뷰노트 등)에서 들고 와 첫 사진 URL이 비네이버다.
+_STICKER_HOSTS = ("storep-phinf", "simg.pstatic", "ssl.pstatic", "dthumb")  # 이모티콘·지도카드
+_SPONSOR_WORDS = ("협찬", "소정의", "원고료", "제공받", "대가를", "업체로부터", "지원받", "고료를")
 
-    실패해도 예외를 던지지 않고 FAIL_PREFIX로 시작하는 문자열을 담는다.
+
+def _is_sponsored(soup) -> bool:
+    """네이버 블로그 글이 협찬/체험단인지 추정한다.
+
+    스티커·지도카드를 건너뛴 '첫 사진'의 도메인이 네이버(pstatic/naver)가 아니면 협찬으로 본다
+    (배지를 대행사 서버에서 불러온 경우). 본문 앞부분의 고지 문구도 함께 본다.
+    """
+    cont = soup
+    for s in _BODY_SELECTORS:
+        node = soup.select_one(s)
+        if node:
+            cont = node
+            break
+
+    for img in cont.find_all("img"):
+        u = img.get("data-lazy-src") or img.get("src") or img.get("data-src") or ""
+        if u.startswith("//"):
+            u = "https:" + u
+        dom = urlparse(u).netloc
+        if not dom or any(h in dom for h in _STICKER_HOSTS):
+            continue  # 이모티콘·카드는 사진이 아니므로 건너뛴다
+        if "pstatic" not in dom and "naver" not in dom:
+            return True  # 첫 사진이 비네이버 → 협찬 배지
+        break  # 첫 사진이 네이버 → 사진 신호로는 정상
+
+    return any(w in cont.get_text(" ", strip=True)[:600] for w in _SPONSOR_WORDS)
+
+
+async def scrape_urls(urls: list[str], max_chars: int = 0) -> list[dict]:
+    """URL 병렬 크롤링 → [{'url', 'text', 'sponsored'}].
+
+    실패해도 예외를 던지지 않고 text에 FAIL_PREFIX로 시작하는 문자열을 담는다.
+    sponsored는 네이버 블로그 협찬 추정 플래그(블로그가 아니면 의미 없음).
     max_chars가 0이면 본문 전체를 담는다.
     """
 
     @track("scrape")
-    async def fetch_one(client: httpx.AsyncClient, url: str) -> str:
+    async def fetch_one(client: httpx.AsyncClient, url: str) -> dict:
         m = re.search(r"blog\.naver\.com/([^/?]+)/(\d+)", url)
         target = (
             f"https://blog.naver.com/PostView.naver?blogId={m.group(1)}&logNo={m.group(2)}"
@@ -308,9 +343,10 @@ async def scrape_urls(urls: list[str], max_chars: int = 0) -> list[dict]:
                 resp = await client.get(target)
                 resp.raise_for_status()
             except httpx.HTTPError as e:
-                return f"{FAIL_PREFIX}열기 실패: {type(e).__name__}"
+                return {"text": f"{FAIL_PREFIX}열기 실패: {type(e).__name__}", "sponsored": False}
 
         soup = BeautifulSoup(resp.text, "html.parser")
+        sponsored = _is_sponsored(soup)  # 태그 정리 전에 이미지·고지 판정
         for tag in soup(["script", "style", "nav", "footer"]):
             tag.decompose()
 
@@ -330,15 +366,15 @@ async def scrape_urls(urls: list[str], max_chars: int = 0) -> list[dict]:
             ).strip()
 
         if len(text) < 150:
-            return f"{FAIL_PREFIX}본문 추출 실패"
-        return text[:max_chars] if max_chars else text
+            return {"text": f"{FAIL_PREFIX}본문 추출 실패", "sponsored": sponsored}
+        return {"text": text[:max_chars] if max_chars else text, "sponsored": sponsored}
 
     async with httpx.AsyncClient(
         headers={"User-Agent": _USER_AGENT}, timeout=10.0, follow_redirects=True
     ) as client:
-        texts = await asyncio.gather(*(fetch_one(client, u) for u in urls))
+        results = await asyncio.gather(*(fetch_one(client, u) for u in urls))
 
-    return [{"url": u, "text": t} for u, t in zip(urls, texts)]
+    return [{"url": u, **d} for u, d in zip(urls, results)]
 
 
 # ---------------------------------------------------------------- 네이버 검색
