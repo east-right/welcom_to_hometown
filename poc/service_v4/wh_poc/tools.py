@@ -40,11 +40,10 @@ from .core import (
 # collect_places 수집 기준
 MAX_COUNT = 45  # 카카오가 노출하는 상한. 이만큼 채우면 후보가 넘친다는 신호(too_broad).
 
-FILTER_KEEP = 25        # 1단 필터 후 본문을 읽을 매장 수 (수확 노포는 이와 별개로 전량 생존)
-RERANK_KEEP = 15        # 2단 본문 리랭크로 최종 남길 매장 수 (요약 비용이 여기 비례)
-RERANK_SNIPPETS = 5     # 매장당 확보할 블로그 스니펫 수
-BODY_PER_PLACE = 2      # 2단에서 매장당 크롤할 블로그 본문 수 (요약에도 재사용)
-INFO_BODY_CHARS = 2000  # 임베딩·요약에 넣는 본문 최대 길이
+RERANK_KEEP = 15        # HyDE 리랭크로 최종 남길 매장 수 (크롤·요약 비용이 여기 비례)
+RERANK_SNIPPETS = 5     # 매장당 확보할 블로그 스니펫 수 (리랭크는 스니펫으로)
+INFO_PER_PLACE = 3      # 남긴 매장당 요약에 쓸 블로그 본문 수
+INFO_BODY_CHARS = 2000  # 요약에 넣는 본문 최대 길이
 CONTEXT_BODY_CHARS = 4000
 
 
@@ -204,15 +203,14 @@ async def collect_info(
                     예: '신림역' → '신림', '관악구 관천로' → '신림',
                         '금천구 가산디지털2로' → '가산'
 
-    내부적으로 후보가 많으면 2단 깔때기로 좁힌다. 1단은 블로그 스니펫 HyDE 유사도로
-    관대하게 ~FILTER_KEEP개까지 추리고(수확 노포는 전량 보존), 2단은 그 후보의 블로그
-    본문을 임베딩해 '이상적 리뷰'와 정밀 유사도로 정렬해 상위 RERANK_KEEP개만 남긴다.
-    스니펫은 마케팅 인트로라 변별력이 약해 coarse 컷에만 쓰고, 정밀 판단은 본문에 맡긴다.
-    크롤링·요약 비용이 최종 매장 수에 비례하므로 좁힌 뒤 요약한다.
+    내부적으로 후보가 많으면 HyDE 리랭크로 상위 RERANK_KEEP개만 골라 요약한다. 요청에
+    맞는 '이상적 리뷰'를 생성해 임베딩하고, 각 매장의 블로그 스니펫과 max 유사도로 전체를
+    한 번에 정렬한다(사전 필터 없이 — 중간 컷이 정답을 미리 버리지 않게). 본문은 스니펫과
+    임베딩이 거의 같아 랭킹엔 스니펫만 쓴다. 남긴 매장만 본문을 크롤해 요약하되,
+    협찬/체험단 리뷰는 제외한다.
 
     Returns:
-        {"count", "no_info", "filtered_from", "reranked_from", "url_file",
-         "rerank_file", "summary_file"}
+        {"count", "no_info", "reranked_from", "url_file", "rerank_file", "summary_file"}
         count는 요약이 만들어진 장소 수, no_info는 후기를 못 찾은 장소 수.
         판단 근거는 summary_file에 있다. read_file로 읽어라.
     """
@@ -260,53 +258,64 @@ async def collect_info(
     if reasons:
         log(f"[collect_info] 후기 미확보 {len(reasons)}개 → {dict(Counter(reasons.values()))}")
 
-    # 가상리뷰(HyDE) — 질문 문장이 아니라 '이상적 리뷰'를 임베딩 기준으로 쓴다.
-    # 리뷰끼리 같은 텍스트 공간에 있어 유사도가 더 잘 맞기 때문. 1·2단이 공유한다.
-    hypo = (await llm_async(prompts.HYDE_REVIEW.format(user_query=user_query))).strip()
-    hypo = hypo or user_query
+    # --- 2) LLM-judge 리랭크 — 후보(상호명·카테고리·후기제목)를 통째로 LLM에 주고
+    # 요청에 맞는 상위 RERANK_KEEP곳을 순위대로 고르게 한다. 임베딩 코사인은 같은
+    # 도메인(맛집 후기)에서 유사도가 평평해 변별을 못 하지만, LLM은 읽고 추론해
+    # '요청↔매장' 적합성을 직접 판단한다. 사전 필터 없이 전량을 한 번에 넘긴다.
+    blocks = []
+    for i, p in enumerate(places):
+        titles = "; ".join(b["title"] for b in hits[p["name"]][:2]) or "(후기 없음)"
+        blocks.append(f"[{i}] {p['name']} | {p.get('category', '')}\n     {titles}")
+    raw = await llm_async(
+        prompts.JUDGE_RERANK.format(
+            user_query=user_query, k=RERANK_KEEP, candidates="\n".join(blocks)
+        ),
+        json_mode=True,
+    )
+    try:
+        order = [i for i in json.loads(raw) if isinstance(i, int) and 0 <= i < len(places)]
+    except (json.JSONDecodeError, TypeError):
+        order = []
 
-    # --- 2) 1단 필터 (전체 → ~FILTER_KEEP) — 스니펫 HyDE로 관대하게 추리기 ---
-    # 스니펫은 마케팅 인트로라 변별력이 약해 정밀 순위엔 못 쓰지만, '명백히 무관'을
-    # 걷어내는 coarse 컷엔 쓸 만하다. 정밀 판단은 3단(본문)에 맡기고 여기선 관대하게.
-    # 수확전용 노포(source=web_harvest)는 카카오가 놓친 로컬 매장이라 스니펫 점수가
-    # 낮아도 여기서 죽으면 되살릴 경로가 없다 → 필터 무관하게 전량 생존시킨다.
-    snip_texts, snip_owner = [], []
+    seen, kept = set(), []
+    for i in order:
+        if i not in seen:
+            seen.add(i)
+            kept.append(places[i])
+    # LLM이 부족하게 골랐으면 남은 후보로 채운다(카카오 순서)
     for p in places:
-        for b in hits[p["name"]]:
-            snip_texts.append(f"{b['title']} {b['description']}")
-            snip_owner.append(p["name"])
-    vecs = await embed_texts([hypo] + snip_texts)
-    hypo_vec, snip_vecs = vecs[0], vecs[1:]
+        if len(kept) >= RERANK_KEEP:
+            break
+        if p["id"] not in {q["id"] for q in kept}:
+            kept.append(p)
+    kept = kept[:RERANK_KEEP]
+    kept_ids = {p["id"] for p in kept}
+    rank_of = {p["name"]: r for r, p in enumerate(kept, 1)}
 
-    snip_score = {p["name"]: -1.0 for p in places}  # 스니펫 없는 매장은 -1로 바닥에
-    for name, v in zip(snip_owner, snip_vecs):
-        snip_score[name] = max(snip_score[name], _cos(hypo_vec, v))
-
-    harvest = [p for p in places if p.get("source") == "web_harvest"]
-    kakao = sorted(
-        (p for p in places if p.get("source") != "web_harvest"),
-        key=lambda p: -snip_score[p["name"]],
+    # 세세한 로그 + 파일 — eval funnel용 ranking(kept 표시)
+    log(f"[collect_info] LLM-judge 리랭크 {len(places)}→{len(kept)}")
+    for r, p in enumerate(kept, 1):
+        log(f"   [✓] {r:2} {p['name']}  ({len(hits[p['name']])}글)")
+    ranking = [
+        {"rank": rank_of.get(p["name"]), "name": p["name"],
+         "kept": p["id"] in kept_ids, "source": p.get("source", "")}
+        for p in sorted(places, key=lambda p: rank_of.get(p["name"], 999))
+    ]
+    rerank_file = dump(
+        "info_rerank",
+        {"user_query": user_query, "keep": RERANK_KEEP, "ranking": ranking},
+        run_id,
     )
-    survivors = harvest + kakao[: max(5, FILTER_KEEP - len(harvest))]
-    survivor_ids = {p["id"] for p in survivors}
-    log(
-        f"[collect_info] 1단 필터 {len(places)}→{len(survivors)} "
-        f"(수확 {len(harvest)} 전량 + 카카오 상위 {len(survivors) - len(harvest)})"
-    )
 
-    # --- 3) 2단 본문 리랭크 (survivors → RERANK_KEEP) — 본문 임베딩으로 정밀 정렬 ---
-    # 스니펫과 달리 본문은 실제 후기라 변별력이 있다. survivor만 본문을 크롤해 임베딩하고
-    # 가상리뷰와 max 유사도로 정렬한다. 본문이 없으면(크롤 실패 등) 스니펫 점수로 대체 —
-    # 둘 다 같은 가상리뷰에 대한 코사인이라 스케일이 같다. 크롤한 본문은 요약에도 재사용.
+    # --- 3) 본문 크롤 + 요약 (남긴 매장만) — 협찬/체험단 리뷰는 제외 ---
     links, owner = [], []
-    for p in survivors:
-        for b in hits[p["name"]][:BODY_PER_PLACE]:
+    for p in kept:
+        for b in hits[p["name"]][:INFO_PER_PLACE]:
             links.append(b["link"])
             owner.append(p["name"])
-    scraped = await scrape_urls(links)
 
-    # 협찬/체험단 리뷰는 제외 — 마케팅 카피라 후기로서 신뢰도가 낮다.
-    bodies: dict[str, list[str]] = {p["name"]: [] for p in survivors}
+    scraped = await scrape_urls(links)
+    bodies: dict[str, list[str]] = {p["name"]: [] for p in kept}
     n_sponsored = 0
     for name, s in zip(owner, scraped):
         if s["text"].startswith(FAIL_PREFIX):
@@ -316,67 +325,11 @@ async def collect_info(
             continue
         bodies[name].append(s["text"])
     log(
-        f"[collect_info] 본문 크롤 {len(scraped)}건 중 "
-        f"성공 {sum(len(v) for v in bodies.values())}건, 협찬 제외 {n_sponsored}건"
+        f"[collect_info] 크롤 {len(scraped)}건 중 성공 {sum(len(v) for v in bodies.values())}건, "
+        f"협찬 제외 {n_sponsored}건"
     )
 
-    body_texts, body_owner = [], []
-    for name, texts in bodies.items():
-        for t in texts:
-            body_texts.append(t[:INFO_BODY_CHARS])
-            body_owner.append(name)
-    body_vecs = await embed_texts(body_texts)
-
-    score = {p["name"]: snip_score[p["name"]] for p in survivors}  # 본문 없으면 스니펫으로
-    for name, v in zip(body_owner, body_vecs):
-        score[name] = max(score[name], _cos(hypo_vec, v))
-
-    ranked = sorted(survivors, key=lambda p: -score[p["name"]])
-    kept = ranked[:RERANK_KEEP]
-    kept_ids = {p["id"] for p in kept}
-
-    # 세세한 로그 + 파일 — 필터/리랭크가 무슨 근거로 뭘 남기고 버렸는지 확인용
-    log(f"[collect_info] HyDE 가상리뷰: {hypo[:150]}")
-    log(f"[collect_info] 2단 리랭크 {len(survivors)}→{len(kept)} (본문 {len(body_texts)}편 임베딩)")
-    for rank, p in enumerate(ranked, 1):
-        mark = "✓" if p["id"] in kept_ids else " "
-        log(
-            f"   [{mark}] {rank:2} 본문{score[p['name']]:+.3f}/스니펫{snip_score[p['name']]:+.3f} "
-            f"{p['name']}  ({len(bodies[p['name']])}본문)"
-        )
-    rerank_file = dump(
-        "info_rerank",
-        {
-            "user_query": user_query,
-            "hypo_review": hypo,
-            "filter_keep": FILTER_KEEP,
-            "rerank_keep": RERANK_KEEP,
-            "ranking": [
-                {
-                    "rank": r,
-                    "name": p["name"],
-                    "score": round(score[p["name"]], 4),
-                    "snippet_score": round(snip_score[p["name"]], 4),
-                    "n_bodies": len(bodies[p["name"]]),
-                    "kept": p["id"] in kept_ids,
-                    "source": p.get("source", ""),
-                }
-                for r, p in enumerate(ranked, 1)
-            ],
-            "filtered_out": [
-                {
-                    "name": p["name"],
-                    "snippet_score": round(snip_score[p["name"]], 4),
-                    "source": p.get("source", ""),
-                }
-                for p in places
-                if p["id"] not in survivor_ids
-            ],
-        },
-        run_id,
-    )
-
-    # --- 4) 요약 (남긴 매장만, 이미 크롤한 본문 재사용) ---
+    # 매장당 후기를 한 번에 넣어 통합 요약 (개별 요약하면 반복 빈도 정보가 사라진다)
     async def summarize_one(name: str, texts: list[str]) -> dict:
         joined = "\n\n---\n\n".join(
             f"[후기 {i + 1}]\n{t[:INFO_BODY_CHARS]}" for i, t in enumerate(texts)
@@ -402,7 +355,7 @@ async def collect_info(
         n: {
             **r,
             "review_count": len(bodies[n]),
-            "rerank_score": round(score[n], 4),
+            "rerank_rank": rank_of.get(n),
             "address": meta[n].get("address", ""),
             "category": meta[n].get("category", ""),
             "url": meta[n].get("url", ""),
@@ -414,8 +367,7 @@ async def collect_info(
     return {
         "count": len(summaries),
         "no_info": len(kept) - len(summaries),
-        "filtered_from": len(places),
-        "reranked_from": len(survivors),
+        "reranked_from": len(places),
         "url_file": url_file,
         "rerank_file": rerank_file,
         "summary_file": summary_file,
