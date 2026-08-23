@@ -1,18 +1,16 @@
 """Layer 1 — 외부 클라이언트.
 
 각 API를 감싸는 얇은 래퍼. 툴로 노출하지 않는다.
-
-v2에서 추가된 것:
-    kakao_all           카카오 45개 전량 수집
-    diningcode_names    네이버 웹검색 스니펫에서 다이닝코드 매장명 수확
-    verify_names        매장명 문자열을 카카오로 역조회해 실존·좌표 확보
-    rrf_merge           여러 검색 결과를 Reciprocal Rank Fusion으로 병합
-    fanout_queries      업종어 확장 쿼리 생성 (LLM)
-    in_same_region      구(區) 단위 지역 일치 판정
+  llm_async     유틸 LLM 비동기 호출
+  embed_texts   텍스트 임베딩 (리랭크용)
+  kakao_keyword / kakao_all   카카오 로컬 검색
+  verify_names  매장명을 카카오로 역조회해 실존·좌표 확보 (웹수확 검증)
+  in_same_region  구(區) 단위 지역 일치 판정
+  naver_search  네이버 블로그/뉴스/웹문서 검색
+  scrape_urls   본문 병렬 크롤 (+ 협찬 판정)
 """
 
 import asyncio
-import json
 import os
 import re
 from urllib.parse import urlparse
@@ -51,17 +49,6 @@ _BODY_SELECTORS = [
 
 
 # ---------------------------------------------------------------- LLM
-# (fanout_queries가 아래에서 참조하므로 파일 앞쪽에 배치)
-
-def llm(prompt: str, *, json_mode: bool = False, temperature: float = 0.0) -> str:
-    """유틸 LLM 동기 호출. 단발 처리용."""
-    config = types.GenerateContentConfig(temperature=temperature)
-    if json_mode:
-        config.response_mime_type = "application/json"
-    resp = _client.models.generate_content(
-        model=UTIL_MODEL, contents=prompt, config=config
-    )
-    return resp.text
 
 
 @track("llm")
@@ -197,93 +184,20 @@ def verify_names(names: list[str], region_hint: str = "") -> list[dict]:
     return out
 
 
-# ---------------------------------------------------------------- RRF
-
-def rrf_merge(result_lists: list[list[dict]], k: int = 60, weights: list[float] | None = None) -> list[dict]:
-    """여러 검색 결과를 Reciprocal Rank Fusion으로 병합.
-
-    RRF(d) = Σ w_i / (k + rank). 기본 가중치는 전부 1.0.
-    다이닝코드처럼 '카카오가 놓친 걸 보강하는 단일 소스'는 다른 리스트와
-    경쟁하면 구조적으로 밀린다 — 카카오 여러 쿼리에 걸린 매장은 hit_lists가
-    자연히 높아지는데, 다이닝코드 전용 매장은 그 리스트 하나에만 있어 항상
-    최하위 점수를 받기 때문이다(우동한그릇·개성순대가 RRF 20위 밖으로
-    밀려 정제에서 잘린 게 이 경우). weights로 다이닝코드 리스트만
-    가중치를 올리면, 소스 하나뿐이어도 카카오 상위권과 경쟁 가능해진다.
-    """
-    weights = weights or [1.0] * len(result_lists)
-    scores, store = {}, {}
-    for w, places in zip(weights, result_lists):
-        for rank, p in enumerate(places, 1):
-            scores[p["id"]] = scores.get(p["id"], 0.0) + w / (k + rank)
-            store.setdefault(p["id"], p)
-
-    ranked = sorted(scores.items(), key=lambda kv: -kv[1])
-    out = []
-    for pid, s in ranked:
-        p = dict(store[pid])
-        p["rrf"] = round(s, 5)
-        p["hit_lists"] = sum(1 for lst in result_lists if any(q["id"] == pid for q in lst))
-        out.append(p)
-    return out
-
-
 # ---------------------------------------------------------------- 수확 보강 (지역 일치 판정)
 
 def in_same_region(place: dict, base: list[dict]) -> bool:
-    """place가 base(1차 카카오 결과)와 같은 구(區)에 있는지.
+    """place가 base(카카오 결과)와 같은 구(區)에 있는지.
 
-    다이닝코드 수확에는 다른 지역이 섞인다 — '가포' 검색에 청주 흥덕구
-    '가포산로' 리스트가 딸려오는 식. 도로명 접두로 걸러보면 지역마다
-    도로명 구성이 달라('가포'는 가포*로 통일, '신림역'은 신림로·남부순환로·
-    관악로로 분산) 일관되게 동작하지 않는다. 구 단위만 보는 이유다.
-    같은 구 안의 먼 매장은 RRF 하위로 밀리므로 최종 선별에서 걸러진다.
+    웹수확에는 다른 지역이 섞인다 — '가포' 검색에 청주 흥덕구 '가포산로' 리스트가
+    딸려오는 식. 도로명 접두로 걸러보면 지역마다 도로명 구성이 달라 일관되지 않아
+    구 단위만 본다.
     """
     parts = place["address"].split()
     if len(parts) < 3:
         return False
     base_gu = {b["address"].split()[2] for b in base if len(b["address"].split()) > 2}
     return parts[2] in base_gu
-
-
-# ---------------------------------------------------------------- 쿼리 확장
-
-_FANOUT_PROMPT = """\
-사용자가 찾는 것: "{query}"
-
-카카오맵은 같은 가게를 사람들이 부르는 이름과 다르게 분류한다.
-(예: 화덕피자집이 '피자'가 아니라 '이탈리안'이나 '파스타'로 등록된다)
-
-이 요청에 **구체적인 업종·메뉴어**가 있으면, 카카오맵이 쓸 법한 다른 분류명으로
-검색어 3~4개를 만들어라. 지역명은 그대로 두고 업종어만 바꾼다.
-    "합성동 피자"   → ["합성동 이탈리안", "합성동 파스타", "합성동 화덕피자"]
-    "신림역 고기집" → ["신림역 삼겹살", "신림역 갈비", "신림역 돼지고기"]
-    "신림역 횟집"   → ["신림역 일식", "신림역 해산물"]
-
-요청이 '맛집', '먹을 데', '식당', '추천' 같은 포괄어뿐이고 구체적 업종어가
-없으면 반드시 빈 배열 []을 반환하라. 그런 경우 업종을 추측하면 그 동네에
-실제로 없는 업종을 검색하게 되어 결과가 더 나빠진다.
-
-결과는 문자열 배열 JSON으로만 답하라.
-"""
-
-
-def fanout_queries(query: str) -> list[str]:
-    """업종어 확장 쿼리를 만든다. 원 쿼리는 항상 포함.
-    포괄어라 확장할 수 없다고 LLM이 판단하면 원 쿼리만 반환한다."""
-    try:
-        raw = llm(_FANOUT_PROMPT.format(query=query), json_mode=True)
-        qs = json.loads(raw)
-        qs = [q.strip() for q in qs if isinstance(q, str) and q.strip()]
-    except (json.JSONDecodeError, TypeError):
-        qs = []
-
-    out, seen = [], set()
-    for q in [query] + qs[:4]:
-        key = re.sub(r"\s+", "", q)
-        if key not in seen:
-            seen.add(key)
-            out.append(q)
-    return out
 
 
 # ---------------------------------------------------------------- 크롤링

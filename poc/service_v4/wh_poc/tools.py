@@ -328,17 +328,15 @@ async def collect_info(
 
     ranked = sorted(places, key=lambda p: -score[p["name"]])
     kept = ranked[:RERANK_KEEP]
-    kept_ids = {p["id"] for p in kept}
     rank_of = {p["name"]: r for r, p in enumerate(kept, 1)}
 
-    # 세세한 로그 + 파일
+    # 콘솔엔 남긴 것만, 전체 순위는 rerank_file에.
     log(f"[collect_info] HyDE 가상문서: {hypo[:120]}")
     log(f"[collect_info] 리랭크 {len(places)}→{len(kept)}")
-    for r, p in enumerate(ranked, 1):
-        mark = "✓" if p["id"] in kept_ids else " "
-        log(f"   [{mark}] {r:2} {score[p['name']]:+.3f} {p['name']}")
+    for r, p in enumerate(kept, 1):
+        log(f"   [{r:2}] {score[p['name']]:+.3f} {p['name']}")
     ranking = [
-        {"rank": r, "name": p["name"], "kept": p["id"] in kept_ids,
+        {"rank": r, "name": p["name"], "kept": rank_of.get(p["name"]) is not None,
          "score": round(score[p["name"]], 4), "source": p.get("source", "")}
         for r, p in enumerate(ranked, 1)
     ]
