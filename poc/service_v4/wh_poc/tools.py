@@ -64,6 +64,38 @@ def _cos(a: list[float], b: list[float]) -> float:
     return dot / (na * nb) if na and nb else 0.0
 
 
+def _is_franchise(place: dict) -> bool:
+    """음식점 프랜차이즈 판정. 카카오는 프랜차이즈의 브랜드명을 카테고리 끝에 붙인다
+    ('음식점 > 카페 > 커피전문점 > 스타벅스'). 그래서 상호명이 그 마지막 조각으로
+    '시작'하면 프랜차이즈다. 일반 매장은 마지막 조각이 업종명(갈비·칼국수)이라
+    이름이 그걸로 시작하지 않는다(서울'갈비', '손'칼국수). 음식점 카테고리에만 적용."""
+    cat = place.get("category", "")
+    segs = [s.strip() for s in cat.split(">")]
+    # 브랜드는 기본 업종보다 깊은 단계에 붙는다(음식점>카페>커피전문점>스타벅스). 얕으면
+    # 마지막 조각이 넓은 업종어(카페)라 '카페모조'처럼 오탐 난다 → 3단계 이상만 본다.
+    if segs[0] != "음식점" or len(segs) < 3:
+        return False
+    return len(segs[-1]) >= 2 and place["name"].startswith(segs[-1])
+
+
+def _lvl2(cat: str) -> str:
+    """카카오 카테고리의 2단계(대분류 다음) — 업종군. '음식점>한식>국수'→'한식'."""
+    segs = [s.strip() for s in cat.split(">")]
+    return segs[1] if len(segs) >= 2 else (segs[0] if segs else "")
+
+
+def _dominant_cats(base: list[dict]) -> set[str] | None:
+    """카카오 base의 지배 업종군을 구한다. 한 업종이 절반 이상이면(구체 쿼리) 그
+    업종군들(≥25%)을 반환, 여러 업종에 퍼져 있으면(막연한 '맛집') None(필터 안 함)."""
+    if not base:
+        return None
+    cnt = Counter(_lvl2(p["category"]) for p in base)
+    n = len(base)
+    if cnt.most_common(1)[0][1] / n < 0.5:
+        return None
+    return {c for c, v in cnt.items() if v / n >= 0.25}
+
+
 # ---------------------------------------------------------------- get_today
 
 def get_today() -> dict:
@@ -152,6 +184,25 @@ async def collect_places(
             seen.add(p["id"])
             n_harvest += 1
     log(f"[collect_places] 수확 후보 {len(names)}개 → 신규 확보 {n_harvest}개")
+
+    # 음식점 프랜차이즈 제거 — 로컬 맛집 추천에 프랜차이즈는 노이즈. (카페 체인 포함)
+    before = len(places)
+    places = [p for p in places if not _is_franchise(p)]
+    if before != len(places):
+        log(f"[collect_places] 프랜차이즈 {before - len(places)}개 제거 → {len(places)}개")
+
+    # 업종 1차 필터 — base(카카오)가 한 업종에 몰린 구체 쿼리면, 그 업종과 다른 수확
+    # 매장은 노이즈다(카페 검색에 딸려온 횟집 등) → 제거. 막연한 '맛집'이면 업종이
+    # 퍼져 있어 필터하지 않는다(우동=일식처럼 소수 업종 정답이 잘리지 않게). 카카오
+    # base는 쿼리 직접 결과라 건드리지 않고, 수확분에만 적용한다.
+    dominant = _dominant_cats(base)
+    if dominant:
+        before = len(places)
+        places = [
+            p for p in places
+            if p.get("source") != "web_harvest" or _lvl2(p["category"]) in dominant
+        ]
+        log(f"[collect_places] 업종 필터({sorted(dominant)}) 수확 {before - len(places)}개 제거")
 
     file_path = dump("collect_places", places, _run_id(tool_context))
 
@@ -258,52 +309,43 @@ async def collect_info(
     if reasons:
         log(f"[collect_info] 후기 미확보 {len(reasons)}개 → {dict(Counter(reasons.values()))}")
 
-    # --- 2) LLM-judge 리랭크 — 후보(상호명·카테고리·후기제목)를 통째로 LLM에 주고
-    # 요청에 맞는 상위 RERANK_KEEP곳을 순위대로 고르게 한다. 임베딩 코사인은 같은
-    # 도메인(맛집 후기)에서 유사도가 평평해 변별을 못 하지만, LLM은 읽고 추론해
-    # '요청↔매장' 적합성을 직접 판단한다. 사전 필터 없이 전량을 한 번에 넘긴다.
-    blocks = []
-    for i, p in enumerate(places):
-        titles = "; ".join(b["title"] for b in hits[p["name"]][:2]) or "(후기 없음)"
-        blocks.append(f"[{i}] {p['name']} | {p.get('category', '')}\n     {titles}")
-    raw = await llm_async(
-        prompts.JUDGE_RERANK.format(
-            user_query=user_query, k=RERANK_KEEP, candidates="\n".join(blocks)
-        ),
-        json_mode=True,
-    )
-    try:
-        order = [i for i in json.loads(raw) if isinstance(i, int) and 0 <= i < len(places)]
-    except (json.JSONDecodeError, TypeError):
-        order = []
+    # --- 2) HyDE 리랭크 — 요청으로 '기준 문서'를 생성(막연한 맛집이면 로컬맛집 신호,
+    # 구체 쿼리면 담백한 후기)해 임베딩하고, 각 매장 스니펫과 max 유사도로 상위만 남긴다.
+    hypo = (await llm_async(prompts.HYDE_REVIEW.format(user_query=user_query))).strip()
+    hypo = hypo or user_query
 
-    seen, kept = set(), []
-    for i in order:
-        if i not in seen:
-            seen.add(i)
-            kept.append(places[i])
-    # LLM이 부족하게 골랐으면 남은 후보로 채운다(카카오 순서)
+    snip_texts, snip_owner = [], []
     for p in places:
-        if len(kept) >= RERANK_KEEP:
-            break
-        if p["id"] not in {q["id"] for q in kept}:
-            kept.append(p)
-    kept = kept[:RERANK_KEEP]
+        for b in hits[p["name"]]:
+            snip_texts.append(f"{b['title']} {b['description']}")
+            snip_owner.append(p["name"])
+    vecs = await embed_texts([hypo] + snip_texts)
+    hypo_vec, snip_vecs = vecs[0], vecs[1:]
+
+    score = {p["name"]: -1.0 for p in places}
+    for name, v in zip(snip_owner, snip_vecs):
+        score[name] = max(score[name], _cos(hypo_vec, v))
+
+    ranked = sorted(places, key=lambda p: -score[p["name"]])
+    kept = ranked[:RERANK_KEEP]
     kept_ids = {p["id"] for p in kept}
     rank_of = {p["name"]: r for r, p in enumerate(kept, 1)}
 
-    # 세세한 로그 + 파일 — eval funnel용 ranking(kept 표시)
-    log(f"[collect_info] LLM-judge 리랭크 {len(places)}→{len(kept)}")
-    for r, p in enumerate(kept, 1):
-        log(f"   [✓] {r:2} {p['name']}  ({len(hits[p['name']])}글)")
+    # 세세한 로그 + 파일
+    log(f"[collect_info] HyDE 가상문서: {hypo[:120]}")
+    log(f"[collect_info] 리랭크 {len(places)}→{len(kept)}")
+    for r, p in enumerate(ranked, 1):
+        mark = "✓" if p["id"] in kept_ids else " "
+        log(f"   [{mark}] {r:2} {score[p['name']]:+.3f} {p['name']}")
     ranking = [
-        {"rank": rank_of.get(p["name"]), "name": p["name"],
-         "kept": p["id"] in kept_ids, "source": p.get("source", "")}
-        for p in sorted(places, key=lambda p: rank_of.get(p["name"], 999))
+        {"rank": r, "name": p["name"], "kept": p["id"] in kept_ids,
+         "score": round(score[p["name"]], 4), "source": p.get("source", "")}
+        for r, p in enumerate(ranked, 1)
     ]
     rerank_file = dump(
         "info_rerank",
-        {"user_query": user_query, "keep": RERANK_KEEP, "ranking": ranking},
+        {"user_query": user_query, "hypo_review": hypo,
+         "keep": RERANK_KEEP, "ranking": ranking},
         run_id,
     )
 
