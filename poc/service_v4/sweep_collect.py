@@ -14,7 +14,7 @@ from wh_poc import prompts
 from wh_poc.clients import (
     in_same_region,
     kakao_all,
-    llm,
+    llm_async,
     naver_search,
     verify_names,
 )
@@ -32,8 +32,9 @@ CQ_PROMPT = """사용자 요청을 카카오맵 지역 검색어로 압축하라
 """
 
 
-def compress(question: str) -> str:
-    return llm(CQ_PROMPT.format(q=question)).strip().strip('"').splitlines()[0]
+async def compress(question: str) -> str:
+    raw = await llm_async(CQ_PROMPT.format(q=question))
+    return raw.strip().strip('"').splitlines()[0]
 
 
 async def harvest(query: str, base: list[dict]) -> list[dict]:
@@ -41,7 +42,7 @@ async def harvest(query: str, base: list[dict]) -> list[dict]:
     web, _ = await naver_search(f"{query} Top", kind="webkr", display=30)
     snip = "\n".join(f"{w['title']} {w['description']}" for w in web)
     try:
-        names = json.loads(llm(f"{prompts.EXTRACT_NAMES}\n{snip}", json_mode=True))
+        names = json.loads(await llm_async(f"{prompts.EXTRACT_NAMES}\n{snip}", json_mode=True))
         names = [n.strip() for n in names if isinstance(n, str) and n.strip()]
     except (json.JSONDecodeError, TypeError):
         names = []
@@ -64,7 +65,7 @@ async def main():
     for c in cases:
         q, answers = c["question"], c["answer"]
         nans += len(answers)
-        query = compress(q)
+        query = await compress(q)
         base = kakao_all(query)  # 카카오 전량(≤45)
         harv = await harvest(query, base)
 

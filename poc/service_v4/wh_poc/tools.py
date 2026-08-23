@@ -3,7 +3,7 @@
 에이전트에 노출되는 함수들. docstring이 곧 LLM에게 주는 명세다.
 
 설계 기준: 코드가 관측 가능한 조건(결과 개수, is_end, API 응답 상태)은 함수 안으로
-내리고, 의미론적 판단(검색어 압축, 어휘 교체, 소스 선택, 되물을지)만 에이전트에게 남긴다.
+내리고, 의미론적 판단(검색어 압축, 소스 선택, 되물을지)만 에이전트에게 남긴다.
 툴은 신호를 주고 판단은 에이전트가 한다.
 """
 
@@ -150,10 +150,6 @@ async def collect_places(
         status가 'ok'면 수집이 끝난 것이므로 다음 단계로 넘어간다.
         축제나 특정 시설처럼 대상이 하나뿐인 경우 결과가 적어도 'ok'가 나온다. 정상이다.
     """
-    tool_context.state["temp:collect_attempts"] = (
-        tool_context.state.get("temp:collect_attempts", 0) + 1
-    )
-
     # 1) 카카오 로컬 전량 — 기준점이자 수확분의 지역 필터 근거
     places = kakao_all(query, category_code=category_code)
     base = list(places)                 # 지역 필터 기준 스냅샷

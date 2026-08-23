@@ -30,8 +30,8 @@ from wh_poc.tools import (
 class FakeToolContext:
     """ADK가 주입하는 ToolContext 대역.
 
-    같은 인스턴스를 재사용하면 state가 유지되어 재시도 카운트나
-    파일 경로 전달을 그대로 재현할 수 있다.
+    같은 인스턴스를 재사용하면 state가 유지되어 파일 경로 전달(collect_places →
+    collect_info)을 그대로 재현할 수 있다.
     """
 
     def __init__(self):
@@ -75,16 +75,10 @@ async def test_tools():
     print(get_today())
 
     ctx = FakeToolContext()
-    print("\n=== collect_places: 부족하면 retry, 소진되면 바로 ok ===")
+    print("\n=== collect_places: 카카오 + 웹수확, 프랜차이즈·업종 필터 ===")
     print(await collect_places("신림역 밥집", ctx))
 
-    print("\n=== retry 흐름: 어휘를 바꿔가며 3회 ===")
-    ctx2 = FakeToolContext()
-    for q in ["신림역 조용한 작업 백반집", "신림역 백반집", "신림역 밥집"]:
-        res = await collect_places(q, ctx2)
-        print(f"  {res.get('status'):10} | {q}")
-
-    print("\n=== collect_info: 위 결과를 이어받는다 ===")
+    print("\n=== collect_info: 위 결과를 이어받아 리랭크·요약 ===")
     info = await collect_info(ctx, "신림역 혼밥하기 좋은 백반집", "신림")
     print(info)
     for name, s in list(load_json(info["summary_file"]).items())[:3]:
