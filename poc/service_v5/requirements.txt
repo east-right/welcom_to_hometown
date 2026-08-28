@@ -1,0 +1,13 @@
+google-adk
+google-genai
+httpx
+requests
+beautifulsoup4
+pydantic
+python-dotenv
+
+fastapi
+uvicorn
+
+# 로컬 백엔드(WH_LLM_BACKEND=local)에서만 사용. 에이전트 LiteLlm + 유틸 LLM 호출.
+litellm

@@ -1,0 +1,129 @@
+{
+  "summary": {
+    "n_case": 1,
+    "n_answer": 4,
+    "recall_pool": 1.0,
+    "recall_filter": 1.0,
+    "recall_rerank": 0.75,
+    "recall_final": 0.5,
+    "case_recall_pool": 1.0,
+    "case_recall_final": 1.0,
+    "mrr": 0.5,
+    "avg_sec": 26.813686299981782,
+    "tokens_in": 17365,
+    "tokens_out": 984,
+    "kinds": {
+      "recommendation": 1
+    }
+  },
+  "cases": [
+    {
+      "question": "창원 귀산 바다가 보이는 커피 맛집",
+      "answer": [
+        "갱고반지하",
+        "블루피쉬",
+        "더로드101 귀산",
+        "카페모조"
+      ],
+      "kind": "recommendation",
+      "predicted": [
+        "하우요커피",
+        "카페모조",
+        "커피프렌즈",
+        "더로드101 귀산",
+        "찰리의커피공장"
+      ],
+      "pool": [
+        "하우요커피",
+        "카페솔",
+        "갱고반지하",
+        "엘리브",
+        "더로드101 귀산",
+        "카페모조",
+        "커피프렌즈",
+        "224커피",
+        "브룸라이더카페",
+        "로스터리퐁",
+        "카페몰토",
+        "블루피쉬",
+        "아쿠아모스",
+        "카페더원",
+        "포엠커피웍스 귀산점",
+        "시오리솔밭길",
+        "테이블코코카페",
+        "찰리의커피공장",
+        "코델리아",
+        "더웨이닝커피 창원두산중공업점",
+        "뽀글이&드링크 창원귀산점",
+        "더웨이닝커피 창원두산에너빌리티점",
+        "지중해",
+        "우주슈퍼",
+        "메르칼므",
+        "달빛라운지",
+        "바다로움",
+        "브라운핸즈 마산점",
+        "몬스터로스터스"
+      ],
+      "detail": [
+        {
+          "answer": "갱고반지하",
+          "in_pool": true,
+          "pool_rank": 3,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": false,
+          "final_rank": null
+        },
+        {
+          "answer": "블루피쉬",
+          "in_pool": true,
+          "pool_rank": 12,
+          "in_filter": true,
+          "in_rerank": false,
+          "in_final": false,
+          "final_rank": null
+        },
+        {
+          "answer": "더로드101 귀산",
+          "in_pool": true,
+          "pool_rank": 5,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": true,
+          "final_rank": 4
+        },
+        {
+          "answer": "카페모조",
+          "in_pool": true,
+          "pool_rank": 6,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": true,
+          "final_rank": 2
+        }
+      ],
+      "n_answer": 4,
+      "n_pool_hit": 4,
+      "n_filter_hit": 4,
+      "n_rerank_hit": 3,
+      "n_final_hit": 2,
+      "rr": 0.5,
+      "elapsed": 26.813686299981782,
+      "tool_calls": [
+        "collect_places",
+        "collect_info",
+        "read_file",
+        "set_model_response"
+      ],
+      "tokens_in": 17365,
+      "tokens_out": 984,
+      "files": {
+        "file": "tool_file\\1787744603180_collect_places.json",
+        "url_file": "tool_file\\1787744603180_info_urls.json",
+        "rerank_file": "tool_file\\1787744603180_info_rerank.json",
+        "summary_file": "tool_file\\1787744603180_info_summary.json"
+      },
+      "message": "창원 귀산에는 바다 전망과 함께 커피를 즐길 수 있는 멋진 카페들이 많습니다. 특히 커피 맛에 대한 평이 좋은 곳부터 야경이 아름다운 곳까지 엄선하여 추천해 드립니다."
+    }
+  ]
+}
