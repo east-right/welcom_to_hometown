@@ -36,7 +36,7 @@ UTIL_MODEL = os.getenv("WH_UTIL_MODEL", "gemini-3.1-flash-lite")
 # 에이전트 LLM만 vLLM(OpenAI 호환)으로 라우팅한다. 임베딩은 항상 Gemini(아래 _client).
 # env를 안 주면 현행(gemini)과 100% 동일하게 동작한다.
 LLM_BACKEND = os.getenv("WH_LLM_BACKEND", "gemini").lower()
-LOCAL_MODEL = os.getenv("WH_LOCAL_MODEL", "")           # 예: openai/Qwen2.5-7B-Instruct
+LOCAL_MODEL = os.getenv("WH_LOCAL_MODEL", "")           # 예: openai/Qwen/Qwen3.8-27B-FP8
 LOCAL_API_BASE = os.getenv("WH_LOCAL_API_BASE", "")     # 예: https://<pod>-8000.proxy.runpod.net/v1
 LOCAL_API_KEY = os.getenv("WH_LOCAL_API_KEY", "EMPTY")  # vLLM은 보통 키 검사를 안 한다
 

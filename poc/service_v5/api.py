@@ -1,10 +1,10 @@
-"""FastAPI 웹 어댑터 — v4 Chat 엔진을 HTTP/JSON으로 노출한다.
+"""FastAPI 웹 어댑터 — Chat 엔진을 HTTP/JSON으로 노출한다.
 
   GET  /            → 프론트(web/index.html)
   POST /api/chat    → 질문 → 추천 카드 (session_id로 멀티턴 대화 유지)
   POST /api/reset   → 세션 대화 초기화
 
-  실행: uvicorn api:app --reload    (poc/service_v4 디렉터리에서)
+  실행: uvicorn api:app --reload    (poc/service_v5 디렉터리에서)
 """
 from pathlib import Path
 
@@ -20,7 +20,7 @@ WEB_DIR = Path(__file__).parent / "web"
 app = FastAPI(title="Welcome to Hometown")
 set_verbose(False)
 
-# v4는 멀티턴이라 session_id별로 Chat(대화 상태)을 유지한다. CLI(run.py)와 같은 엔진.
+# 멀티턴이라 session_id별로 Chat(대화 상태)을 유지한다. CLI(run.py)와 같은 엔진.
 _sessions: dict[str, Chat] = {}
 
 
@@ -31,7 +31,7 @@ def _session(sid: str) -> Chat:
 
 
 def _to_card(p: dict) -> dict:
-    """v4 PlaceCard → 프론트 카드. 카테고리로 도메인(배지)을 추정한다."""
+    """PlaceCard → 프론트 카드. 카테고리로 도메인(배지)을 추정한다."""
     cat = p.get("category", "")
     if p.get("period"):
         domain = "festival"

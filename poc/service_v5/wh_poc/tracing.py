@@ -15,7 +15,10 @@ Langfuse 같은 외부 도구 없이 노트북에서 바로 볼 수 있게 만�
 
 import json
 import time
+from collections import defaultdict
 from typing import Any
+
+from .core import take_breakdown
 
 
 def _brief(value: Any, limit: int = 80) -> str:
@@ -135,6 +138,9 @@ class Tracer:
                 "sec": (time.perf_counter() - t0) if t0 else 0.0,
                 "args": _brief(args, 60),
                 "detail": _brief(tool_response),
+                # 툴 내부 Layer 1 호출의 카테고리별 초(llm/naver/scrape/embed/kakao).
+                # 비계측 툴은 빈 dict. LLM 생성과 외부 I/O를 분리해 보는 근거다.
+                "breakdown": take_breakdown(),
             }
         )
         return None
@@ -166,7 +172,15 @@ class Tracer:
                         f"  {edge} TOOL  {s['sec']:6.1f}초  "
                         f"{s['name']}({s['args']})"
                     )
-                    print(f"  {'│' if i < n - 1 else ' '}          → {s['detail']}")
+                    bar = "│" if i < n - 1 else " "
+                    bd = s.get("breakdown")
+                    if bd:
+                        parts = "  ".join(
+                            f"{k} {v:.1f}s"
+                            for k, v in sorted(bd.items(), key=lambda x: -x[1])
+                        )
+                        print(f"  {bar}          [{parts}]")
+                    print(f"  {bar}          → {s['detail']}")
 
     def totals(self) -> None:
         """턴 전체 합계. LLM 대기와 툴 실행의 비중을 본다."""
@@ -186,6 +200,23 @@ class Tracer:
         print(f"  그 외      {wall - llm - tool:6.1f}초")
         print(f"  토큰       in {tin:,} / out {tout:,}")
 
+        # 백엔드 의존성 분해 — 툴 내부 계측(breakdown)과 에이전트 LLM 대기를 합쳐
+        # '로컬 LLM 생성(백엔드에 따라 달라짐)'과 '그 외(동일)'로 나눈다.
+        cat: dict[str, float] = defaultdict(float)
+        for t in self.turns:
+            for s in t["steps"]:
+                for label, sec in s.get("breakdown", {}).items():
+                    cat[label] += sec
+        if cat:
+            local_llm = llm + cat.get("llm", 0.0)          # 에이전트 + 툴내부 요약/HyDE
+            io = cat.get("naver", 0.0) + cat.get("scrape", 0.0) + cat.get("kakao", 0.0)
+            embed = cat.get("embed", 0.0)
+            print("  ── 구성별 (백엔드 의존성) ──")
+            print(f"  로컬 LLM   {local_llm:6.1f}초  ← 백엔드에 따라 달라짐 "
+                  f"(에이전트 {llm:.1f} + 요약/HyDE {cat.get('llm', 0.0):.1f})")
+            print(f"  외부 I/O   {io:6.1f}초  ← 동일 (naver/scrape/kakao)")
+            print(f"  임베딩     {embed:6.1f}초  ← 동일 (Gemini)")
+
         # 툴별 누적
         agg: dict[str, list[float]] = {}
         for t in self.turns:
@@ -196,7 +227,3 @@ class Tracer:
             print("  툴별 누적:")
             for name, secs in sorted(agg.items(), key=lambda x: -sum(x[1])):
                 print(f"    {name:18} {sum(secs):6.1f}초 ({len(secs)}회)")
-
-    def to_dict(self) -> list[dict]:
-        """저장·비교용 원본 데이터."""
-        return self.turns

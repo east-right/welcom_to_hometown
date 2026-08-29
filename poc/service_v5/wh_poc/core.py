@@ -50,6 +50,18 @@ def log(*args) -> None:
 
 _STATS: dict[str, dict] = defaultdict(lambda: {"n": 0, "sec": 0.0})
 
+# 직전 timed_tool이 남긴 카테고리별 누적 초 스냅샷. 트레이서가 툴 스텝에 붙여
+# 'LLM 생성 vs 외부 I/O'를 분리해 보여줄 때 읽는다. timed_tool로 감싼 툴만 채운다.
+_LAST_BREAKDOWN: dict[str, float] = {}
+
+
+def take_breakdown() -> dict[str, float]:
+    """직전 timed_tool의 {label: 초} 스냅샷을 꺼내며 비운다. 비계측 툴(get_today,
+    read_file)은 갱신하지 않으므로 빈 dict를 받아 이전 툴 집계를 재사용하지 않는다."""
+    snap = dict(_LAST_BREAKDOWN)
+    _LAST_BREAKDOWN.clear()
+    return snap
+
 
 def track(label: str):
     """Layer 1 함수를 감싸 호출 횟수와 누적 시간을 집계한다.
@@ -107,6 +119,9 @@ def timed_tool(fn):
                     f"   {label:<10} {s['sec']:7.1f}초  "
                     f"({s['n']}회, 평균 {s['sec'] / s['n']:.2f}초)"
                 )
+            # 트레이서가 이 툴 스텝에 붙일 수 있게 카테고리별 초를 남긴다.
+            _LAST_BREAKDOWN.clear()
+            _LAST_BREAKDOWN.update({label: s["sec"] for label, s in _STATS.items()})
 
     return wrapper
 
