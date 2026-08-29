@@ -77,3 +77,36 @@ SUMMARIZE_CONTEXT = """\
 - 관련 정보가 없으면
   {{"period": "", "facts": [], "cautions": [], "summary": "정보 부족", "freshness": "unknown"}}로 답해라.
 """
+
+
+# 로컬(vLLM) 백엔드 전용 — 워커 에이전트를 output_schema 없이 돌린 뒤, 그 자연어 답을
+# FeedOutput JSON으로 정형화하는 포매터. (vLLM은 output_schema+tools를 함께 주면 tool
+# 호출을 막아버려서, 로컬은 스키마 없이 tools만 쓰고 최종만 이 단계로 구조화한다.)
+FORMAT_FEED = """\
+당신은 포매터다. 아래 '에이전트 답변'을 정해진 JSON으로 변환한다. 새 내용을 지어내지 마라.
+
+사용자 요청: "{user_query}"
+
+[에이전트 답변]
+{agent_answer}
+
+[근거 데이터 — 장소별 요약(JSON). 주소·url·카테고리는 반드시 여기 값만 사용]
+{evidence}
+
+다음 JSON만 출력하라:
+{{
+  "kind": "recommendation" | "question" | "chat",
+  "message": "사용자에게 보여줄 한두 문장. 추천이면 짧은 요약, 되물음이면 질문, 잡담이면 답변",
+  "places": [
+    {{"name": "", "address": "", "category": "", "reason": "요청에 왜 맞는지 1~2문장",
+      "highlights": ["강점 2~3개"], "caution": "", "period": "", "url": ""}}
+  ]
+}}
+
+규칙:
+- 에이전트가 장소를 추천했으면 kind="recommendation"이고 places를 근거 데이터로 5~8곳 채운다.
+- 에이전트가 정보가 부족해 되물었으면 kind="question", places=[].
+- 장소 추천·되물음이 아니면 kind="chat", places=[].
+- address·url·category는 근거 데이터에 있는 값을 그대로 쓰고, 없으면 빈 문자열로 둔다. 절대 지어내지 마라.
+- 근거 데이터에 없는 장소는 places에 넣지 마라.
+"""

@@ -27,7 +27,9 @@ from google.adk.agents import LlmAgent
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 
-from .clients import LLM_BACKEND, LOCAL_API_BASE, LOCAL_API_KEY, LOCAL_MODEL
+from . import prompts
+from .clients import LLM_BACKEND, LOCAL_API_BASE, LOCAL_API_KEY, LOCAL_MODEL, llm_async
+from .core import load_json
 from .schema import FeedOutput
 from .tools import ALL_TOOLS
 from .tracing import Tracer
@@ -44,7 +46,10 @@ def agent_model():
     # 원격 오픈모델을 쓸 때만 임포트 (litellm 미설치 환경에서도 gemini 경로는 동작)
     from google.adk.models.lite_llm import LiteLlm
 
-    kwargs = {}
+    # Qwen3 등 추론 모델의 <think> 사고과정을 끈다. 에이전트 최종 응답은 FeedOutput
+    # 스키마의 JSON이라 앞에 사고과정이 붙으면 파싱이 깨진다. thinking 미지원 모델은
+    # 이 인자를 무시하므로 무해하다. LiteLlm의 kwargs는 litellm completion으로 전달된다.
+    kwargs = {"extra_body": {"chat_template_kwargs": {"enable_thinking": False}}}
     if LOCAL_API_BASE:
         kwargs["api_base"] = LOCAL_API_BASE
     if LOCAL_API_KEY:
@@ -155,15 +160,21 @@ def build_agent(model=None, tracer: Tracer | None = None) -> LlmAgent:
             "before_tool_callback": tracer.before_tool,
             "after_tool_callback": tracer.after_tool,
         }
-    return LlmAgent(
+    agent_kwargs = dict(
         model=model,
         name="place_finder",
         description="지역 기반 장소 추천 에이전트",
         instruction=INSTRUCTION,
         tools=ALL_TOOLS,
-        output_schema=FeedOutput,
         **kwargs,
     )
+    # output_schema는 gemini 경로에서만 건다. 로컬(vLLM)은 output_schema를 tools와 함께
+    # 주면 vLLM이 스키마로 guided decoding을 걸어 tool 호출 자체를 막는다(ADK가 LiteLlm을
+    # 네이티브 지원으로 오인해 set_model_response 우회를 안 씀). 그래서 로컬은 tools만으로
+    # 돌리고, 최종 응답은 Chat.send에서 _format_feed로 FeedOutput으로 정형화한다.
+    if LLM_BACKEND != "local":
+        agent_kwargs["output_schema"] = FeedOutput
+    return LlmAgent(**agent_kwargs)
 
 
 # 툴 호출을 사용자에게 보여줄 상태 문구로 번역한다.
@@ -177,6 +188,33 @@ STATUS_TEXT = {
 }
 
 _FILE_KEYS = ("file", "url_file", "rerank_file", "summary_file", "source_file", "context_file")
+
+
+async def _format_feed(user_query: str, agent_text: str, files: dict) -> dict:
+    """로컬 백엔드 전용 포매터. output_schema 없이 돌린 워커의 자연어 답을 근거 파일과
+    함께 FeedOutput dict로 정형화한다. 실패하면 자연어 답을 chat으로 감싼다."""
+    evidence = "(없음)"
+    for k in ("summary_file", "context_file"):
+        if files.get(k):
+            try:
+                evidence = json.dumps(load_json(files[k]), ensure_ascii=False)[:8000]
+                break
+            except (OSError, ValueError):
+                pass
+    try:
+        raw = await llm_async(
+            prompts.FORMAT_FEED.format(
+                user_query=user_query, agent_answer=agent_text or "", evidence=evidence
+            ),
+            json_mode=True,
+        )
+        data = json.loads(raw)
+        data.setdefault("kind", "chat")
+        data.setdefault("message", "")
+        data.setdefault("places", [])
+        return data
+    except (json.JSONDecodeError, TypeError, KeyError):
+        return {"kind": "chat", "message": agent_text or "", "places": []}
 
 
 class Chat:
@@ -253,16 +291,20 @@ class Chat:
                     p.text for p in event.content.parts if p.text
                 ).strip()
 
-        # output_schema가 있어도 모델이 스키마 툴을 반드시 부르는 건 아니다.
-        # 특히 대화형 응답에서 자유 텍스트로 답하는 경우가 있어, 그때는 chat으로 감싼다.
-        try:
-            out["result"] = json.loads(out["final_text"])
-        except (json.JSONDecodeError, TypeError):
-            out["result"] = {
-                "kind": "chat",
-                "message": out["final_text"],
-                "places": [],
-            }
+        # 로컬(vLLM)은 output_schema 없이 tools만으로 돌리므로 최종이 자연어다 → 포매터로
+        # FeedOutput 정형화. gemini는 스키마로 JSON을 직접 내지만, 자유 텍스트로 답하는
+        # 경우가 있어 파싱 실패 시 chat으로 감싼다.
+        if LLM_BACKEND == "local":
+            out["result"] = await _format_feed(text, out["final_text"], out["files"])
+        else:
+            try:
+                out["result"] = json.loads(out["final_text"])
+            except (json.JSONDecodeError, TypeError):
+                out["result"] = {
+                    "kind": "chat",
+                    "message": out["final_text"],
+                    "places": [],
+                }
 
         if self.tracer:
             self.tracer.end_turn(out["result"])

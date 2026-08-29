@@ -83,7 +83,11 @@ async def _llm_gemini(prompt: str, *, json_mode: bool, temperature: float) -> st
 
 async def _llm_local(prompt: str, *, json_mode: bool, temperature: float) -> str:
     """vLLM OpenAI 호환 엔드포인트 호출. 에이전트의 LiteLlm과 같은 litellm을 쓴다
-    (새 의존성 없음). json_mode는 OpenAI식 response_format으로 매핑한다."""
+    (새 의존성 없음). json_mode는 OpenAI식 response_format으로 매핑한다.
+
+    Qwen3 같은 추론 모델은 기본으로 답 앞에 <think> 사고과정을 붙인다. 유틸 LLM은
+    HyDE 문서·요약처럼 '결과 텍스트'만 필요하므로 chat_template_kwargs로 thinking을 꺼
+    Gemini(비추론)와 같은 형태의 출력을 받는다. thinking 미지원 모델은 이 인자를 무시한다."""
     import litellm
 
     kwargs = {
@@ -92,6 +96,7 @@ async def _llm_local(prompt: str, *, json_mode: bool, temperature: float) -> str
         "temperature": temperature,
         "api_base": LOCAL_API_BASE or None,
         "api_key": LOCAL_API_KEY or None,
+        "extra_body": {"chat_template_kwargs": {"enable_thinking": False}},
     }
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
