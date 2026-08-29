@@ -270,6 +270,7 @@ async def collect_info(
 
     places = load_json(places_file)
     run_id = _run_id(tool_context)
+    t0 = time.perf_counter()  # 단계별 벽시계 계측용
 
     # --- 1) 매장별 블로그 스니펫 수집 (크롤링은 리랭크 뒤 상위만) ---
     # 도로명은 행정 표기라 실제 리뷰에서 쓰는 생활권 이름과 다르다("관천" vs "신림").
@@ -304,6 +305,7 @@ async def collect_info(
     url_file = dump("info_urls", hits, run_id)
     if reasons:
         log(f"[collect_info] 후기 미확보 {len(reasons)}개 → {dict(Counter(reasons.values()))}")
+    t_snip = time.perf_counter()
 
     # --- 2) HyDE 리랭크 — 요청으로 '기준 문서'를 생성(막연한 맛집이면 로컬맛집 신호,
     # 구체 쿼리면 담백한 후기)해 임베딩하고, 각 매장 스니펫과 max 유사도로 상위만 남긴다.
@@ -342,6 +344,7 @@ async def collect_info(
          "keep": RERANK_KEEP, "ranking": ranking},
         run_id,
     )
+    t_rank = time.perf_counter()
 
     # --- 3) 본문 크롤 + 요약 (남긴 매장만) — 협찬/체험단 리뷰는 제외 ---
     links, owner = [], []
@@ -364,6 +367,7 @@ async def collect_info(
         f"[collect_info] 크롤 {len(scraped)}건 중 성공 {sum(len(v) for v in bodies.values())}건, "
         f"협찬 제외 {n_sponsored}건"
     )
+    t_scrape = time.perf_counter()
 
     # 매장당 후기를 한 번에 넣어 통합 요약 (개별 요약하면 반복 빈도 정보가 사라진다)
     async def summarize_one(name: str, texts: list[str]) -> dict:
@@ -399,6 +403,11 @@ async def collect_info(
         for n, r in zip(names, results)
     }
     summary_file = dump("info_summary", summaries, run_id)
+    log(
+        f"[collect_info] 단계별 벽시계: 스니펫수집 {t_snip - t0:.1f}s | "
+        f"리랭크 {t_rank - t_snip:.1f}s | 크롤 {t_scrape - t_rank:.1f}s | "
+        f"요약 {time.perf_counter() - t_scrape:.1f}s"
+    )
 
     return {
         "count": len(summaries),

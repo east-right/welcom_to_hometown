@@ -188,3 +188,51 @@ WH_LOCAL_API_KEY=<runpod_key>
 | 2 | 함수콜링 500/무응답 | 서빙 설정 | `--tool-call-parser qwen3_xml` (+auto-tool-choice) |
 | 3 | `<think>` 오염 | 디코딩 제어 | `enable_thinking=false` |
 | 4 | 툴 우회 + 환각 | 배선(ADK) | output_schema 제외 + 워커–포매터 분리 |
+
+---
+
+## 속도 분석 (Qwen3.8-27B-FP8 / RunPod pod A6000 실측)
+
+정확도는 잡혔고(청하횟집·백반집 등 실장소 정확 추천), 남은 건 속도다. 단발 추천 1건이
+**~170~220초**. `--trace`에 구성별 분해(`로컬 LLM / 외부 I/O / 임베딩`)와 collect_info
+단계별 벽시계 타이머를 추가해 병목을 실측했다.
+
+### 시간이 어디로 가나 (신림역 백반집, MTP 켠 pod)
+| 구간 | 벽시계 | 성격 |
+|---|---|---|
+| `collect_info` | ~64초 | **최대 병목.** 내부 LLM 일감 합 ~494초가 7.7배 병렬로 압축 |
+| 최종답 생성 | ~32~40초 | 909토큰 생성(decode) |
+| 에이전트 판단 7콜 | ~64초 | 출력 44~49토큰인데도 느림 = **전부 prefill** |
+| 외부 I/O(naver/scrape) | (병렬로 collect_info에 흡수) | 백엔드 무관 |
+
+### 핵심 진단 — 대부분 **prefill-bound**라 흔한 가속이 안 먹는다
+- **요약 콜(collect_info의 최대 일감)은 prefill-bound**: 후기 ~6천 자를 넣고 JSON
+  ~200토큰만 생성. 입력은 큰데 출력이 작다 → decode 가속(MTP)이 거의 무효.
+- **에이전트 판단도 prefill-bound**: 출력 44토큰인데 3~9초. context가 read_file로
+  커질수록(3k→8k→15.5k 토큰) 선형으로 느려진다. pod prefill이 ~500 tok/s(FP8 Marlin
+  에뮬)라 8k prefill만 해도 초 단위. Gemini는 같은 걸 ~0.1초.
+- **generation은 단일 요청 ~22 tok/s**가 바닥(FP8 에뮬). 최종답 40초 ≈ 910토큰 / 22.
+
+### 켜본 것 — 효과 실측
+- **prefix caching**: 하이브리드 Mamba에서도 **작동함**(auto-disable 아님, `/metrics`
+  hit 확인). 그러나 히트율 16~27%로 약함. 매 턴 새로 붙는 툴 결과 delta는 캐시 불가 +
+  캐시 트래픽 대부분이 재사용 없는 요약 콜이라 희석 → **판단 지연 거의 못 줄임.**
+- **MTP(speculative, `mtp`)**: 수용률 **83%**(accepted 2913/draft 3508), mean acceptance
+  length ~1.77 → 순수 decode **~1.8배**. **decode-bound인 최종답 생성엔 유효**하나,
+  **prefill-bound인 요약엔 무효**(llm 일감 493→494초로 불변). "저동시성+저지연→MTP" 휴리스틱은
+  맞았지만, 우리 최대 병목이 decode가 아니라 prefill이라 총 시간 개선은 제한적.
+- 결론: **두 서빙 레버(prefix/MTP) 모두 우리 최대 병목(요약 prefill)을 못 잡는다.**
+  근본은 FP8 Marlin 에뮬(A6000엔 네이티브 FP8 없음)의 낮은 prefill/decode 처리량.
+
+### 그래서 실질 레버 (측정으로 확정된 우선순위)
+1. **일감 자체 줄이기(코드, 백엔드 무관)** — `RERANK_KEEP` 15→10(요약 콜 수↓),
+   `INFO_PER_PLACE` 3→2·`INFO_BODY_CHARS`↓(콜당 prefill 입력↓). 최대 일감(요약 494초)을
+   직접 깎는 유일한 방법.
+2. **read_file 과호출 억제(프롬프트)** — Qwen3.8이 summary/rerank/collect_places 파일을
+   **3번** 읽어 최종 prefill을 15.5k로 부풀렸다. INSTRUCTION에 "summary_file 하나만" 명시하면
+   판단 턴 3→1 + 최종답 prefill 축소.
+3. **네이티브 FP8 GPU(L40S/H100)** — prefill·decode 처리량 자체를 올리는 본질적 해법.
+
+계측 코드: `core.timed_tool`이 카테고리별(llm/naver/scrape/embed) 누적을 집계 →
+`tracing`이 `--trace` 요약과 툴 스텝에 분해 표시. `collect_info`엔 단계별 벽시계
+타이머(스니펫수집/리랭크/크롤/요약) 추가(로그, `-v`).
