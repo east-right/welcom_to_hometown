@@ -121,7 +121,11 @@ status별 행동:
 애매하면 둘 다 호출해도 됩니다. "캠핑장 추천"은 운영 정보와 이용 후기가 모두 도움이 됩니다.
 
 ## 3단계 — 근거 확인
-read_file로 summary_file 또는 context_file을 읽습니다.
+최종 추천을 쓰기 직전에 read_file을 **한 번만** 호출해 근거를 읽습니다.
+- collect_info를 썼으면 summary_file, collect_context를 썼으면 context_file **하나만** 읽습니다.
+- 이 파일 하나에 판단에 필요한 모든 근거(장소별 요약·주소·url·강점)가 들어 있습니다.
+- rerank_file·url_file·collect_places의 file 등 다른 파일은 읽지 마세요. 답변에 불필요하고
+  맥락만 무겁게 만듭니다.
 파일을 읽지 않고 답변을 만들면 안 됩니다.
 
 ## 4단계 — 추천 (kind='recommendation')
