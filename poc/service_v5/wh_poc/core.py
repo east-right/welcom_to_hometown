@@ -26,9 +26,12 @@ TOOL_FILE_DIR.mkdir(exist_ok=True, parents=True)
 VERBOSE = True
 
 # 동시성 제한 — 실측으로 정한 값
-NAVER_SEM = asyncio.Semaphore(10)   # 네이버 API. 10을 넘기면 429가 잦다
+# 네이버 API. 키 1개면 10, 2번째 키(NAVER_CLIENT_ID_2)가 있으면 20(키당 10)으로 병렬↑.
+# 429는 키(앱)당 걸리므로 키를 나눠 쏘면 동시성을 두 배로 가져갈 수 있다.
+NAVER_SEM = asyncio.Semaphore(20 if os.getenv("NAVER_CLIENT_ID_2") else 10)
 SCRAPE_SEM = asyncio.Semaphore(20)  # 본문 크롤링
 LLM_SEM = asyncio.Semaphore(10)     # LLM 병렬 호출
+KAKAO_SEM = asyncio.Semaphore(8)    # 카카오 로컬 API. 동기 호출을 to_thread로 감싸 병렬화
 
 # 본문이 "[제목]" 형태로 시작하는 정상 글과 구분하기 위한 실패 마커.
 # 대괄호 하나로 판정하면 "[봉천역] 털보네..." 같은 정상 글이 실패로 오탐된다.

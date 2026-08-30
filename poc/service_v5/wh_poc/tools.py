@@ -10,6 +10,7 @@
 import asyncio
 import json
 import math
+import re
 import time
 from collections import Counter
 from datetime import datetime
@@ -23,13 +24,14 @@ from .clients import (
     embed_texts,
     in_same_region,
     kakao_all,
+    kakao_keyword,
     llm_async,
     naver_search,
     scrape_urls,
-    verify_names,
 )
 from .core import (
     FAIL_PREFIX,
+    KAKAO_SEM,
     TOOL_FILE_DIR,
     dump,
     load_json,
@@ -62,6 +64,12 @@ def _cos(a: list[float], b: list[float]) -> float:
     na = math.sqrt(sum(x * x for x in a))
     nb = math.sqrt(sum(x * x for x in b))
     return dot / (na * nb) if na and nb else 0.0
+
+
+def _norm_name(s: str) -> str:
+    """상호명 비교용 정규화 — 공백·기호를 없애 표기 차이를 흡수한다.
+    '서울밥집 신림점'과 '서울밥집'을 부분포함으로 같은 매장으로 보게 하기 위한 것."""
+    return re.sub(r"[\s\-_()·.,'\"]", "", s).lower()
 
 
 def _is_franchise(place: dict) -> bool:
@@ -156,11 +164,9 @@ async def collect_places(
     base_n = len(base)                  # too_broad 판정은 카카오 base 기준 (수확분 제외)
     log(f"[collect_places] '{query}' 카카오 {base_n}개")
 
-    # 2) 수확 보강 — 웹검색 스니펫에서 상호명만 LLM으로 뽑아 카카오로 역조회.
-    #    카카오 '맛집' 태그가 없는 로컬 노포는 카카오가 놓치지만 웹 스니펫엔 리스트로
-    #    잡힌다. 역조회로 실존·주소를 확보하고, 같은 구가 아니면 버린다.
-    #    'Top'을 붙여 랭킹 리스트 페이지를 노린다 — 한 스니펫에 로컬 매장이 촘촘히
-    #    나열돼 수확 밀도가 높다(지역 무관한 일반 바이어스라 하드코딩이 아니다).
+    # 2) 수확 보강 — 웹검색 스니펫에서 상호명만 LLM으로 뽑는다. 카카오 '맛집' 태그가 없는
+    #    로컬 노포는 카카오가 놓치지만 웹 스니펫엔 리스트로 잡힌다. 'Top'을 붙여 랭킹 리스트
+    #    페이지를 노린다 — 한 스니펫에 로컬 매장이 촘촘히 나열돼 수확 밀도가 높다.
     web_items, _ = await naver_search(f"{query} Top", kind="webkr", display=30)
     snippets = "\n".join(f"{w['title']} | {w['description']}" for w in web_items)
     try:
@@ -171,15 +177,39 @@ async def collect_places(
     except (json.JSONDecodeError, TypeError):
         names = []
 
+    # 카카오 base에 이미 있는 이름은 문자열 유사도로 먼저 걸러 카카오 역조회를 아낀다.
+    # base는 주소·좌표가 이미 있으니 우선한다. 표기가 조금 달라도('서울밥집' vs '서울밥집
+    # 신림점') 정규화 후 부분포함이면 같은 매장으로 보고 제외한다.
+    base_norms = [_norm_name(p["name"]) for p in base]
+    new_names = [
+        n for n in names
+        if len(nn := _norm_name(n)) >= 2
+        and not any(nn in b or b in nn for b in base_norms)
+    ]
+
+    # base에 없는 '진짜 새 이름'만 카카오로 역조회해 실존·주소·좌표를 확보한다.
+    # kakao_keyword가 동기(blocking)라 to_thread로 감싸 병렬화한다(직렬이면 이름당 순차).
+    region_hint = (query.split() or [""])[0]
+
+    async def _verify(n: str) -> dict | None:
+        async with KAKAO_SEM:
+            ps, _ = await asyncio.to_thread(kakao_keyword, f"{region_hint} {n}".strip())
+            if not ps:
+                ps, _ = await asyncio.to_thread(kakao_keyword, n)
+        return ps[0] if ps else None
+
     seen = {p["id"] for p in places}
     n_harvest = 0
-    for p in verify_names(names, region_hint=(query.split() or [""])[0]):
-        if p["id"] not in seen and in_same_region(p, base):
+    for p in await asyncio.gather(*[_verify(n) for n in new_names]):
+        if p and p["id"] not in seen and in_same_region(p, base):
             p["source"] = "web_harvest"
             places.append(p)
             seen.add(p["id"])
             n_harvest += 1
-    log(f"[collect_places] 수확 후보 {len(names)}개 → 신규 확보 {n_harvest}개")
+    log(
+        f"[collect_places] 수확 이름 {len(names)}개 → base중복 제외 후 {len(new_names)}개 검증 "
+        f"→ 신규 확보 {n_harvest}개"
+    )
 
     # 음식점 프랜차이즈 제거 — 로컬 맛집 추천에 프랜차이즈는 노이즈. (카페 체인 포함)
     before = len(places)

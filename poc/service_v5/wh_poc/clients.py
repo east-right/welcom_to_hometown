@@ -11,6 +11,7 @@
 """
 
 import asyncio
+import itertools
 import os
 import re
 from urllib.parse import urlparse
@@ -331,6 +332,16 @@ async def scrape_urls(urls: list[str], max_chars: int = 0) -> list[dict]:
 
 # ---------------------------------------------------------------- 네이버 검색
 
+# 검색 키 — 2번째 키(NAVER_CLIENT_ID_2)가 있으면 라운드로빈으로 부하를 나눈다.
+# 429는 앱 키당 걸리므로 키를 번갈아 쓰면 각 키가 자기 한도 안에 머물러 재시도가 준다.
+_NAVER_KEYS = [(os.environ["NAVER_CLIENT_ID"], os.environ["NAVER_CLIENT_SECRET"])]
+if os.getenv("NAVER_CLIENT_ID_2") and os.getenv("NAVER_CLIENT_SECRET_2"):
+    _NAVER_KEYS.append(
+        (os.environ["NAVER_CLIENT_ID_2"], os.environ["NAVER_CLIENT_SECRET_2"])
+    )
+_naver_cycle = itertools.cycle(_NAVER_KEYS)
+
+
 @track("naver")
 async def naver_search(
     query: str, kind: str = "blog", display: int = 10, sort: str = "sim"
@@ -341,21 +352,30 @@ async def naver_search(
     kind: 'blog'(블로그) / 'news'(뉴스) / 'webkr'(웹문서)
     sort: 'sim'(정확도) / 'date'(최신). webkr은 sort를 무시한다.
 
+    키가 여러 개면 호출·재시도마다 라운드로빈해 429를 분산한다.
     반환: (결과 리스트, 상태). 상태는 'ok' / 'empty' / '429'
     """
     async with NAVER_SEM:
         for attempt in range(3):
+            cid, csec = next(_naver_cycle)  # 호출·재시도마다 키 교대
             async with httpx.AsyncClient(timeout=5) as client:
                 resp = await client.get(
                     f"https://openapi.naver.com/v1/search/{kind}",
                     headers={
-                        "X-Naver-Client-Id": os.environ["NAVER_CLIENT_ID"],
-                        "X-Naver-Client-Secret": os.environ["NAVER_CLIENT_SECRET"],
+                        "X-Naver-Client-Id": cid,
+                        "X-Naver-Client-Secret": csec,
                     },
                     params={"query": query, "display": display, "sort": sort},
                 )
             if resp.status_code == 429:
+                # 429는 키(앱)당 걸리므로, 아직 안 써본 키가 남았으면 sleep 없이 즉시
+                # 다른 키로 재시도한다. 모든 키가 429일 때만(=진짜 과부하) 백오프한다.
+                if attempt + 1 < len(_NAVER_KEYS):
+                    continue
                 await asyncio.sleep(0.5 * (attempt + 1))
+                continue
+            if resp.status_code == 401 and len(_NAVER_KEYS) > 1:
+                # 스코프 없는/잘못된 키 — 크래시 말고 다음 키로 교대 재시도
                 continue
             resp.raise_for_status()
             break
