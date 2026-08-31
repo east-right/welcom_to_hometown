@@ -2,7 +2,7 @@ google-adk
 google-genai
 httpx
 requests
-beautifulsoup4
+lxml            # 크롤 본문 파싱 (raw lxml, C 레벨 — BeautifulSoup 대비 10배+)
 pydantic
 python-dotenv
 

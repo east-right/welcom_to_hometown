@@ -17,8 +17,8 @@ import re
 from urllib.parse import urlparse
 
 import httpx
+import lxml.html
 import requests
-from bs4 import BeautifulSoup
 from google import genai
 from google.genai import types
 
@@ -49,12 +49,13 @@ _USER_AGENT = (
     "(KHTML, like Gecko) Chrome/120.0 Safari/537.36"
 )
 
-_BODY_SELECTORS = [
-    "div.se-main-container",  # 네이버 스마트에디터 ONE
-    "#postViewArea",          # 네이버 구버전 에디터
-    "div#post-view",
-    "article",                # 일반 웹페이지
-    "main",
+# 본문 영역 후보(우선순위 순). lxml xpath — BeautifulSoup 대비 파싱이 10배+ 빠르다.
+_BODY_XPATHS = [
+    '//div[contains(@class, "se-main-container")]',  # 네이버 스마트에디터 ONE
+    '//*[@id="postViewArea"]',                       # 네이버 구버전 에디터
+    '//div[@id="post-view"]',
+    "//article",                                     # 일반 웹페이지
+    "//main",
 ]
 
 
@@ -247,20 +248,20 @@ _STICKER_HOSTS = ("storep-phinf", "simg.pstatic", "ssl.pstatic", "dthumb")  # �
 _SPONSOR_WORDS = ("협찬", "소정의", "원고료", "제공받", "대가를", "업체로부터", "지원받", "고료를")
 
 
-def _is_sponsored(soup) -> bool:
-    """네이버 블로그 글이 협찬/체험단인지 추정한다.
+def _is_sponsored(doc) -> bool:
+    """네이버 블로그 글이 협찬/체험단인지 추정한다(doc은 lxml 엘리먼트).
 
     스티커·지도카드를 건너뛴 '첫 사진'의 도메인이 네이버(pstatic/naver)가 아니면 협찬으로 본다
     (배지를 대행사 서버에서 불러온 경우). 본문 앞부분의 고지 문구도 함께 본다.
     """
-    cont = soup
-    for s in _BODY_SELECTORS:
-        node = soup.select_one(s)
-        if node:
-            cont = node
+    cont = doc
+    for xp in _BODY_XPATHS:
+        nodes = doc.xpath(xp)
+        if nodes:
+            cont = nodes[0]
             break
 
-    for img in cont.find_all("img"):
+    for img in cont.xpath(".//img"):
         u = img.get("data-lazy-src") or img.get("src") or img.get("data-src") or ""
         if u.startswith("//"):
             u = "https:" + u
@@ -271,7 +272,32 @@ def _is_sponsored(soup) -> bool:
             return True  # 첫 사진이 비네이버 → 협찬 배지
         break  # 첫 사진이 네이버 → 사진 신호로는 정상
 
-    return any(w in cont.get_text(" ", strip=True)[:600] for w in _SPONSOR_WORDS)
+    return any(w in cont.text_content()[:600] for w in _SPONSOR_WORDS)
+
+
+def _extract_body(html: str, max_chars: int) -> dict:
+    """HTML에서 본문 텍스트와 협찬 여부를 뽑는다. 파서는 raw lxml — 파싱·텍스트추출을 C에서
+    해 BeautifulSoup보다 10배+ 빠르고 GIL을 풀어줘 to_thread에서 실제 병렬로 돈다."""
+    doc = lxml.html.fromstring(html)
+    sponsored = _is_sponsored(doc)  # 태그 정리 전에 이미지·고지 판정
+    for tag in doc.xpath("//script | //style | //nav | //footer"):
+        tag.getparent().remove(tag)
+
+    text = ""
+    for xp in _BODY_XPATHS:
+        nodes = doc.xpath(xp)
+        if nodes:
+            candidate = re.sub(r"\s+", " ", nodes[0].text_content()).strip()
+            if len(candidate) > 150:
+                text = candidate
+                break
+    if not text:
+        body = doc.xpath("//body")
+        text = re.sub(r"\s+", " ", (body[0] if body else doc).text_content()).strip()
+
+    if len(text) < 150:
+        return {"text": f"{FAIL_PREFIX}본문 추출 실패", "sponsored": sponsored}
+    return {"text": text[:max_chars] if max_chars else text, "sponsored": sponsored}
 
 
 async def scrape_urls(urls: list[str], max_chars: int = 0) -> list[dict]:
@@ -298,32 +324,11 @@ async def scrape_urls(urls: list[str], max_chars: int = 0) -> list[dict]:
             except httpx.HTTPError as e:
                 return {"text": f"{FAIL_PREFIX}열기 실패: {type(e).__name__}", "sponsored": False}
 
-        soup = BeautifulSoup(resp.text, "html.parser")
-        sponsored = _is_sponsored(soup)  # 태그 정리 전에 이미지·고지 판정
-        for tag in soup(["script", "style", "nav", "footer"]):
-            tag.decompose()
-
-        text = ""
-        for selector in _BODY_SELECTORS:
-            node = soup.select_one(selector)
-            if node:
-                candidate = re.sub(
-                    r"\s+", " ", node.get_text(separator=" ", strip=True)
-                ).strip()
-                if len(candidate) > 150:
-                    text = candidate
-                    break
-        if not text:
-            text = re.sub(
-                r"\s+", " ", (soup.body or soup).get_text(separator=" ", strip=True)
-            ).strip()
-
-        if len(text) < 150:
-            return {"text": f"{FAIL_PREFIX}본문 추출 실패", "sponsored": sponsored}
-        return {"text": text[:max_chars] if max_chars else text, "sponsored": sponsored}
+        # 파싱(CPU 바운드)은 to_thread로 빼 이벤트 루프를 막지 않는다.
+        return await asyncio.to_thread(_extract_body, resp.text, max_chars)
 
     async with httpx.AsyncClient(
-        headers={"User-Agent": _USER_AGENT}, timeout=10.0, follow_redirects=True
+        headers={"User-Agent": _USER_AGENT}, timeout=6.0, follow_redirects=True
     ) as client:
         results = await asyncio.gather(*(fetch_one(client, u) for u in urls))
 

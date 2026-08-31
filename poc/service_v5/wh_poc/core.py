@@ -29,7 +29,7 @@ VERBOSE = True
 # 네이버 API. 키 1개면 10, 2번째 키(NAVER_CLIENT_ID_2)가 있으면 20(키당 10)으로 병렬↑.
 # 429는 키(앱)당 걸리므로 키를 나눠 쏘면 동시성을 두 배로 가져갈 수 있다.
 NAVER_SEM = asyncio.Semaphore(20 if os.getenv("NAVER_CLIENT_ID_2") else 10)
-SCRAPE_SEM = asyncio.Semaphore(20)  # 본문 크롤링
+SCRAPE_SEM = asyncio.Semaphore(20)  # 본문 크롤링 (동시 연결 상한, 네이버 차단 방지)
 LLM_SEM = asyncio.Semaphore(10)     # LLM 병렬 호출
 KAKAO_SEM = asyncio.Semaphore(8)    # 카카오 로컬 API. 동기 호출을 to_thread로 감싸 병렬화
 
