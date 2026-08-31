@@ -4,7 +4,6 @@
   llm_async     유틸 LLM 비동기 호출
   embed_texts   텍스트 임베딩 (리랭크용)
   kakao_keyword / kakao_all   카카오 로컬 검색
-  verify_names  매장명을 카카오로 역조회해 실존·좌표 확보 (웹수확 검증)
   in_same_region  구(區) 단위 지역 일치 판정
   naver_search  네이버 블로그/뉴스/웹문서 검색
   scrape_urls   본문 병렬 크롤 (+ 협찬 판정)
@@ -207,21 +206,6 @@ def kakao_all(
         if is_end:
             break
     return places
-
-
-def verify_names(names: list[str], region_hint: str = "") -> list[dict]:
-    """상호명 문자열 목록을 카카오로 역조회해 실존·주소·좌표를 확보한다.
-    이름당 첫 결과만 채택. 검증 못 한 이름은 조용히 버려진다."""
-    out, seen = [], set()
-    for n in names:
-        ps, _ = kakao_keyword(f"{region_hint} {n}".strip())
-        if not ps:
-            ps, _ = kakao_keyword(n)
-        for p in ps[:1]:
-            if p["id"] not in seen:
-                seen.add(p["id"])
-                out.append(p)
-    return out
 
 
 # ---------------------------------------------------------------- 수확 보강 (지역 일치 판정)

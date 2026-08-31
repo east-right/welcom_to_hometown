@@ -205,22 +205,31 @@ WH_LOCAL_API_KEY=<runpod_key>
 | 에이전트 판단 7콜 | ~64초 | 출력 44~49토큰인데도 느림 = **전부 prefill** |
 | 외부 I/O(naver/scrape) | (병렬로 collect_info에 흡수) | 백엔드 무관 |
 
-### 핵심 진단 — 대부분 **prefill-bound**라 흔한 가속이 안 먹는다
-- **요약 콜(collect_info의 최대 일감)은 prefill-bound**: 후기 ~6천 자를 넣고 JSON
-  ~200토큰만 생성. 입력은 큰데 출력이 작다 → decode 가속(MTP)이 거의 무효.
-- **에이전트 판단도 prefill-bound**: 출력 44토큰인데 3~9초. context가 read_file로
-  커질수록(3k→8k→15.5k 토큰) 선형으로 느려진다. pod prefill이 ~500 tok/s(FP8 Marlin
-  에뮬)라 8k prefill만 해도 초 단위. Gemini는 같은 걸 ~0.1초.
-- **generation은 단일 요청 ~22 tok/s**가 바닥(FP8 에뮬). 최종답 40초 ≈ 910토큰 / 22.
+### 핵심 진단 — 판단은 prefill-bound(확정), 요약은 미검증, 최종답은 decode
+- **에이전트 판단 = prefill-bound (Gemini 대조로 확정)**: 판단 콜은 입력 ~3.5k / 출력
+  44토큰. 같은 입력·출력을 **Gemini 0.9초 vs pod 3~9초**로 처리 — 차이가 곧 순수 추론
+  (prefill) 속도다. pod prefill이 ~500 tok/s(FP8 Marlin 에뮬)라 8k만 해도 초 단위, Gemini는 ~0.1초.
+- **요약 콜 = LLM-bound이나 prefill/decode 비율은 미검증**: 후기 ~6천 자 입력 / JSON
+  ~200토큰 출력. 처음엔 "MTP 켜도 요약 일감 493→494초 불변"을 근거로 prefill-bound라 봤으나,
+  요약은 `json_mode`(guided decoding)라 **vLLM이 speculative decoding을 안 걸었을 수 있어**
+  그 무효는 증거가 못 된다(spec draft 누적이 요약 출력량보다 적었던 정황). decode(200토큰
+  @22tok/s ≈ 9초)도 무시 못 한다. 정확한 판정은 per-request **TTFT vs TPOT**
+  (`vllm:time_to_first_token_seconds` / `time_per_output_token_seconds`)로 갈라야 하는데 pod가 꺼져 미측정.
+- **generation은 단일 요청 ~22 tok/s**가 바닥(FP8 에뮬). 최종답 40초 ≈ 910토큰 / 22 → **decode-bound 확정**.
+
+> ⚠️ **측정 주의**: `--trace`의 카테고리 "합"(naver/scrape/llm 누적, `@track`)은 **세마포어
+> 대기까지 포함**해, 콜 수 > 세마포어면 크게 부풀려진다(naver 합 400초+가 wall ~12초에
+> 압축된 것처럼 보임 — 불가능한 병렬도). **병렬도·병목 판단은 "합"이 아니라 벽시계(wall)로.**
+> 위 표의 "7.7배 병렬"·"요약 494초"도 이 편향이 섞인 대략치다.
 
 ### 켜본 것 — 효과 실측
 - **prefix caching**: 하이브리드 Mamba에서도 **작동함**(auto-disable 아님, `/metrics`
   hit 확인). 그러나 히트율 16~27%로 약함. 매 턴 새로 붙는 툴 결과 delta는 캐시 불가 +
   캐시 트래픽 대부분이 재사용 없는 요약 콜이라 희석 → **판단 지연 거의 못 줄임.**
 - **MTP(speculative, `mtp`)**: 수용률 **83%**(accepted 2913/draft 3508), mean acceptance
-  length ~1.77 → 순수 decode **~1.8배**. **decode-bound인 최종답 생성엔 유효**하나,
-  **prefill-bound인 요약엔 무효**(llm 일감 493→494초로 불변). "저동시성+저지연→MTP" 휴리스틱은
-  맞았지만, 우리 최대 병목이 decode가 아니라 prefill이라 총 시간 개선은 제한적.
+  length ~1.77 → 순수 decode **~1.8배**. **decode-bound인 최종답 생성엔 유효**. 요약엔
+  일감이 불변이었으나 이는 json_mode로 spec decode가 안 걸린 탓일 수 있어 무효라 단정 못 함
+  (위 요약 진단 참고). 총 시간 개선은 decode 비중만큼이라 제한적.
 - 결론: **두 서빙 레버(prefix/MTP) 모두 우리 최대 병목(요약 prefill)을 못 잡는다.**
   근본은 FP8 Marlin 에뮬(A6000엔 네이티브 FP8 없음)의 낮은 prefill/decode 처리량.
 
@@ -236,3 +245,23 @@ WH_LOCAL_API_KEY=<runpod_key>
 계측 코드: `core.timed_tool`이 카테고리별(llm/naver/scrape/embed) 누적을 집계 →
 `tracing`이 `--trace` 요약과 툴 스텝에 분해 표시. `collect_info`엔 단계별 벽시계
 타이머(스니펫수집/리랭크/크롤/요약) 추가(로그, `-v`).
+
+### 파이프라인 자체 최적화 (백엔드 무관 — Gemini 기준 실측/적용)
+
+서빙(pod)과 별개로, LLM이 아닌 외부 I/O·파싱 병목을 코드로 잡았다(**Gemini 단발 53→28초**).
+이건 pod에서도 그대로 이득이다(외부 I/O·크롤은 백엔드 무관).
+
+- **collect_places kakao 병렬화**: 웹수확 이름 검증이 동기 kakao **131콜 직렬(14.6초)**이었다.
+  문자열 유사도(`_norm_name`)로 base 중복을 먼저 걸러 역조회 콜을 줄이고, `to_thread`+`KAKAO_SEM`
+  으로 병렬화 → **17.9→6.3초**.
+- **naver 스니펫수집 멀티키**: 429는 앱 키당 걸리므로 `NAVER_CLIENT_ID_2`를 라운드로빈 +
+  `NAVER_SEM` 키수 연동. 429 시 안 써본 키 있으면 sleep 없이 즉시 교대 → **12.4→7.0초**.
+- **크롤 파싱 lxml**: 느림의 진짜 범인이 다운로드가 아니라 **BeautifulSoup**였다(실측). BS4는
+  트리를 파이썬 객체로 재구성해 GIL을 잡아 `to_thread`로 빼도 직렬화, 2MB 네이버 페이지에서
+  콜당 4~5초. **raw lxml**(lxml.html, C 레벨·GIL 해제)로 → **파싱 12.6배**(30개 12.8→1.0초),
+  본문·협찬 판정은 BS4와 0건 불일치(동치 검증). 크롤 wall 8→2~6초.
+- **read_file 1회 제한**: 에이전트가 summary_file 하나만 읽게 INSTRUCTION 명시 → 판단 라운드트립·
+  최종 prefill 축소.
+
+정리: **LLM 추론 속도(pod)와 무관한 병목(kakao 직렬·naver 429·BS4 파싱)이 컸고, 코드로 제거하니
+Gemini 기준 절반 가까이 단축.** pod의 남은 격차는 순수 LLM 추론 속도(FP8 에뮬)라 GPU 교체 몫.
