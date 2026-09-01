@@ -32,8 +32,10 @@ from .core import (
 
 UTIL_MODEL = os.getenv("WH_UTIL_MODEL", "gemini-3.1-flash-lite")
 
-# LLM 백엔드 스왑 — 기본은 호스티드 Gemini. WH_LLM_BACKEND=local이면 유틸 LLM과
-# 에이전트 LLM만 vLLM(OpenAI 호환)으로 라우팅한다. 임베딩은 항상 Gemini(아래 _client).
+# 유틸 LLM 백엔드 스왑 — 기본은 호스티드 Gemini. WH_LLM_BACKEND=local이면 유틸
+# LLM(llm_async: HyDE·이름추출·요약·포매터)을 vLLM(OpenAI 호환)으로 라우팅한다.
+# 에이전트 LLM은 agent.AGENT_BACKEND(WH_AGENT_BACKEND)로 별도 스왑한다 — 툴은 Gemini,
+# 메인 에이전트만 로컬처럼 독립 전환이 가능하다. 임베딩은 항상 Gemini(아래 _client).
 # env를 안 주면 현행(gemini)과 100% 동일하게 동작한다.
 LLM_BACKEND = os.getenv("WH_LLM_BACKEND", "gemini").lower()
 LOCAL_MODEL = os.getenv("WH_LOCAL_MODEL", "")           # 예: openai/Qwen/Qwen3.8-27B-FP8
@@ -347,15 +349,24 @@ async def naver_search(
     async with NAVER_SEM:
         for attempt in range(3):
             cid, csec = next(_naver_cycle)  # 호출·재시도마다 키 교대
-            async with httpx.AsyncClient(timeout=5) as client:
-                resp = await client.get(
-                    f"https://openapi.naver.com/v1/search/{kind}",
-                    headers={
-                        "X-Naver-Client-Id": cid,
-                        "X-Naver-Client-Secret": csec,
-                    },
-                    params={"query": query, "display": display, "sort": sort},
-                )
+            try:
+                async with httpx.AsyncClient(timeout=5) as client:
+                    resp = await client.get(
+                        f"https://openapi.naver.com/v1/search/{kind}",
+                        headers={
+                            "X-Naver-Client-Id": cid,
+                            "X-Naver-Client-Secret": csec,
+                        },
+                        params={"query": query, "display": display, "sort": sort},
+                    )
+            except httpx.TransportError:
+                # connect/read 타임아웃 등 일시적 전송 오류 — 부하가 몰리면 간헐 발생한다.
+                # 한 콜의 타임아웃이 쿼리 전체를 죽이지 않도록 흡수하고 다음 키로 재시도,
+                # 다 실패하면 빈 결과로 degrade한다(수집이 그만큼 얕아질 뿐).
+                if attempt + 1 < 3:
+                    await asyncio.sleep(0.3 * (attempt + 1))
+                    continue
+                return [], "error"
             if resp.status_code == 429:
                 # 429는 키(앱)당 걸리므로, 아직 안 써본 키가 남았으면 sleep 없이 즉시
                 # 다른 키로 재시도한다. 모든 키가 429일 때만(=진짜 과부하) 백오프한다.

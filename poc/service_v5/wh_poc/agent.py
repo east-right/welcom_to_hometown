@@ -37,11 +37,17 @@ from .tracing import Tracer
 APP_NAME = "wh_poc"
 USER_ID = "user1"
 
+# 에이전트 백엔드는 툴 내부 LLM(clients.llm_async, LLM_BACKEND)과 독립적으로 스왑한다.
+# WH_AGENT_BACKEND를 안 주면 WH_LLM_BACKEND를 따라가 현행과 동일하게 동작한다.
+# 예: 툴 요약·HyDE는 Gemini로 두고(WH_LLM_BACKEND=gemini) 메인 에이전트만
+# 로컬 vLLM(27B)로 돌리려면 WH_AGENT_BACKEND=local 만 켠다.
+AGENT_BACKEND = os.getenv("WH_AGENT_BACKEND", LLM_BACKEND).lower()
+
 
 def agent_model():
     """백엔드에 맞는 에이전트 모델을 만든다. gemini면 ADK 네이티브 문자열,
     local이면 vLLM(OpenAI 호환)을 가리키는 LiteLlm 객체."""
-    if LLM_BACKEND != "local":
+    if AGENT_BACKEND != "local":
         return os.getenv("WH_AGENT_MODEL", "gemini-3.1-flash-lite")
     # 원격 오픈모델을 쓸 때만 임포트 (litellm 미설치 환경에서도 gemini 경로는 동작)
     from google.adk.models.lite_llm import LiteLlm
@@ -176,7 +182,7 @@ def build_agent(model=None, tracer: Tracer | None = None) -> LlmAgent:
     # 주면 vLLM이 스키마로 guided decoding을 걸어 tool 호출 자체를 막는다(ADK가 LiteLlm을
     # 네이티브 지원으로 오인해 set_model_response 우회를 안 씀). 그래서 로컬은 tools만으로
     # 돌리고, 최종 응답은 Chat.send에서 _format_feed로 FeedOutput으로 정형화한다.
-    if LLM_BACKEND != "local":
+    if AGENT_BACKEND != "local":
         agent_kwargs["output_schema"] = FeedOutput
     return LlmAgent(**agent_kwargs)
 
@@ -298,7 +304,7 @@ class Chat:
         # 로컬(vLLM)은 output_schema 없이 tools만으로 돌리므로 최종이 자연어다 → 포매터로
         # FeedOutput 정형화. gemini는 스키마로 JSON을 직접 내지만, 자유 텍스트로 답하는
         # 경우가 있어 파싱 실패 시 chat으로 감싼다.
-        if LLM_BACKEND == "local":
+        if AGENT_BACKEND == "local":
             out["result"] = await _format_feed(text, out["final_text"], out["files"])
         else:
             try:
