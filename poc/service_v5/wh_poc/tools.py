@@ -106,7 +106,7 @@ def _dominant_cats(base: list[dict]) -> set[str] | None:
 
 # ---------------------------------------------------------------- get_today
 
-def get_today() -> dict:
+def get_today(tool_context: ToolContext | None = None) -> dict:
     """오늘 날짜와 요일, 현재 시각을 알려준다.
 
     '오늘', '이번 주말', '지금 하는' 같은 상대적 시점이 요청에 포함되거나,
@@ -117,13 +117,22 @@ def get_today() -> dict:
     """
     now = datetime.now(ZoneInfo("Asia/Seoul"))
     weekdays = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
-    return {
+    today = {
         "date": now.strftime("%Y-%m-%d"),
         "weekday": weekdays[now.weekday()],
         "time": now.strftime("%H:%M"),
         "year": now.year,
         "month": now.month,
     }
+    # 재호출 가드: 날짜는 한 요청 안에서 안 바뀐다. 이미 확인했으면 같은 값에 "그만 부르라"는
+    # 신호를 붙여 반복 호출 루프를 누른다. tool_context 없이 부르는 내부 호출은 그대로 값만 준다.
+    if tool_context is not None:
+        if tool_context.state.get("today_checked"):
+            return {**today, "already_checked": True,
+                    "note": "오늘 날짜는 이미 확인했습니다. 다시 호출하지 말고 지금 정보로 "
+                            "다음 단계를 진행하거나 최종 답을 내세요."}
+        tool_context.state["today_checked"] = True
+    return today
 
 
 # ---------------------------------------------------------------- collect_places
@@ -158,6 +167,19 @@ async def collect_places(
         status가 'ok'면 수집이 끝난 것이므로 다음 단계로 넘어간다.
         축제나 특정 시설처럼 대상이 하나뿐인 경우 결과가 적어도 'ok'가 나온다. 정상이다.
     """
+    # 재호출 가드: 같은 검색어로 이미 수집했으면 재수집하지 않고 이전 결과를 돌려준다.
+    # 27B가 최종 답 대신 파이프라인을 반복하는 걸 막아 시간·컨텍스트 낭비를 없앤다.
+    # 검색어가 바뀌면(되묻고 좁힌 경우 등) 정당한 재검색이므로 그대로 수행한다.
+    if (tool_context.state.get("last_query") == query
+            and tool_context.state.get("last_places_file")):
+        return {
+            "status": "ok",
+            "already_collected": True,
+            "file": tool_context.state["last_places_file"],
+            "message": "이미 이 검색어로 수집을 마쳤습니다. 다시 수집하지 말고 다음 "
+                       "단계로 넘어가세요 (필요하면 collect_info, 이미 했으면 최종 추천).",
+        }
+
     # 1) 카카오 로컬 전량 — 기준점이자 수확분의 지역 필터 근거
     places = kakao_all(query, category_code=category_code)
     base = list(places)                 # 지역 필터 기준 스냅샷
@@ -236,6 +258,9 @@ async def collect_places(
     # 멀티턴에서는 되묻고 답을 받은 뒤에도 이 경로가 필요하다.
     tool_context.state["last_places_file"] = file_path
     tool_context.state["last_query"] = query
+    # 새 수집 라운드 시작 — 이전 라운드의 요약·읽음 기록을 비워 재호출 가드가 꼬이지 않게.
+    tool_context.state["info_result"] = None
+    tool_context.state["read_files"] = []
 
     payload = {
         "count": len(places),
@@ -296,6 +321,17 @@ async def collect_info(
         return {
             "status": "error",
             "message": "collect_places를 먼저 호출하세요. 이 툴을 다시 호출해도 같은 결과입니다.",
+        }
+
+    # 재호출 가드: 이번 수집 라운드에서 이미 요약했으면 재수집(크롤·요약)하지 않고 이전
+    # 결과를 돌려준다. 무거운 재작업을 막고, summary_file을 읽어 최종 답으로 가도록 유도한다.
+    cached = tool_context.state.get("info_result")
+    if cached:
+        return {
+            **cached,
+            "already_collected": True,
+            "message": "이미 요약을 마쳤습니다. 재수집하지 말고 summary_file을 read_file로 "
+                       "읽어(아직 안 읽었다면) 최종 추천을 완성하세요.",
         }
 
     places = load_json(places_file)
@@ -442,7 +478,7 @@ async def collect_info(
         f"요약 {time.perf_counter() - t_scrape:.1f}s"
     )
 
-    return {
+    result = {
         "count": len(summaries),
         "no_info": len(kept) - len(summaries),
         "reranked_from": len(places),
@@ -450,6 +486,8 @@ async def collect_info(
         "rerank_file": rerank_file,
         "summary_file": summary_file,
     }
+    tool_context.state["info_result"] = result   # 재호출 가드용 캐시
+    return result
 
 
 # ---------------------------------------------------------------- collect_context
@@ -586,27 +624,42 @@ async def collect_context(
 
 # ---------------------------------------------------------------- read_file
 
-def read_file(file_path: str) -> dict:
-    """툴이 만든 결과 파일을 읽는다. 최종 답변을 쓰기 전에 반드시 호출한다.
+def read_file(tool_context: ToolContext, file_path: str) -> dict:
+    """툴이 만든 결과 파일을 읽는다. 최종 추천 매장을 확정하기 직전에 한 번만 호출한다.
 
     collect_info의 summary_file, collect_context의 context_file에 판단 근거가 들어있다.
     파일을 읽지 않고 답변을 지어내면 안 된다.
+
+    같은 파일을 이미 읽었으면 내용을 다시 싣지 않는다. 근거는 앞서 읽은 그대로이니
+    다시 읽지 말고 최종 답을 내라(반복해서 읽으면 컨텍스트만 불어난다).
 
     Args:
         file_path: 이전 툴이 반환한 file / summary_file / context_file 값.
 
     Returns:
-        {"content": ...} 파일 내용.
+        {"content": ...} 파일 내용. 이미 읽은 파일이면 {"already_read": True, "note": ...}.
     """
     path = Path(file_path)
     if not path.exists():
         return {"status": "error", "message": f"파일을 찾을 수 없습니다: {file_path}"}
     if not str(path.resolve()).startswith(str(TOOL_FILE_DIR.resolve())):
         return {"status": "error", "message": "허용되지 않은 경로입니다."}
+
+    # 재호출 가드: 이미 읽은 파일이면 5k짜리 내용을 이력에 또 붓지 않는다. 27B가 최종
+    # 판단 대신 파이프라인을 반복하면 read_file도 반복돼 컨텍스트가 32k를 넘겨 터진다.
+    read_files = tool_context.state.get("read_files", [])
+    if file_path in read_files:
+        return {
+            "already_read": True,
+            "note": "이미 읽은 파일입니다. 근거는 앞서 읽은 그대로이니 다시 수집·조회하지 "
+                    "말고 그 내용으로 최종 추천을 완성하세요.",
+        }
     try:
-        return {"content": load_json(str(path))}
+        content = load_json(str(path))
     except json.JSONDecodeError:
         return {"status": "error", "message": "파일을 읽을 수 없습니다."}
+    tool_context.state["read_files"] = read_files + [file_path]
+    return {"content": content}
 
 
 ALL_TOOLS = [get_today, collect_places, collect_info, collect_context, read_file]

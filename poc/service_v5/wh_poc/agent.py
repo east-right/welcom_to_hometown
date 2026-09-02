@@ -24,6 +24,7 @@ import os
 import uuid
 
 from google.adk.agents import LlmAgent
+from google.adk.agents.run_config import RunConfig
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 
@@ -42,6 +43,11 @@ USER_ID = "user1"
 # 예: 툴 요약·HyDE는 Gemini로 두고(WH_LLM_BACKEND=gemini) 메인 에이전트만
 # 로컬 vLLM(27B)로 돌리려면 WH_AGENT_BACKEND=local 만 켠다.
 AGENT_BACKEND = os.getenv("WH_AGENT_BACKEND", LLM_BACKEND).lower()
+
+# 한 요청에서 허용할 LLM 호출 수 상한. 정상 흐름은 4~5스텝(수집·요약선택·최종)이라
+# 넉넉하다. 약한 로컬 모델이 get_today 등을 반복 호출하는 폭주 루프를 여기서 강제로
+# 끊어(초과 시 ADK가 중단) 케이스가 수백 초로 늘어나는 걸 막는다.
+MAX_LLM_CALLS = int(os.getenv("WH_MAX_LLM_CALLS", "30"))
 
 
 def agent_model():
@@ -129,12 +135,16 @@ status별 행동:
 애매하면 둘 다 호출해도 됩니다. "캠핑장 추천"은 운영 정보와 이용 후기가 모두 도움이 됩니다.
 
 ## 3단계 — 근거 확인
-최종 추천을 쓰기 직전에 read_file을 **한 번만** 호출해 근거를 읽습니다.
+최종 추천 매장을 확정할 때 read_file을 **한 번만** 호출해 근거를 읽습니다.
 - collect_info를 썼으면 summary_file, collect_context를 썼으면 context_file **하나만** 읽습니다.
 - 이 파일 하나에 판단에 필요한 모든 근거(장소별 요약·주소·url·강점)가 들어 있습니다.
 - rerank_file·url_file·collect_places의 file 등 다른 파일은 읽지 마세요. 답변에 불필요하고
   맥락만 무겁게 만듭니다.
 파일을 읽지 않고 답변을 만들면 안 됩니다.
+
+**툴 결과에 `already_collected`나 `already_read`가 있으면 그 단계는 이미 끝난 것입니다.**
+다시 수집·조회하지 말고, 이미 확보한 근거로 곧바로 4단계(최종 추천)로 넘어가세요.
+같은 수집을 반복하면 답이 나빠지고 실패합니다.
 
 ## 4단계 — 추천 (kind='recommendation')
 요청에 가장 잘 맞는 5~8곳을 골라 places에 담습니다.
@@ -299,7 +309,8 @@ class Chat:
         }
 
         async for event in self.runner.run_async(
-            user_id=USER_ID, session_id=self.session_id, new_message=content
+            user_id=USER_ID, session_id=self.session_id, new_message=content,
+            run_config=RunConfig(max_llm_calls=MAX_LLM_CALLS),
         ):
             for call in event.get_function_calls():
                 out["tool_calls"].append({"name": call.name, "args": dict(call.args)})
