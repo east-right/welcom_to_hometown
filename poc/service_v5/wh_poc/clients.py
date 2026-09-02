@@ -13,6 +13,7 @@ import asyncio
 import itertools
 import os
 import re
+import time
 from urllib.parse import urlparse
 
 import httpx
@@ -84,9 +85,25 @@ async def _llm_gemini(prompt: str, *, json_mode: bool, temperature: float) -> st
     return resp.text
 
 
+# 로컬 LLM 호출별 서빙 지연 지표(스트리밍 계측). eval이 케이스마다 pop해서 비운다.
+#   ttft  첫 토큰까지(prefill 지배)   e2el  전체(첫→마지막)
+#   tpot  토큰당 decode 시간 = (e2el-ttft)/(out_tok-1)   out_tok  출력 토큰 수
+_LLM_LAT: list[dict] = []
+
+
+def pop_llm_latency() -> list[dict]:
+    """누적된 로컬 LLM 지연 기록을 반환하고 비운다."""
+    global _LLM_LAT
+    recs, _LLM_LAT = _LLM_LAT, []
+    return recs
+
+
 async def _llm_local(prompt: str, *, json_mode: bool, temperature: float) -> str:
     """vLLM OpenAI 호환 엔드포인트 호출. 에이전트의 LiteLlm과 같은 litellm을 쓴다
     (새 의존성 없음). json_mode는 OpenAI식 response_format으로 매핑한다.
+
+    스트리밍으로 받아 첫/마지막 토큰 시각을 재고 TTFT·E2EL·TPOT·출력토큰을 _LLM_LAT에
+    기록한다(로컬 서빙 지연 계측). 스트리밍이라도 최종 텍스트는 동일하게 합쳐 반환한다.
 
     Qwen3 같은 추론 모델은 기본으로 답 앞에 <think> 사고과정을 붙인다. 유틸 LLM은
     HyDE 문서·요약처럼 '결과 텍스트'만 필요하므로 chat_template_kwargs로 thinking을 꺼
@@ -100,11 +117,41 @@ async def _llm_local(prompt: str, *, json_mode: bool, temperature: float) -> str
         "api_base": LOCAL_API_BASE or None,
         "api_key": LOCAL_API_KEY or None,
         "extra_body": {"chat_template_kwargs": {"enable_thinking": False}},
+        "stream": True,
+        "stream_options": {"include_usage": True},  # 마지막 청크에 usage 실림
     }
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
+
+    t0 = time.perf_counter()
+    ttft = None
+    parts: list[str] = []
+    usage = None
     resp = await litellm.acompletion(**kwargs)
-    return resp.choices[0].message.content
+    async for chunk in resp:
+        if getattr(chunk, "usage", None):        # usage 전용 청크는 choices가 빔
+            usage = chunk.usage
+        try:
+            delta = chunk.choices[0].delta.content
+        except (IndexError, AttributeError):
+            delta = None
+        if delta:
+            if ttft is None:
+                ttft = time.perf_counter() - t0
+            parts.append(delta)
+    e2el = time.perf_counter() - t0
+    if ttft is None:
+        ttft = e2el
+
+    out_tok = getattr(usage, "completion_tokens", 0) or 0
+    _LLM_LAT.append({
+        "ttft": ttft,
+        "e2el": e2el,
+        "out_tok": out_tok,
+        "tpot": (e2el - ttft) / (out_tok - 1) if out_tok > 1 else 0.0,
+        "tps": out_tok / e2el if e2el else 0.0,
+    })
+    return "".join(parts)
 
 
 # ---------------------------------------------------------------- 임베딩
