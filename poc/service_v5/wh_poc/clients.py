@@ -19,7 +19,7 @@ import httpx
 import lxml.html
 import requests
 from google import genai
-from google.genai import types
+from google.genai import errors, types
 
 from .core import (
     FAIL_PREFIX,
@@ -112,6 +112,28 @@ async def _llm_local(prompt: str, *, json_mode: bool, temperature: float) -> str
 EMBED_MODEL = os.getenv("WH_EMBED_MODEL", "gemini-embedding-001")
 EMBED_DIM = 768  # 3072 기본에서 축소 — 벡터가 가벼워지고 코사인도 빨라진다
 
+# 임베딩 쿼터(global_embed_content_requests_per_minute_per_base_model)는 전 고객이
+# 공유하는 글로벌 RPM 풀이다. 배치를 딜레이 없이 gather로 동시에 쏘면 순간 요청률이
+# 튀어 429가 난다. 두 겹으로 막는다:
+#   ① 페이싱   — 요청 간 최소 간격(1/RPS)을 강제해 버스트를 눌러 우리 기여분을 줄인다.
+#   ② 백오프   — 그래도 429가 나면(공유 풀이라 우리 밖 트래픽으로도 남) 지수 백오프로
+#                물러났다 재시도해 케이스를 통째로 실패시키지 않는다.
+EMBED_RPS = float(os.getenv("WH_EMBED_RPS", "6"))         # 초당 임베딩 요청 상한
+EMBED_MAX_RETRY = int(os.getenv("WH_EMBED_MAX_RETRY", "5"))
+_embed_gate = asyncio.Lock()
+_embed_next = 0.0  # 다음 요청 허용 시각(event loop monotonic clock)
+
+
+async def _embed_pace() -> None:
+    """요청 사이에 최소 1/RPS 간격을 둔다. 동시 배치도 이 게이트로 줄세운다."""
+    global _embed_next
+    async with _embed_gate:
+        now = asyncio.get_event_loop().time()
+        if now < _embed_next:
+            await asyncio.sleep(_embed_next - now)
+            now = _embed_next
+        _embed_next = now + 1.0 / EMBED_RPS
+
 
 @track("embed")
 async def embed_texts(texts: list[str]) -> list[list[float]]:
@@ -123,13 +145,22 @@ async def embed_texts(texts: list[str]) -> list[list[float]]:
         return []
 
     async def one_batch(batch: list[str]) -> list[list[float]]:
-        async with LLM_SEM:
-            resp = await _client.aio.models.embed_content(
-                model=EMBED_MODEL,
-                contents=batch,
-                config=types.EmbedContentConfig(output_dimensionality=EMBED_DIM),
-            )
-        return [e.values for e in resp.embeddings]
+        for attempt in range(EMBED_MAX_RETRY):
+            await _embed_pace()
+            try:
+                async with LLM_SEM:
+                    resp = await _client.aio.models.embed_content(
+                        model=EMBED_MODEL,
+                        contents=batch,
+                        config=types.EmbedContentConfig(
+                            output_dimensionality=EMBED_DIM
+                        ),
+                    )
+                return [e.values for e in resp.embeddings]
+            except errors.APIError as e:
+                if e.code != 429 or attempt + 1 == EMBED_MAX_RETRY:
+                    raise
+                await asyncio.sleep(2**attempt)  # 1, 2, 4, 8초…
 
     chunks = [texts[i : i + 100] for i in range(0, len(texts), 100)]
     batched = await asyncio.gather(*[one_batch(c) for c in chunks])

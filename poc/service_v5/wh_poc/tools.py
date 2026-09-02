@@ -342,6 +342,9 @@ async def collect_info(
     hypo = (await llm_async(prompts.HYDE_REVIEW.format(user_query=user_query))).strip()
     hypo = hypo or user_query
 
+    # 스니펫별로 개별 임베딩한 뒤 매장 점수를 max 풀링한다 — 한 스니펫이라도 hypo와
+    # 맞으면 그 매장을 상위로 올린다. 매장별로 합쳐 벡터 1개로 만드는 방식(요청 수↓)도
+    # 재봤지만, 좋은 스니펫 신호가 평균화로 희석돼 리랭크 변별력이 떨어져 버렸다.
     snip_texts, snip_owner = [], []
     for p in places:
         for b in hits[p["name"]]:
