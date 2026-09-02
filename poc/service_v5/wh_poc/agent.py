@@ -122,7 +122,9 @@ status별 행동:
 - **collect_context** (웹문서·뉴스 사실 정리)
   일정·기간·요금·예약처럼 확인된 사실이 필요한 경우.
   축제·행사·전시처럼 시기가 중요하거나, 관광지·캠핑장처럼 운영 정보가 필요할 때 씁니다.
-  시점이 걸린 요청이면 먼저 get_today로 오늘 날짜를 확인하세요.
+  축제·행사처럼 **날짜가 결과를 바꾸는 요청에만** get_today로 오늘 날짜를 확인하세요.
+  음식점·카페·술집 같은 상설 매장 추천에는 get_today를 호출하지 마세요.
+  이미 호출한 툴은 같은 인자로 다시 호출하지 말고 다음 단계로 넘어가세요.
 
 애매하면 둘 다 호출해도 됩니다. "캠핑장 추천"은 운영 정보와 이용 후기가 모두 도움이 됩니다.
 
@@ -155,6 +157,28 @@ status별 행동:
 collect_info나 collect_context가 error를 반환하면 collect_places부터 다시 실행하세요.
 수집이 실패했는데 collect_places 결과만으로 평가를 지어내면 안 됩니다.
 """
+
+# 로컬(vLLM) 최종 응답은 decode-bound(실측 ≈19 tok/s)라, 느린 워커가 장황한 산문을
+# 통째로 뽑는 것 자체가 병목이다(827토큰 ≈ 45초). 로컬에서는 워커(27B)가 '어느 곳을
+# 고르나 + 왜'만 짧게 내고, address·url·highlights·caution 등 근거 파일에 이미 있는
+# 필드는 Chat.send의 _format_feed(Gemini)가 채워 완성한다. 무거운 생성을 느린 워커에서
+# 빠른 포매터로 옮기는 것. gemini 경로는 output_schema로 직접 FeedOutput을 내므로 무변경.
+if AGENT_BACKEND == "local":
+    _STEP4_FULL = """## 4단계 — 추천 (kind='recommendation')
+요청에 가장 잘 맞는 5~8곳을 골라 places에 담습니다.
+- review_count 또는 source_count가 많을수록 신뢰도가 높습니다.
+- freshness가 'outdated'면 지난 연도 정보이므로 caution에 그 사실을 적으세요.
+- address와 url은 파일에 있는 값을 그대로 씁니다. 절대 지어내지 마세요.
+- 파일에 없는 정보는 쓰지 마세요. 강점이 부족하면 그 장소를 빼는 편이 낫습니다.
+- 후기를 확보한 곳이 적었다면 message에 그 사실을 밝히세요."""
+    _STEP4_TERSE = """## 4단계 — 추천 (kind='recommendation')
+요청에 가장 잘 맞는 5~8곳을 고릅니다. review_count/source_count가 많을수록 신뢰도가 높습니다.
+근거 파일에 없는 장소는 고르지 마세요. 강점이 부족한 곳은 빼는 편이 낫습니다.
+
+최종 응답에는 고른 장소의 name과, 요청에 왜 맞는지 reason(한 문장)만 쓰세요.
+address·url·highlights·caution·period·category는 쓰지 마세요 — 근거 파일에서 자동으로 채워집니다.
+후기를 확보한 곳이 적었다면 message에 그 사실을 밝히세요."""
+    INSTRUCTION = INSTRUCTION.replace(_STEP4_FULL, _STEP4_TERSE)
 
 
 def build_agent(model=None, tracer: Tracer | None = None) -> LlmAgent:
@@ -207,7 +231,7 @@ async def _format_feed(user_query: str, agent_text: str, files: dict) -> dict:
     for k in ("summary_file", "context_file"):
         if files.get(k):
             try:
-                evidence = json.dumps(load_json(files[k]), ensure_ascii=False)[:8000]
+                evidence = json.dumps(load_json(files[k]), ensure_ascii=False)[:20000]
                 break
             except (OSError, ValueError):
                 pass
