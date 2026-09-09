@@ -24,6 +24,7 @@ from google.genai import errors, types
 
 from .core import (
     FAIL_PREFIX,
+    KAKAO_SEM,
     LLM_SEM,
     NAVER_SEM,
     SCRAPE_SEM,
@@ -472,4 +473,41 @@ async def naver_search(
             "date": i.get("postdate", "") or i.get("pubDate", ""),
         }
         for i in items
+    ], "ok"
+
+
+async def daum_blog(
+    query: str, display: int = 10, sort: str = "accuracy"
+) -> tuple[list[dict], str]:
+    """카카오(다음) 블로그 검색. 카카오 REST 키를 그대로 쓴다.
+
+    같은 상호명이라도 네이버와 인덱스가 달라 잡히는 글이 다르다 — 로컬 노포는 다음
+    쪽이 더 풍부한 경우가 많다. naver_search와 같은 (결과, 상태) 형태로 반환한다.
+    sort: 'accuracy'(정확도) / 'recency'(최신). size 최대 50.
+    """
+    async with KAKAO_SEM:
+        try:
+            async with httpx.AsyncClient(timeout=5) as client:
+                resp = await client.get(
+                    "https://dapi.kakao.com/v2/search/blog",
+                    headers={"Authorization": f"KakaoAK {os.environ['KAKAO_REST_API_KEY']}"},
+                    params={"query": query, "size": display, "sort": sort},
+                )
+        except httpx.TransportError:
+            return [], "error"
+
+    if resp.status_code != 200:
+        return [], str(resp.status_code)
+    docs = resp.json().get("documents", [])
+    if not docs:
+        return [], "empty"
+
+    return [
+        {
+            "title": strip_tags(d.get("title", "")),
+            "description": strip_tags(d.get("contents", "")),
+            "link": d.get("url", ""),
+            "date": d.get("datetime", ""),
+        }
+        for d in docs
     ], "ok"

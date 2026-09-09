@@ -194,6 +194,7 @@ async def eval_one(case: dict, idx: int, total: int) -> dict:
             "sec": round(s["sec"], 2),
             "tok_in": s.get("tok_in", 0),
             "tok_out": s.get("tok_out", 0),
+            "args": s.get("args", ""),        # 툴에 던진 인자(검색쿼리 등)
             "detail": s.get("detail", ""),
         }
         for s in steps

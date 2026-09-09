@@ -21,6 +21,7 @@ from google.adk.tools import ToolContext
 
 from . import prompts
 from .clients import (
+    daum_blog,
     embed_texts,
     in_same_region,
     kakao_all,
@@ -43,7 +44,7 @@ from .core import (
 MAX_COUNT = 45  # 카카오가 노출하는 상한. 이만큼 채우면 후보가 넘친다는 신호(too_broad).
 
 RERANK_KEEP = 15        # HyDE 리랭크로 최종 남길 매장 수 (크롤·요약 비용이 여기 비례)
-RERANK_SNIPPETS = 5     # 매장당 확보할 블로그 스니펫 수 (리랭크는 스니펫으로)
+RERANK_SNIPPETS = 10    # 매장당 확보할 블로그 스니펫 수 (많을수록 매장 신호가 풍부)
 INFO_PER_PLACE = 3      # 남긴 매장당 요약에 쓸 블로그 본문 수
 INFO_BODY_CHARS = 2000  # 요약에 넣는 본문 최대 길이
 CONTEXT_BODY_CHARS = 4000
@@ -86,22 +87,26 @@ def _is_franchise(place: dict) -> bool:
     return len(segs[-1]) >= 2 and place["name"].startswith(segs[-1])
 
 
-def _lvl2(cat: str) -> str:
-    """카카오 카테고리의 2단계(대분류 다음) — 업종군. '음식점>한식>국수'→'한식'."""
+def _domain(cat: str) -> str:
+    """장소의 대분류 도메인 — 카페 / 관광·문화(sight) / 음식점(food, 그 외 식당 전체).
+    카카오는 카페도 '음식점 > 카페 …'로 분류해 1단계(음식점)로는 식당과 안 갈린다.
+    수확 노이즈 제거는 '한식 vs 일식' 같은 장르가 아니라 이 도메인 단위로만 판단한다 —
+    장르로 거르면 한식 base에 딸려온 우동(일식)·칼국수(분식) 같은 정답까지 잘려나간다."""
     segs = [s.strip() for s in cat.split(">")]
-    return segs[1] if len(segs) >= 2 else (segs[0] if segs else "")
+    if "카페" in segs:
+        return "cafe"
+    if segs and segs[0] in ("관광명소", "문화시설", "여행"):
+        return "sight"
+    return "food"
 
 
-def _dominant_cats(base: list[dict]) -> set[str] | None:
-    """카카오 base의 지배 업종군을 구한다. 한 업종이 절반 이상이면(구체 쿼리) 그
-    업종군들(≥25%)을 반환, 여러 업종에 퍼져 있으면(막연한 '맛집') None(필터 안 함)."""
+def _dominant_domain(base: list[dict]) -> str | None:
+    """base가 한 도메인에 확실히 몰려 있으면(60%+) 그 도메인, 섞였으면 None(필터 안 함).
+    구체 쿼리(카페·횟집 등)면 한 도메인이 대부분이라 다른 도메인 수확은 노이즈다."""
     if not base:
         return None
-    cnt = Counter(_lvl2(p["category"]) for p in base)
-    n = len(base)
-    if cnt.most_common(1)[0][1] / n < 0.5:
-        return None
-    return {c for c, v in cnt.items() if v / n >= 0.25}
+    top, n = Counter(_domain(p["category"]) for p in base).most_common(1)[0]
+    return top if n / len(base) >= 0.6 else None
 
 
 # ---------------------------------------------------------------- get_today
@@ -180,15 +185,15 @@ async def collect_places(
                        "단계로 넘어가세요 (필요하면 collect_info, 이미 했으면 최종 추천).",
         }
 
-    # 1) 카카오 로컬 전량 — 기준점이자 수확분의 지역 필터 근거
-    places = kakao_all(query, category_code=category_code)
-    base = list(places)                 # 지역 필터 기준 스냅샷
+    # 1) 카카오 로컬 전량 — 지역 필터 기준이자, 수확 뒤 부족분을 채울 후보 풀
+    base = kakao_all(query, category_code=category_code)
     base_n = len(base)                  # too_broad 판정은 카카오 base 기준 (수확분 제외)
     log(f"[collect_places] '{query}' 카카오 {base_n}개")
 
-    # 2) 수확 보강 — 웹검색 스니펫에서 상호명만 LLM으로 뽑는다. 카카오 '맛집' 태그가 없는
-    #    로컬 노포는 카카오가 놓치지만 웹 스니펫엔 리스트로 잡힌다. 'Top'을 붙여 랭킹 리스트
-    #    페이지를 노린다 — 한 스니펫에 로컬 매장이 촘촘히 나열돼 수확 밀도가 높다.
+    # 2) 수확 — 웹 'Top' 리스트(diningcode 등)의 스니펫에서 상호명만 LLM으로 뽑는다.
+    #    카카오 '맛집' 태그가 없는 로컬 노포는 카카오가 놓치지만 웹 스니펫엔 리스트로
+    #    잡힌다. 한 스니펫에 매장이 촘촘히 나열돼 수확 밀도가 높다. 블로그는 노이즈가 커
+    #    여기선 안 쓴다 — 블로그는 collect_info의 후기 요약에서만 쓴다.
     web_items, _ = await naver_search(f"{query} Top", kind="webkr", display=30)
     snippets = "\n".join(f"{w['title']} | {w['description']}" for w in web_items)
     try:
@@ -200,8 +205,7 @@ async def collect_places(
         names = []
 
     # 카카오 base에 이미 있는 이름은 문자열 유사도로 먼저 걸러 카카오 역조회를 아낀다.
-    # base는 주소·좌표가 이미 있으니 우선한다. 표기가 조금 달라도('서울밥집' vs '서울밥집
-    # 신림점') 정규화 후 부분포함이면 같은 매장으로 보고 제외한다.
+    # 표기가 조금 달라도('서울밥집' vs '서울밥집 신림점') 정규화 후 부분포함이면 같은 매장.
     base_norms = [_norm_name(p["name"]) for p in base]
     new_names = [
         n for n in names
@@ -220,37 +224,38 @@ async def collect_places(
                 ps, _ = await asyncio.to_thread(kakao_keyword, n)
         return ps[0] if ps else None
 
-    seen = {p["id"] for p in places}
-    n_harvest = 0
+    seen = {p["id"] for p in base}
+    harvest = []
     for p in await asyncio.gather(*[_verify(n) for n in new_names]):
         if p and p["id"] not in seen and in_same_region(p, base):
             p["source"] = "web_harvest"
-            places.append(p)
+            harvest.append(p)
             seen.add(p["id"])
-            n_harvest += 1
     log(
         f"[collect_places] 수확 이름 {len(names)}개 → base중복 제외 후 {len(new_names)}개 검증 "
-        f"→ 신규 확보 {n_harvest}개"
+        f"→ 신규 확보 {len(harvest)}개"
     )
 
-    # 음식점 프랜차이즈 제거 — 로컬 맛집 추천에 프랜차이즈는 노이즈. (카페 체인 포함)
-    before = len(places)
-    places = [p for p in places if not _is_franchise(p)]
-    if before != len(places):
-        log(f"[collect_places] 프랜차이즈 {before - len(places)}개 제거 → {len(places)}개")
+    # 프랜차이즈 제거 — 로컬 맛집 추천에 프랜차이즈는 노이즈(카페 체인 포함). base·수확 모두.
+    harvest = [p for p in harvest if not _is_franchise(p)]
+    base = [p for p in base if not _is_franchise(p)]
 
-    # 업종 1차 필터 — base(카카오)가 한 업종에 몰린 구체 쿼리면, 그 업종과 다른 수확
-    # 매장은 노이즈다(카페 검색에 딸려온 횟집 등) → 제거. 막연한 '맛집'이면 업종이
-    # 퍼져 있어 필터하지 않는다(우동=일식처럼 소수 업종 정답이 잘리지 않게). 카카오
-    # base는 쿼리 직접 결과라 건드리지 않고, 수확분에만 적용한다.
-    dominant = _dominant_cats(base)
+    # 도메인 필터 — base가 한 도메인에 몰린 구체 쿼리면 다른 도메인 수확은 노이즈다(음식점
+    # 검색에 딸려온 카페 등) → 제거. 막연한 요청이면 도메인이 퍼져 있어 필터하지 않는다.
+    # base는 쿼리 직접 결과라 건드리지 않고 수확분에만 적용한다.
+    dominant = _dominant_domain(base)
     if dominant:
-        before = len(places)
-        places = [
-            p for p in places
-            if p.get("source") != "web_harvest" or _lvl2(p["category"]) in dominant
-        ]
-        log(f"[collect_places] 업종 필터({sorted(dominant)}) 수확 {before - len(places)}개 제거")
+        before = len(harvest)
+        harvest = [p for p in harvest if _domain(p["category"]) == dominant]
+        log(f"[collect_places] 도메인 필터({dominant}) 수확 {before - len(harvest)}개 제거")
+
+    # 3) 후보 조립 — 수확(로컬 노포)을 앞에 두고 카카오 base로 CAP까지 채운다. CAP을 넘는
+    #    꼬리는 자르는데, 수확을 앞에 둬야 CAP에 밀려 잘리는 게 base 하위(노이즈)지 힘들게
+    #    건진 노포가 아니게 된다(전 질의 검증 결과 잘린 것은 하위 노이즈뿐, 정답 손실 없음).
+    n_harvest = len(harvest)
+    fill = [p for p in base if p["id"] not in {h["id"] for h in harvest}]
+    places = (harvest + fill)[: max(RERANK_KEEP * 3, n_harvest)]
+    log(f"[collect_places] 웹-우선 조립: 수확 {n_harvest} + 카카오 {len(places) - n_harvest} = {len(places)}")
 
     file_path = dump("collect_places", places, _run_id(tool_context))
 
@@ -341,13 +346,14 @@ async def collect_info(
     # --- 1) 매장별 블로그 스니펫 수집 (크롤링은 리랭크 뒤 상위만) ---
     # 도로명은 행정 표기라 실제 리뷰에서 쓰는 생활권 이름과 다르다("관천" vs "신림").
     # 그 매핑은 지역 상식이라 코드가 못 하므로 에이전트가 준 region_prefix를 쓴다.
-    # sim/date는 매장마다 유리한 쪽이 달라 사전 판단이 불가능하므로 둘 다 던지고 합친다.
+    # 카카오(다음) 블로그를 쓴다 — 로컬 노포 후기가 네이버보다 풍부한 경우가 많다.
+    # accuracy/recency는 매장마다 유리한 쪽이 달라 둘 다 던지고 합친다.
     queries = [f"{region_prefix} {p['name']}".strip() for p in places]
     raw = await asyncio.gather(
         *[
-            naver_search(q, kind="blog", display=10, sort=s)
+            daum_blog(q, display=10, sort=s)
             for q in queries
-            for s in ("sim", "date")
+            for s in ("accuracy", "recency")
         ]
     )
 
@@ -378,9 +384,8 @@ async def collect_info(
     hypo = (await llm_async(prompts.HYDE_REVIEW.format(user_query=user_query))).strip()
     hypo = hypo or user_query
 
-    # 스니펫별로 개별 임베딩한 뒤 매장 점수를 max 풀링한다 — 한 스니펫이라도 hypo와
-    # 맞으면 그 매장을 상위로 올린다. 매장별로 합쳐 벡터 1개로 만드는 방식(요청 수↓)도
-    # 재봤지만, 좋은 스니펫 신호가 평균화로 희석돼 리랭크 변별력이 떨어져 버렸다.
+    # 스니펫을 개별 임베딩한 뒤 매장 점수를 max 풀링한다 — 한 스니펫이라도 hypo와 맞으면
+    # 그 매장을 상위로 올린다. 후기 없는 매장은 스니펫이 없어 -1(최하위)로 남는다.
     snip_texts, snip_owner = [], []
     for p in places:
         for b in hits[p["name"]]:
@@ -389,11 +394,13 @@ async def collect_info(
     vecs = await embed_texts([hypo] + snip_texts)
     hypo_vec, snip_vecs = vecs[0], vecs[1:]
 
-    score = {p["name"]: -1.0 for p in places}
+    cos_score = {p["name"]: -1.0 for p in places}
     for name, v in zip(snip_owner, snip_vecs):
-        score[name] = max(score[name], _cos(hypo_vec, v))
+        cos_score[name] = max(cos_score[name], _cos(hypo_vec, v))
 
-    ranked = sorted(places, key=lambda p: -score[p["name"]])
+    # 순수 HyDE 코사인으로 정렬한다. 수집 순서(웹-우선 조립)를 RRF로 섞어봤지만, 그건
+    # 유의미한 랭킹이 아니라 조립 순서일 뿐이라 노이즈에 가까워 뺐다.
+    ranked = sorted(places, key=lambda p: -cos_score[p["name"]])
     kept = ranked[:RERANK_KEEP]
     rank_of = {p["name"]: r for r, p in enumerate(kept, 1)}
 
@@ -401,10 +408,10 @@ async def collect_info(
     log(f"[collect_info] HyDE 가상문서: {hypo[:120]}")
     log(f"[collect_info] 리랭크 {len(places)}→{len(kept)}")
     for r, p in enumerate(kept, 1):
-        log(f"   [{r:2}] {score[p['name']]:+.3f} {p['name']}")
+        log(f"   [{r:2}] cos={cos_score[p['name']]:+.3f} {p['name']}")
     ranking = [
         {"rank": r, "name": p["name"], "kept": rank_of.get(p["name"]) is not None,
-         "score": round(score[p["name"]], 4), "source": p.get("source", "")}
+         "cos": round(cos_score[p["name"]], 4), "source": p.get("source", "")}
         for r, p in enumerate(ranked, 1)
     ]
     rerank_file = dump(
