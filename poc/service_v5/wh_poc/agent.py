@@ -244,6 +244,57 @@ STATUS_TEXT = {
 
 _FILE_KEYS = ("file", "url_file", "rerank_file", "summary_file", "source_file", "context_file")
 
+# 최종 추천 개수. 리랭크 top-15 중 이 수만큼 스코어링으로 확정한다.
+FINAL_K = int(os.getenv("WH_FINAL_K", "8"))
+
+
+async def _select_by_score(user_query: str, summary_file: str, k: int = FINAL_K) -> list[dict] | None:
+    """2차 선정 — 리랭크로 남은 매장들(summary_file)을 요청 적합도로 스코어링해 상위 k곳을
+    코드가 확정한다. 임베딩 코사인은 같은 업종 후기끼리 뭉쳐(변별력 약함) 정답이 top-8 밖으로
+    밀리는데, LLM이 요약을 읽고 점수를 매기면(cross-encoder처럼 질의·문서를 함께 봄) 유명·검증
+    신호까지 반영해 변별이 산다. 선택을 LLM 자유판단이 아니라 '점수→코드 컷'으로 통제한다."""
+    try:
+        summ = load_json(summary_file)
+    except (OSError, ValueError):
+        return None
+    if not summ:
+        return None
+    items = "\n".join(
+        f"- {n}: {v.get('summary', '')} [강점] {' / '.join(v.get('strengths', []))}"
+        for n, v in summ.items()
+    )
+    try:
+        scored = json.loads(
+            await llm_async(
+                prompts.SELECT_SCORE.format(user_query=user_query, items=items),
+                json_mode=True,
+            )
+        )
+    except (json.JSONDecodeError, TypeError):
+        return None
+
+    def score_of(name: str) -> float:
+        s = scored.get(name)
+        return s.get("score", 0) if isinstance(s, dict) else (s or 0)
+
+    places = []
+    for name in sorted(summ, key=lambda n: -score_of(n))[:k]:
+        v = summ[name]
+        s = scored.get(name, {})
+        reason = (s.get("reason") if isinstance(s, dict) else "") or v.get("summary", "")
+        weaknesses = v.get("weaknesses", [])
+        places.append({
+            "name": name,
+            "address": v.get("address", ""),
+            "category": v.get("category", ""),
+            "reason": reason,
+            "highlights": v.get("strengths", [])[:3],
+            "caution": weaknesses[0] if weaknesses else "",
+            "period": "",
+            "url": v.get("url", ""),
+        })
+    return places
+
 
 async def _format_feed(user_query: str, agent_text: str, files: dict) -> dict:
     """로컬 백엔드 전용 포매터. output_schema 없이 돌린 워커의 자연어 답을 근거 파일과
@@ -361,6 +412,15 @@ class Chat:
                     "message": out["final_text"],
                     "places": [],
                 }
+
+        # 2차 선정 — 추천이면 매장 선택을 에이전트 자유판단이 아니라 스코어링→코드 top-K로
+        # 확정한다. summary_file(collect_info)이 있을 때만. 없으면(축제=context) 에이전트 답 유지.
+        result = out["result"] or {}
+        if result.get("kind") == "recommendation" and out["files"].get("summary_file"):
+            picked = await _select_by_score(text, out["files"]["summary_file"])
+            if picked:
+                result["places"] = picked
+                out["result"] = result
 
         if self.tracer:
             self.tracer.end_turn(out["result"])

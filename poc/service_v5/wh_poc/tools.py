@@ -43,7 +43,8 @@ from .core import (
 # collect_places 수집 기준
 MAX_COUNT = 45  # 카카오가 노출하는 상한. 이만큼 채우면 후보가 넘친다는 신호(too_broad).
 
-RERANK_KEEP = 15        # HyDE 리랭크로 최종 남길 매장 수 (크롤·요약 비용이 여기 비례)
+RERANK_KEEP = 15        # HyDE 리랭크로 남길 매장 수(크롤·요약·2차 스코어링 대상). 약한 cos
+                        # 필터가 정답을 미리 버리지 않게 넉넉히 남겨 강한 2차 스코어러로 넘긴다.
 RERANK_SNIPPETS = 10    # 매장당 확보할 블로그 스니펫 수 (많을수록 매장 신호가 풍부)
 INFO_PER_PLACE = 3      # 남긴 매장당 요약에 쓸 블로그 본문 수
 INFO_BODY_CHARS = 2000  # 요약에 넣는 본문 최대 길이
@@ -379,24 +380,37 @@ async def collect_info(
         log(f"[collect_info] 후기 미확보 {len(reasons)}개 → {dict(Counter(reasons.values()))}")
     t_snip = time.perf_counter()
 
-    # --- 2) HyDE 리랭크 — 요청으로 '기준 문서'를 생성(막연한 맛집이면 로컬맛집 신호,
-    # 구체 쿼리면 담백한 후기)해 임베딩하고, 각 매장 스니펫과 max 유사도로 상위만 남긴다.
-    hypo = (await llm_async(prompts.HYDE_REVIEW.format(user_query=user_query))).strip()
-    hypo = hypo or user_query
+    # --- 2) HyDE 리랭크 — 요청을 서로 다른 3개 각도(전통노포 / 인기웨이팅 / 미디어검증)의
+    # '기준 문서'로 생성해 임베딩한다. 단일 HyDE는 프레이밍 하나에 정답이 묻히지만(예:
+    # '노포' 톤에 웨이팅 인기집이 밀림), 여러 각도의 max로 보면 어느 한 각도만 맞아도
+    # 상위로 올라온다 — 11개 질문 검증에서 정답 top20 recall 77%→91%로 올랐다.
+    try:
+        facets = json.loads(
+            await llm_async(prompts.HYDE_MULTI.format(user_query=user_query), json_mode=True)
+        )
+        facets = [f.strip() for f in facets if isinstance(f, str) and f.strip()]
+    except (json.JSONDecodeError, TypeError):
+        facets = []
+    if not facets:  # facet 생성 실패 시 단일 HyDE로 폴백
+        single = (await llm_async(prompts.HYDE_REVIEW.format(user_query=user_query))).strip()
+        facets = [single or user_query]
 
-    # 스니펫을 개별 임베딩한 뒤 매장 점수를 max 풀링한다 — 한 스니펫이라도 hypo와 맞으면
-    # 그 매장을 상위로 올린다. 후기 없는 매장은 스니펫이 없어 -1(최하위)로 남는다.
+    # 매장별로 스니펫을 한 문서로 concat해 매장당 1벡터만 임베딩한다. 스니펫을 개별 임베딩하면
+    # (매장당 최대 RERANK_SNIPPETS개, 케이스당 수백 개) 임베딩 API 배치가 여러 번 도는데,
+    # concat하면 매장 수(~50)만 임베딩해 케이스당 1배치로 끝난다. 매장 점수는 그 매장 문서
+    # 벡터와 facet 3개의 max cos — 어느 한 각도만 맞아도 상위로. 후기 없는 매장은 -1(최하위).
     snip_texts, snip_owner = [], []
     for p in places:
-        for b in hits[p["name"]]:
-            snip_texts.append(f"{b['title']} {b['description']}")
+        joined = " ".join(f"{b['title']} {b['description']}" for b in hits[p["name"]]).strip()
+        if joined:
+            snip_texts.append(joined)
             snip_owner.append(p["name"])
-    vecs = await embed_texts([hypo] + snip_texts)
-    hypo_vec, snip_vecs = vecs[0], vecs[1:]
+    vecs = await embed_texts(facets + snip_texts)
+    facet_vecs, snip_vecs = vecs[: len(facets)], vecs[len(facets):]
 
     cos_score = {p["name"]: -1.0 for p in places}
     for name, v in zip(snip_owner, snip_vecs):
-        cos_score[name] = max(cos_score[name], _cos(hypo_vec, v))
+        cos_score[name] = max(_cos(fv, v) for fv in facet_vecs)
 
     # 순수 HyDE 코사인으로 정렬한다. 수집 순서(웹-우선 조립)를 RRF로 섞어봤지만, 그건
     # 유의미한 랭킹이 아니라 조립 순서일 뿐이라 노이즈에 가까워 뺐다.
@@ -405,7 +419,7 @@ async def collect_info(
     rank_of = {p["name"]: r for r, p in enumerate(kept, 1)}
 
     # 콘솔엔 남긴 것만, 전체 순위는 rerank_file에.
-    log(f"[collect_info] HyDE 가상문서: {hypo[:120]}")
+    log(f"[collect_info] HyDE facet {len(facets)}개, 대표: {facets[0][:100]}")
     log(f"[collect_info] 리랭크 {len(places)}→{len(kept)}")
     for r, p in enumerate(kept, 1):
         log(f"   [{r:2}] cos={cos_score[p['name']]:+.3f} {p['name']}")
@@ -416,7 +430,7 @@ async def collect_info(
     ]
     rerank_file = dump(
         "info_rerank",
-        {"user_query": user_query, "hypo_review": hypo,
+        {"user_query": user_query, "hypo_facets": facets,
          "keep": RERANK_KEEP, "ranking": ranking},
         run_id,
     )
