@@ -10,6 +10,7 @@
 import asyncio
 import json
 import math
+import os
 import re
 import time
 from collections import Counter
@@ -43,8 +44,9 @@ from .core import (
 # collect_places 수집 기준
 MAX_COUNT = 45  # 카카오가 노출하는 상한. 이만큼 채우면 후보가 넘친다는 신호(too_broad).
 
-RERANK_KEEP = 15        # HyDE 리랭크로 남길 매장 수(크롤·요약·2차 스코어링 대상). 약한 cos
-                        # 필터가 정답을 미리 버리지 않게 넉넉히 남겨 강한 2차 스코어러로 넘긴다.
+RERANK_KEEP = int(os.getenv("WH_RERANK_KEEP", "15"))  # HyDE 리랭크로 남길 매장 수(크롤·요약·
+                        # 2차 스코어링 대상). 약한 cos 필터가 정답을 미리 버리지 않게 넉넉히 남겨
+                        # 강한 2차 스코어러로 넘긴다. KEEP 스윕 실험용으로 env로도 조정 가능.
 RERANK_SNIPPETS = 10    # 매장당 확보할 블로그 스니펫 수 (많을수록 매장 신호가 풍부)
 INFO_PER_PLACE = 3      # 남긴 매장당 요약에 쓸 블로그 본문 수
 INFO_BODY_CHARS = 2000  # 요약에 넣는 본문 최대 길이
@@ -492,6 +494,32 @@ async def collect_info(
         }
         for n, r in zip(names, results)
     }
+
+    # 2차 스코어링 — 요약된 후보를 요청 적합도로 '전부' 점수화(LLM cross-encoder)해 최종 순위를
+    # 코드가 확정한다. 리랭크(임베딩)는 top RERANK_KEEP까지 넉넉히 남기고, 여기서 강한 LLM 점수로
+    # 재정렬한다. 에이전트에 맡기면 긴 목록을 게을리 평가(상위 몇 곳만)해 하위 정답이 평가조차 못
+    # 받고 탈락하므로(재현성도 낮음) 코드가 전수 스코어링을 강제한다. score 순으로 정렬해 남긴다.
+    if summaries:
+        items = "\n".join(
+            f"- {n}: {v.get('summary', '')} [강점] {' / '.join(v.get('strengths', []))}"
+            for n, v in summaries.items()
+        )
+        try:
+            scored = json.loads(
+                await llm_async(
+                    prompts.SELECT_SCORE.format(user_query=user_query, items=items),
+                    json_mode=True,
+                )
+            )
+        except (json.JSONDecodeError, TypeError):
+            scored = {}
+        for n, v in summaries.items():
+            s = scored.get(n)
+            raw = s.get("score", 0) if isinstance(s, dict) else (s or 0)
+            v["score"] = int(raw) if isinstance(raw, (int, float)) else 0
+            if isinstance(s, dict) and s.get("reason"):
+                v["select_reason"] = s["reason"]
+        summaries = dict(sorted(summaries.items(), key=lambda kv: -(kv[1].get("score") or 0)))
     summary_file = dump("info_summary", summaries, run_id)
     log(
         f"[collect_info] 단계별 벽시계: 스니펫수집 {t_snip - t0:.1f}s | "

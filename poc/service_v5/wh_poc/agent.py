@@ -151,15 +151,9 @@ status별 행동:
 같은 수집을 반복하면 답이 나빠지고 실패합니다.
 
 ## 4단계 — 추천 (kind='recommendation')
-read_file로 읽은 근거를 바탕으로, 리랭크된 후보들을 요청 적합도로 직접 평가해 점수를 매깁니다.
-- 각 후보에 score(0~100 정수)를 매깁니다. 요청의 핵심 조건(지역·업종·분위기·상황·동반자)에
-  부합하고 후기 근거(strengths·summary)가 이를 실제로 뒷받침할수록 높게, 막연하거나 요청과
-  무관하면 낮게 줍니다. 웨이팅·수상·방송·현지인 단골·오래된 노포 같은 '검증된 맛집' 신호는 가점합니다.
-- score가 높은 순서대로 places에 담고, 상위 8곳까지 채웁니다.
-- reason: 그 점수를 준 이유(요청에 왜 맞는지)를 1~2문장으로 씁니다.
-- review_count가 많을수록 근거 신뢰도가 높으니 점수에 반영하세요.
-- freshness가 'outdated'면 지난 연도 정보이므로 caution에 그 사실을 적으세요.
-- address·url·category는 근거 파일 값을 그대로 씁니다. 절대 지어내지 마세요.
+근거를 확인했으면 kind='recommendation'으로 답합니다.
+- message: 요청에 맞는 추천을 찾았다는 두 문장 이내의 짧은 요약.
+- places는 비워둡니다 — 최종 추천 목록(장소·순위·근거)은 collect_info가 매긴 점수 순위로 코드가 근거 파일에서 자동 구성합니다.
 - 후기를 확보한 곳이 적었다면 message에 그 사실을 밝히세요.
 
 # 이어지는 대화
@@ -183,24 +177,14 @@ collect_info나 collect_context가 error를 반환하면 collect_places부터 �
 # 빠른 포매터로 옮기는 것. gemini 경로는 output_schema로 직접 FeedOutput을 내므로 무변경.
 if AGENT_BACKEND == "local":
     _STEP4_FULL = """## 4단계 — 추천 (kind='recommendation')
-read_file로 읽은 근거를 바탕으로, 리랭크된 후보들을 요청 적합도로 직접 평가해 점수를 매깁니다.
-- 각 후보에 score(0~100 정수)를 매깁니다. 요청의 핵심 조건(지역·업종·분위기·상황·동반자)에
-  부합하고 후기 근거(strengths·summary)가 이를 실제로 뒷받침할수록 높게, 막연하거나 요청과
-  무관하면 낮게 줍니다. 웨이팅·수상·방송·현지인 단골·오래된 노포 같은 '검증된 맛집' 신호는 가점합니다.
-- score가 높은 순서대로 places에 담고, 상위 8곳까지 채웁니다.
-- reason: 그 점수를 준 이유(요청에 왜 맞는지)를 1~2문장으로 씁니다.
-- review_count가 많을수록 근거 신뢰도가 높으니 점수에 반영하세요.
-- freshness가 'outdated'면 지난 연도 정보이므로 caution에 그 사실을 적으세요.
-- address·url·category는 근거 파일 값을 그대로 씁니다. 절대 지어내지 마세요.
+근거를 확인했으면 kind='recommendation'으로 답합니다.
+- message: 요청에 맞는 추천을 찾았다는 두 문장 이내의 짧은 요약.
+- places는 비워둡니다 — 최종 추천 목록(장소·순위·근거)은 collect_info가 매긴 점수 순위로 코드가 근거 파일에서 자동 구성합니다.
 - 후기를 확보한 곳이 적었다면 message에 그 사실을 밝히세요."""
     _STEP4_TERSE = """## 4단계 — 추천 (kind='recommendation')
-근거를 바탕으로 리랭크된 후보들을 요청 적합도로 평가해 점수를 매깁니다.
-각 후보에 score(0~100 정수)를 주고, 점수 높은 순으로 상위 8곳을 고릅니다.
-검증된 맛집 신호(웨이팅·수상·방송·현지인 단골·노포)는 가점합니다.
-
-최종 응답에는 고른 장소의 name, score(0~100 정수), 요청에 왜 맞는지 reason(한 문장)만 쓰세요.
-address·url·highlights·caution·period·category는 쓰지 마세요 — 근거 파일에서 자동으로 채워집니다.
-후기를 확보한 곳이 적었다면 message에 그 사실을 밝히세요."""
+근거를 확인했으면 추천을 완료합니다. 최종 장소 목록은 근거 파일의 점수 순위로 코드가 자동 구성하니,
+당신은 장소를 나열하지 말고 요청에 맞는 추천을 찾았다는 짧은 안내 문장(message)만 답하세요.
+후기를 확보한 곳이 적었다면 그 사실도 밝히세요."""
     INSTRUCTION = INSTRUCTION.replace(_STEP4_FULL, _STEP4_TERSE)
 
 
@@ -367,13 +351,33 @@ class Chat:
                     "places": [],
                 }
 
-        # 최종 랭킹 — 추천이면 에이전트가 매긴 score로 정렬해 상위 FINAL_K곳만 남긴다.
-        # 판단(점수)은 에이전트가 하고(agentic), 코드는 '정렬→컷'이라는 형식만 강제한다.
+        # 최종 추천 목록 — collect_info가 이미 요약된 후보를 '전수' 스코어링해 score 순으로
+        # 정렬해둔 summary_file에서, 상위 FINAL_K곳을 코드가 그대로 places로 구성한다. 최종
+        # 선택을 LLM 자유판단이 아니라 결정론적 코드 컷으로 확정해 정확도·재현성을 확보한다.
+        # (에이전트는 검색어·되물음·kind 판단 등 오케스트레이션을 맡는다.)
         result = out["result"] or {}
-        if result.get("kind") == "recommendation" and result.get("places"):
-            ranked = sorted(result["places"], key=lambda p: -(p.get("score") or 0))
-            result["places"] = ranked[:FINAL_K]
-            out["result"] = result
+        if result.get("kind") == "recommendation" and out["files"].get("summary_file"):
+            try:
+                summ = load_json(out["files"]["summary_file"])
+            except (OSError, ValueError):
+                summ = {}
+            if summ:
+                places = []
+                for name, v in list(summ.items())[:FINAL_K]:
+                    weaknesses = v.get("weaknesses") or []
+                    places.append({
+                        "name": name,
+                        "score": v.get("score", 0),
+                        "reason": v.get("select_reason") or v.get("summary", ""),
+                        "address": v.get("address", ""),
+                        "category": v.get("category", ""),
+                        "highlights": (v.get("strengths") or [])[:3],
+                        "caution": weaknesses[0] if weaknesses else "",
+                        "period": "",
+                        "url": v.get("url", ""),
+                    })
+                result["places"] = places
+                out["result"] = result
 
         if self.tracer:
             self.tracer.end_turn(out["result"])
