@@ -151,14 +151,15 @@ status별 행동:
 같은 수집을 반복하면 답이 나빠지고 실패합니다.
 
 ## 4단계 — 추천 (kind='recommendation')
-요청에 가장 잘 맞는 5~8곳을 골라 places에 담습니다.
-- rerank_rank는 요청과의 적합도 순위입니다(작을수록 잘 맞음). 기본적으로 rerank_rank가
-  낮은 순서대로 담고, 근거 파일에 강점이 전혀 없거나 요청과 명백히 무관한 곳만 건너뜁니다.
-  놓치지 않도록 가능한 한 상위 8곳까지 채웁니다(상위를 건너뛰고 하위를 넣지 마세요).
-- review_count 또는 source_count가 많을수록 신뢰도가 높습니다.
+read_file로 읽은 근거를 바탕으로, 리랭크된 후보들을 요청 적합도로 직접 평가해 점수를 매깁니다.
+- 각 후보에 score(0~100 정수)를 매깁니다. 요청의 핵심 조건(지역·업종·분위기·상황·동반자)에
+  부합하고 후기 근거(strengths·summary)가 이를 실제로 뒷받침할수록 높게, 막연하거나 요청과
+  무관하면 낮게 줍니다. 웨이팅·수상·방송·현지인 단골·오래된 노포 같은 '검증된 맛집' 신호는 가점합니다.
+- score가 높은 순서대로 places에 담고, 상위 8곳까지 채웁니다.
+- reason: 그 점수를 준 이유(요청에 왜 맞는지)를 1~2문장으로 씁니다.
+- review_count가 많을수록 근거 신뢰도가 높으니 점수에 반영하세요.
 - freshness가 'outdated'면 지난 연도 정보이므로 caution에 그 사실을 적으세요.
-- address와 url은 파일에 있는 값을 그대로 씁니다. 절대 지어내지 마세요.
-- 파일에 없는 정보는 쓰지 마세요. 강점이 부족하면 그 장소를 빼는 편이 낫습니다.
+- address·url·category는 근거 파일 값을 그대로 씁니다. 절대 지어내지 마세요.
 - 후기를 확보한 곳이 적었다면 message에 그 사실을 밝히세요.
 
 # 이어지는 대화
@@ -182,21 +183,22 @@ collect_info나 collect_context가 error를 반환하면 collect_places부터 �
 # 빠른 포매터로 옮기는 것. gemini 경로는 output_schema로 직접 FeedOutput을 내므로 무변경.
 if AGENT_BACKEND == "local":
     _STEP4_FULL = """## 4단계 — 추천 (kind='recommendation')
-요청에 가장 잘 맞는 5~8곳을 골라 places에 담습니다.
-- rerank_rank는 요청과의 적합도 순위입니다(작을수록 잘 맞음). 기본적으로 rerank_rank가
-  낮은 순서대로 담고, 근거 파일에 강점이 전혀 없거나 요청과 명백히 무관한 곳만 건너뜁니다.
-  놓치지 않도록 가능한 한 상위 8곳까지 채웁니다(상위를 건너뛰고 하위를 넣지 마세요).
-- review_count 또는 source_count가 많을수록 신뢰도가 높습니다.
+read_file로 읽은 근거를 바탕으로, 리랭크된 후보들을 요청 적합도로 직접 평가해 점수를 매깁니다.
+- 각 후보에 score(0~100 정수)를 매깁니다. 요청의 핵심 조건(지역·업종·분위기·상황·동반자)에
+  부합하고 후기 근거(strengths·summary)가 이를 실제로 뒷받침할수록 높게, 막연하거나 요청과
+  무관하면 낮게 줍니다. 웨이팅·수상·방송·현지인 단골·오래된 노포 같은 '검증된 맛집' 신호는 가점합니다.
+- score가 높은 순서대로 places에 담고, 상위 8곳까지 채웁니다.
+- reason: 그 점수를 준 이유(요청에 왜 맞는지)를 1~2문장으로 씁니다.
+- review_count가 많을수록 근거 신뢰도가 높으니 점수에 반영하세요.
 - freshness가 'outdated'면 지난 연도 정보이므로 caution에 그 사실을 적으세요.
-- address와 url은 파일에 있는 값을 그대로 씁니다. 절대 지어내지 마세요.
-- 파일에 없는 정보는 쓰지 마세요. 강점이 부족하면 그 장소를 빼는 편이 낫습니다.
+- address·url·category는 근거 파일 값을 그대로 씁니다. 절대 지어내지 마세요.
 - 후기를 확보한 곳이 적었다면 message에 그 사실을 밝히세요."""
     _STEP4_TERSE = """## 4단계 — 추천 (kind='recommendation')
-요청에 가장 잘 맞는 5~8곳을 고릅니다. rerank_rank가 낮은(=적합) 곳을 우선 고르고,
-review_count/source_count가 많을수록 신뢰도가 높습니다.
-근거 파일에 없는 장소는 고르지 마세요. 강점이 부족한 곳은 빼는 편이 낫습니다.
+근거를 바탕으로 리랭크된 후보들을 요청 적합도로 평가해 점수를 매깁니다.
+각 후보에 score(0~100 정수)를 주고, 점수 높은 순으로 상위 8곳을 고릅니다.
+검증된 맛집 신호(웨이팅·수상·방송·현지인 단골·노포)는 가점합니다.
 
-최종 응답에는 고른 장소의 name과, 요청에 왜 맞는지 reason(한 문장)만 쓰세요.
+최종 응답에는 고른 장소의 name, score(0~100 정수), 요청에 왜 맞는지 reason(한 문장)만 쓰세요.
 address·url·highlights·caution·period·category는 쓰지 마세요 — 근거 파일에서 자동으로 채워집니다.
 후기를 확보한 곳이 적었다면 message에 그 사실을 밝히세요."""
     INSTRUCTION = INSTRUCTION.replace(_STEP4_FULL, _STEP4_TERSE)
@@ -244,56 +246,8 @@ STATUS_TEXT = {
 
 _FILE_KEYS = ("file", "url_file", "rerank_file", "summary_file", "source_file", "context_file")
 
-# 최종 추천 개수. 리랭크 top-15 중 이 수만큼 스코어링으로 확정한다.
+# 최종 추천 개수. 에이전트가 매긴 score로 정렬해 상위 이 수만큼 코드가 확정한다(형식 통제).
 FINAL_K = int(os.getenv("WH_FINAL_K", "8"))
-
-
-async def _select_by_score(user_query: str, summary_file: str, k: int = FINAL_K) -> list[dict] | None:
-    """2차 선정 — 리랭크로 남은 매장들(summary_file)을 요청 적합도로 스코어링해 상위 k곳을
-    코드가 확정한다. 임베딩 코사인은 같은 업종 후기끼리 뭉쳐(변별력 약함) 정답이 top-8 밖으로
-    밀리는데, LLM이 요약을 읽고 점수를 매기면(cross-encoder처럼 질의·문서를 함께 봄) 유명·검증
-    신호까지 반영해 변별이 산다. 선택을 LLM 자유판단이 아니라 '점수→코드 컷'으로 통제한다."""
-    try:
-        summ = load_json(summary_file)
-    except (OSError, ValueError):
-        return None
-    if not summ:
-        return None
-    items = "\n".join(
-        f"- {n}: {v.get('summary', '')} [강점] {' / '.join(v.get('strengths', []))}"
-        for n, v in summ.items()
-    )
-    try:
-        scored = json.loads(
-            await llm_async(
-                prompts.SELECT_SCORE.format(user_query=user_query, items=items),
-                json_mode=True,
-            )
-        )
-    except (json.JSONDecodeError, TypeError):
-        return None
-
-    def score_of(name: str) -> float:
-        s = scored.get(name)
-        return s.get("score", 0) if isinstance(s, dict) else (s or 0)
-
-    places = []
-    for name in sorted(summ, key=lambda n: -score_of(n))[:k]:
-        v = summ[name]
-        s = scored.get(name, {})
-        reason = (s.get("reason") if isinstance(s, dict) else "") or v.get("summary", "")
-        weaknesses = v.get("weaknesses", [])
-        places.append({
-            "name": name,
-            "address": v.get("address", ""),
-            "category": v.get("category", ""),
-            "reason": reason,
-            "highlights": v.get("strengths", [])[:3],
-            "caution": weaknesses[0] if weaknesses else "",
-            "period": "",
-            "url": v.get("url", ""),
-        })
-    return places
 
 
 async def _format_feed(user_query: str, agent_text: str, files: dict) -> dict:
@@ -413,14 +367,13 @@ class Chat:
                     "places": [],
                 }
 
-        # 2차 선정 — 추천이면 매장 선택을 에이전트 자유판단이 아니라 스코어링→코드 top-K로
-        # 확정한다. summary_file(collect_info)이 있을 때만. 없으면(축제=context) 에이전트 답 유지.
+        # 최종 랭킹 — 추천이면 에이전트가 매긴 score로 정렬해 상위 FINAL_K곳만 남긴다.
+        # 판단(점수)은 에이전트가 하고(agentic), 코드는 '정렬→컷'이라는 형식만 강제한다.
         result = out["result"] or {}
-        if result.get("kind") == "recommendation" and out["files"].get("summary_file"):
-            picked = await _select_by_score(text, out["files"]["summary_file"])
-            if picked:
-                result["places"] = picked
-                out["result"] = result
+        if result.get("kind") == "recommendation" and result.get("places"):
+            ranked = sorted(result["places"], key=lambda p: -(p.get("score") or 0))
+            result["places"] = ranked[:FINAL_K]
+            out["result"] = result
 
         if self.tracer:
             self.tracer.end_turn(out["result"])

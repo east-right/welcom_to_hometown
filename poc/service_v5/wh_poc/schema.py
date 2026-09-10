@@ -11,6 +11,7 @@ from pydantic import BaseModel, Field
 
 class PlaceCard(BaseModel):
     name: str = Field(description="장소명")
+    score: int = Field(default=0, description="요청 적합도 점수 0~100. 높을수록 잘 맞음")
     address: str = Field(description="주소. 파일에 있는 값을 그대로 쓴다")
     category: str = Field(default="", description="카테고리")
     reason: str = Field(description="이 요청에 왜 맞는지 2~3문장")
