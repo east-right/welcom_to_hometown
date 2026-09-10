@@ -8,6 +8,7 @@ wheels/
 logs/
 .env
 CLAUDE.md
-tool_file
+# 파이프라인 런타임 산출물 (tool_file, tool_file_gemini, tool_file_local 등)
+tool_file*/
 # Virtual environments
 .venv
