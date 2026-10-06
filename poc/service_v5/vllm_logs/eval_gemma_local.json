@@ -1,0 +1,1992 @@
+{
+  "summary": {
+    "n_case": 6,
+    "n_answer": 14,
+    "recall_pool": 0.7857142857142857,
+    "recall_filter": 0.7857142857142857,
+    "recall_rerank": 0.5,
+    "recall_final": 0.35714285714285715,
+    "case_recall_pool": 1.0,
+    "case_recall_final": 0.6666666666666666,
+    "mrr": 0.2986111111111111,
+    "avg_sec": 112.61957763333339,
+    "tokens_in": 108521,
+    "tokens_out": 3353,
+    "latency": {
+      "ttft_mean": 5.815,
+      "ttft_max": 15.892,
+      "tpot_mean": 0.0287,
+      "decode_tps": 34.8,
+      "out_tok_total": 33020,
+      "formatter_e2el_mean": 14.01
+    },
+    "kinds": {
+      "recommendation": 6
+    }
+  },
+  "cases": [
+    {
+      "question": "창원 귀산 바다가 보이는 커피 맛집",
+      "answer": [
+        "갱고반지하",
+        "블루피쉬",
+        "더로드101 귀산",
+        "카페모조"
+      ],
+      "kind": "recommendation",
+      "predicted": [
+        "224커피",
+        "하우요커피",
+        "포엠커피웍스 귀산점",
+        "엘리브",
+        "메르칼므",
+        "갱고반지하",
+        "블루피쉬",
+        "코델리아"
+      ],
+      "pool": [
+        "하우요커피",
+        "엘리브",
+        "커피프렌즈",
+        "로스터리퐁",
+        "갱고반지하",
+        "카페솔",
+        "카페모조",
+        "카페몰토",
+        "더로드101 귀산",
+        "카페더원",
+        "224커피",
+        "브룸라이더카페",
+        "블루피쉬",
+        "아쿠아모스",
+        "포엠커피웍스 귀산점",
+        "시오리솔밭길",
+        "테이블코코카페",
+        "다온재",
+        "코델리아",
+        "찰리의커피공장",
+        "더웨이닝커피 창원두산중공업점",
+        "뽀글이&드링크 창원귀산점",
+        "더웨이닝커피 창원두산에너빌리티점",
+        "지중해",
+        "우주슈퍼",
+        "메르칼므",
+        "달빛라운지"
+      ],
+      "detail": [
+        {
+          "answer": "갱고반지하",
+          "in_pool": true,
+          "pool_rank": 5,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": true,
+          "final_rank": 6
+        },
+        {
+          "answer": "블루피쉬",
+          "in_pool": true,
+          "pool_rank": 13,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": true,
+          "final_rank": 7
+        },
+        {
+          "answer": "더로드101 귀산",
+          "in_pool": true,
+          "pool_rank": 9,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": false,
+          "final_rank": null
+        },
+        {
+          "answer": "카페모조",
+          "in_pool": true,
+          "pool_rank": 7,
+          "in_filter": true,
+          "in_rerank": false,
+          "in_final": false,
+          "final_rank": null
+        }
+      ],
+      "n_answer": 4,
+      "n_pool_hit": 4,
+      "n_filter_hit": 4,
+      "n_rerank_hit": 3,
+      "n_final_hit": 2,
+      "rr": 0.16666666666666666,
+      "elapsed": 115.01012599999376,
+      "timing": {
+        "agent_llm_sec": 27.55,
+        "util_llm_sec": 322.79,
+        "tool_sec": 50.73,
+        "embed_sec": 1.3,
+        "io_sec": 47.47
+      },
+      "latency": {
+        "n_calls": 19,
+        "out_tok_total": 5569,
+        "ttft_mean": 6.792,
+        "ttft_max": 15.504,
+        "tpot_mean": 0.0297,
+        "decode_tps": 33.7,
+        "formatter": {
+          "ttft": 3.447,
+          "e2el": 14.456,
+          "tpot": 0.016,
+          "tps": 46.486,
+          "out_tok": 672
+        },
+        "calls": [
+          {
+            "ttft": 3.416,
+            "e2el": 7.659,
+            "tpot": 0.014,
+            "tps": 40.475,
+            "out_tok": 310
+          },
+          {
+            "ttft": 2.213,
+            "e2el": 7.05,
+            "tpot": 0.022,
+            "tps": 31.065,
+            "out_tok": 219
+          },
+          {
+            "ttft": 8.443,
+            "e2el": 8.727,
+            "tpot": 0.017,
+            "tps": 2.063,
+            "out_tok": 18
+          },
+          {
+            "ttft": 9.677,
+            "e2el": 12.261,
+            "tpot": 0.023,
+            "tps": 9.379,
+            "out_tok": 115
+          },
+          {
+            "ttft": 2.611,
+            "e2el": 12.892,
+            "tpot": 0.056,
+            "tps": 14.195,
+            "out_tok": 183
+          },
+          {
+            "ttft": 7.672,
+            "e2el": 12.903,
+            "tpot": 0.028,
+            "tps": 14.492,
+            "out_tok": 187
+          },
+          {
+            "ttft": 5.846,
+            "e2el": 18.089,
+            "tpot": 0.05,
+            "tps": 13.599,
+            "out_tok": 246
+          },
+          {
+            "ttft": 7.467,
+            "e2el": 18.093,
+            "tpot": 0.046,
+            "tps": 12.767,
+            "out_tok": 231
+          },
+          {
+            "ttft": 4.225,
+            "e2el": 19.371,
+            "tpot": 0.063,
+            "tps": 12.493,
+            "out_tok": 242
+          },
+          {
+            "ttft": 5.03,
+            "e2el": 20.64,
+            "tpot": 0.06,
+            "tps": 12.597,
+            "out_tok": 260
+          },
+          {
+            "ttft": 15.504,
+            "e2el": 25.197,
+            "tpot": 0.049,
+            "tps": 7.898,
+            "out_tok": 199
+          },
+          {
+            "ttft": 14.129,
+            "e2el": 26.183,
+            "tpot": 0.049,
+            "tps": 9.395,
+            "out_tok": 246
+          },
+          {
+            "ttft": 6.041,
+            "e2el": 13.564,
+            "tpot": 0.032,
+            "tps": 17.251,
+            "out_tok": 234
+          },
+          {
+            "ttft": 7.73,
+            "e2el": 13.558,
+            "tpot": 0.03,
+            "tps": 14.604,
+            "out_tok": 198
+          },
+          {
+            "ttft": 3.546,
+            "e2el": 8.561,
+            "tpot": 0.026,
+            "tps": 22.893,
+            "out_tok": 196
+          },
+          {
+            "ttft": 5.276,
+            "e2el": 14.526,
+            "tpot": 0.041,
+            "tps": 15.696,
+            "out_tok": 228
+          },
+          {
+            "ttft": 14.018,
+            "e2el": 18.633,
+            "tpot": 0.021,
+            "tps": 11.861,
+            "out_tok": 221
+          },
+          {
+            "ttft": 2.748,
+            "e2el": 21.412,
+            "tpot": 0.014,
+            "tps": 63.702,
+            "out_tok": 1364
+          },
+          {
+            "ttft": 3.447,
+            "e2el": 14.456,
+            "tpot": 0.016,
+            "tps": 46.486,
+            "out_tok": 672
+          }
+        ]
+      },
+      "steps": [
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 9.05,
+          "tok_in": 3358,
+          "tok_out": 28,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 8.22,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"category_code\": \"CE7\", \"query\": \"창원 귀산 카페\"}",
+          "detail": "{\"count\": 27, \"source_breakdown\": {\"kakao\": 33, \"web_harvest\": 0}, \"file\": \"tool…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.44,
+          "tok_in": 3459,
+          "tok_out": 35,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 42.49,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"region_prefix\": \"귀산\", \"user_query\": \"창원 귀산 바다가 보이는 커피 맛집\"}",
+          "detail": "{\"count\": 15, \"no_info\": 0, \"reranked_from\": 27, \"url_file\": \"tool_file\\\\1789005…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 3.7,
+          "tok_in": 3622,
+          "tok_out": 39,
+          "args": "",
+          "detail": "→ read_file"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "sec": 0.02,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"file_path\": \"tool_file\\\\\\\\1789005215255_info_summary.json\"}",
+          "detail": "<7587자>"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 12.36,
+          "tok_in": 7792,
+          "tok_out": 444,
+          "args": "",
+          "detail": "{   \"kind\": \"recommendation\",   \"message\": \"창원 귀산에서 바다 뷰와 커피…"
+        }
+      ],
+      "tool_calls": [
+        "collect_places",
+        "collect_info",
+        "read_file"
+      ],
+      "tokens_in": 18231,
+      "tokens_out": 546,
+      "files": {
+        "file": "tool_file\\1789005215255_collect_places.json",
+        "url_file": "tool_file\\1789005215255_info_urls.json",
+        "rerank_file": "tool_file\\1789005215255_info_rerank.json",
+        "summary_file": "tool_file\\1789005215255_info_summary.json"
+      },
+      "message": "창원 귀산에서 바다 뷰와 커피 맛을 모두 잡은 곳들을 추천해 드릴게요. 블루리본 인증 맛집부터 탁 트인 마창대교 뷰의 대형 카페까지 다양하게 선정했습니다."
+    },
+    {
+      "question": "신림역 주변에서 혼밥하기 좋은 식당",
+      "answer": [
+        "24시서울밥집"
+      ],
+      "kind": "recommendation",
+      "predicted": [
+        "샤브로21 신림",
+        "코우짱라멘",
+        "지미존스 신림역점",
+        "스시나마",
+        "시골장칼국수",
+        "고베규카츠 신림점",
+        "서울뼛국",
+        "옛날집"
+      ],
+      "pool": [
+        "막불감동",
+        "서울밥집",
+        "하나감자탕",
+        "신바야시 쇼쿠도",
+        "남향티하우스",
+        "전주식당",
+        "서울뼛국",
+        "일인반닭",
+        "스시나마",
+        "구영회참치&초밥 신림점",
+        "라공방 신림점",
+        "손칼국수잘하는집",
+        "사이공본가 신림점",
+        "서림실비순대",
+        "혼맛",
+        "시골장칼국수",
+        "흥부보쌈",
+        "샤브로21 신림",
+        "옛날집",
+        "시장탕수육",
+        "고베규카츠 신림점",
+        "강남한식뷔페",
+        "앵그리포테이토 신림점",
+        "인디아더르바르",
+        "마늘오리",
+        "엄마가",
+        "코우짱라멘",
+        "다리목",
+        "생각보다맛있는집 신림점",
+        "서울초밥 신림점",
+        "효자골감자탕",
+        "길동우동 신림점",
+        "푸드피아",
+        "오장동흥남집 신림직영점",
+        "푸짐한식당",
+        "아웃백스테이크하우스 신림타임스트림점",
+        "포도원삼계탕 신림본점",
+        "지미존스 신림역점",
+        "아미르케밥 신림"
+      ],
+      "detail": [
+        {
+          "answer": "24시서울밥집",
+          "in_pool": true,
+          "pool_rank": 2,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": true,
+          "final_rank": 8
+        }
+      ],
+      "n_answer": 1,
+      "n_pool_hit": 1,
+      "n_filter_hit": 1,
+      "n_rerank_hit": 1,
+      "n_final_hit": 1,
+      "rr": 0.125,
+      "elapsed": 110.82531970000127,
+      "timing": {
+        "agent_llm_sec": 19.62,
+        "util_llm_sec": 288.76,
+        "tool_sec": 51.34,
+        "embed_sec": 1.64,
+        "io_sec": 51.14
+      },
+      "latency": {
+        "n_calls": 19,
+        "out_tok_total": 5717,
+        "ttft_mean": 5.727,
+        "ttft_max": 13.812,
+        "tpot_mean": 0.0289,
+        "decode_tps": 34.7,
+        "formatter": {
+          "ttft": 3.007,
+          "e2el": 14.39,
+          "tpot": 0.018,
+          "tps": 45.03,
+          "out_tok": 648
+        },
+        "calls": [
+          {
+            "ttft": 1.829,
+            "e2el": 8.006,
+            "tpot": 0.013,
+            "tps": 57.459,
+            "out_tok": 460
+          },
+          {
+            "ttft": 1.706,
+            "e2el": 6.182,
+            "tpot": 0.022,
+            "tps": 33.162,
+            "out_tok": 205
+          },
+          {
+            "ttft": 6.641,
+            "e2el": 6.925,
+            "tpot": 0.017,
+            "tps": 2.599,
+            "out_tok": 18
+          },
+          {
+            "ttft": 4.287,
+            "e2el": 10.604,
+            "tpot": 0.046,
+            "tps": 12.92,
+            "out_tok": 137
+          },
+          {
+            "ttft": 3.476,
+            "e2el": 10.669,
+            "tpot": 0.05,
+            "tps": 13.498,
+            "out_tok": 144
+          },
+          {
+            "ttft": 3.48,
+            "e2el": 12.385,
+            "tpot": 0.05,
+            "tps": 14.372,
+            "out_tok": 178
+          },
+          {
+            "ttft": 1.865,
+            "e2el": 14.887,
+            "tpot": 0.058,
+            "tps": 15.114,
+            "out_tok": 225
+          },
+          {
+            "ttft": 8.237,
+            "e2el": 16.077,
+            "tpot": 0.047,
+            "tps": 10.387,
+            "out_tok": 167
+          },
+          {
+            "ttft": 4.699,
+            "e2el": 16.79,
+            "tpot": 0.052,
+            "tps": 13.937,
+            "out_tok": 234
+          },
+          {
+            "ttft": 5.886,
+            "e2el": 19.503,
+            "tpot": 0.049,
+            "tps": 14.254,
+            "out_tok": 278
+          },
+          {
+            "ttft": 7.74,
+            "e2el": 13.578,
+            "tpot": 0.041,
+            "tps": 10.458,
+            "out_tok": 142
+          },
+          {
+            "ttft": 12.099,
+            "e2el": 23.117,
+            "tpot": 0.053,
+            "tps": 8.998,
+            "out_tok": 208
+          },
+          {
+            "ttft": 13.812,
+            "e2el": 23.462,
+            "tpot": 0.046,
+            "tps": 9.078,
+            "out_tok": 213
+          },
+          {
+            "ttft": 7.578,
+            "e2el": 12.924,
+            "tpot": 0.034,
+            "tps": 12.303,
+            "out_tok": 159
+          },
+          {
+            "ttft": 5.321,
+            "e2el": 13.391,
+            "tpot": 0.034,
+            "tps": 17.698,
+            "out_tok": 237
+          },
+          {
+            "ttft": 6.682,
+            "e2el": 13.291,
+            "tpot": 0.025,
+            "tps": 19.863,
+            "out_tok": 264
+          },
+          {
+            "ttft": 6.95,
+            "e2el": 11.491,
+            "tpot": 0.021,
+            "tps": 18.972,
+            "out_tok": 218
+          },
+          {
+            "ttft": 3.529,
+            "e2el": 25.435,
+            "tpot": 0.014,
+            "tps": 62.199,
+            "out_tok": 1582
+          },
+          {
+            "ttft": 3.007,
+            "e2el": 14.39,
+            "tpot": 0.018,
+            "tps": 45.03,
+            "out_tok": 648
+          }
+        ]
+      },
+      "steps": [
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 3.52,
+          "tok_in": 3359,
+          "tok_out": 30,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 8.67,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"category_code\": \"FD6\", \"query\": \"신림역 혼밥 맛집\"}",
+          "detail": "{\"count\": 39, \"source_breakdown\": {\"kakao\": 45, \"web_harvest\": 0}, \"file\": \"tool…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.04,
+          "tok_in": 3533,
+          "tok_out": 36,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 42.66,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"region_prefix\": \"신림\", \"user_query\": \"신림역 주변에서 혼밥하기 좋은 식당\"}",
+          "detail": "{\"count\": 15, \"no_info\": 0, \"reranked_from\": 39, \"url_file\": \"tool_file\\\\1789005…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.53,
+          "tok_in": 3697,
+          "tok_out": 39,
+          "args": "",
+          "detail": "→ read_file"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "sec": 0.01,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"file_path\": \"tool_file\\\\\\\\1789005324349_info_summary.json\"}",
+          "detail": "<7206자>"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 11.54,
+          "tok_in": 7607,
+          "tok_out": 424,
+          "args": "",
+          "detail": "{   \"kind\": \"recommendation\",   \"message\": \"신림역 주변에서 혼자 편하게 …"
+        }
+      ],
+      "tool_calls": [
+        "collect_places",
+        "collect_info",
+        "read_file"
+      ],
+      "tokens_in": 18196,
+      "tokens_out": 529,
+      "files": {
+        "file": "tool_file\\1789005324349_collect_places.json",
+        "url_file": "tool_file\\1789005324349_info_urls.json",
+        "rerank_file": "tool_file\\1789005324349_info_rerank.json",
+        "summary_file": "tool_file\\1789005324349_info_summary.json"
+      },
+      "message": "신림역 주변에서 혼자 편하게 식사하실 수 있는 가성비 좋은 식당들을 추천해 드립니다."
+    },
+    {
+      "question": "창원 귀산 맛집 추천",
+      "answer": [
+        "귀산옥 해물칼국수",
+        "청하횟집"
+      ],
+      "kind": "recommendation",
+      "predicted": [
+        "포도나무집",
+        "백곰횟집",
+        "라온하제",
+        "안전가옥",
+        "상하이717",
+        "대교횟집",
+        "성산옥프리미엄",
+        "형제횟집"
+      ],
+      "pool": [
+        "사야 스시앤카츠 귀산본점",
+        "식당더원",
+        "청하횟집",
+        "성산옥프리미엄",
+        "일품전골",
+        "라온하제",
+        "테이블코코",
+        "카츠미도리",
+        "해변횟집",
+        "안전가옥",
+        "메리모나크",
+        "강씨횟집",
+        "형제횟집",
+        "코카로카",
+        "성산정",
+        "낙원정",
+        "포도나무집",
+        "올드몬트베이글 창원",
+        "백곰횟집",
+        "전라도팥바지락칼국수",
+        "노스",
+        "순식당",
+        "석교횟집",
+        "똘똘개횟집",
+        "겐츠베이커리 귀산점",
+        "시오리 솔밭길카페",
+        "NOSS 함박카레",
+        "별장가든횟집",
+        "대교횟집",
+        "상하이717",
+        "북면자연농원 귀산점",
+        "까사밍고 창원귀산점",
+        "라이진",
+        "대박집식당",
+        "보재기횟집",
+        "굿웨더",
+        "귀산돈까스 귀산본점",
+        "귀라카이버거 귀산직영점",
+        "귀산스시",
+        "여기로가조 창원귀산점",
+        "울트라반점",
+        "굿키",
+        "영산횟집"
+      ],
+      "detail": [
+        {
+          "answer": "귀산옥 해물칼국수",
+          "in_pool": true,
+          "pool_rank": 37,
+          "in_filter": true,
+          "in_rerank": false,
+          "in_final": false,
+          "final_rank": null
+        },
+        {
+          "answer": "청하횟집",
+          "in_pool": true,
+          "pool_rank": 3,
+          "in_filter": true,
+          "in_rerank": false,
+          "in_final": false,
+          "final_rank": null
+        }
+      ],
+      "n_answer": 2,
+      "n_pool_hit": 2,
+      "n_filter_hit": 2,
+      "n_rerank_hit": 0,
+      "n_final_hit": 0,
+      "rr": 0.0,
+      "elapsed": 105.24838340000133,
+      "timing": {
+        "agent_llm_sec": 20.98,
+        "util_llm_sec": 233.74,
+        "tool_sec": 42.98,
+        "embed_sec": 1.61,
+        "io_sec": 42.42
+      },
+      "latency": {
+        "n_calls": 18,
+        "out_tok_total": 5809,
+        "ttft_mean": 4.654,
+        "ttft_max": 12.057,
+        "tpot_mean": 0.0265,
+        "decode_tps": 37.7,
+        "formatter": {
+          "ttft": 1.653,
+          "e2el": 13.082,
+          "tpot": 0.018,
+          "tps": 47.929,
+          "out_tok": 627
+        },
+        "calls": [
+          {
+            "ttft": 2.458,
+            "e2el": 7.223,
+            "tpot": 0.014,
+            "tps": 48.598,
+            "out_tok": 351
+          },
+          {
+            "ttft": 0.705,
+            "e2el": 5.239,
+            "tpot": 0.022,
+            "tps": 38.937,
+            "out_tok": 204
+          },
+          {
+            "ttft": 3.333,
+            "e2el": 5.456,
+            "tpot": 0.125,
+            "tps": 3.299,
+            "out_tok": 18
+          },
+          {
+            "ttft": 1.743,
+            "e2el": 10.722,
+            "tpot": 0.053,
+            "tps": 15.855,
+            "out_tok": 170
+          },
+          {
+            "ttft": 3.332,
+            "e2el": 10.795,
+            "tpot": 0.048,
+            "tps": 14.451,
+            "out_tok": 156
+          },
+          {
+            "ttft": 2.532,
+            "e2el": 10.801,
+            "tpot": 0.045,
+            "tps": 16.942,
+            "out_tok": 183
+          },
+          {
+            "ttft": 4.561,
+            "e2el": 13.717,
+            "tpot": 0.043,
+            "tps": 15.747,
+            "out_tok": 216
+          },
+          {
+            "ttft": 7.675,
+            "e2el": 14.598,
+            "tpot": 0.037,
+            "tps": 12.741,
+            "out_tok": 186
+          },
+          {
+            "ttft": 5.967,
+            "e2el": 15.725,
+            "tpot": 0.042,
+            "tps": 14.69,
+            "out_tok": 231
+          },
+          {
+            "ttft": 4.165,
+            "e2el": 16.01,
+            "tpot": 0.055,
+            "tps": 13.429,
+            "out_tok": 215
+          },
+          {
+            "ttft": 7.02,
+            "e2el": 16.079,
+            "tpot": 0.041,
+            "tps": 13.682,
+            "out_tok": 220
+          },
+          {
+            "ttft": 4.846,
+            "e2el": 10.071,
+            "tpot": 0.027,
+            "tps": 19.56,
+            "out_tok": 197
+          },
+          {
+            "ttft": 7.758,
+            "e2el": 15.679,
+            "tpot": 0.033,
+            "tps": 15.498,
+            "out_tok": 243
+          },
+          {
+            "ttft": 4.17,
+            "e2el": 10.616,
+            "tpot": 0.027,
+            "tps": 22.891,
+            "out_tok": 243
+          },
+          {
+            "ttft": 12.057,
+            "e2el": 21.403,
+            "tpot": 0.035,
+            "tps": 12.475,
+            "out_tok": 267
+          },
+          {
+            "ttft": 6.537,
+            "e2el": 11.83,
+            "tpot": 0.019,
+            "tps": 23.078,
+            "out_tok": 273
+          },
+          {
+            "ttft": 3.255,
+            "e2el": 28.182,
+            "tpot": 0.014,
+            "tps": 64.191,
+            "out_tok": 1809
+          },
+          {
+            "ttft": 1.653,
+            "e2el": 13.082,
+            "tpot": 0.018,
+            "tps": 47.929,
+            "out_tok": 627
+          }
+        ]
+      },
+      "steps": [
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 3.38,
+          "tok_in": 3355,
+          "tok_out": 29,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 7.82,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"category_code\": \"FD6\", \"query\": \"창원 귀산 맛집\"}",
+          "detail": "{\"count\": 43, \"source_breakdown\": {\"kakao\": 45, \"web_harvest\": 0}, \"file\": \"tool…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 1.62,
+          "tok_in": 3527,
+          "tok_out": 32,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 35.15,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"region_prefix\": \"귀산\", \"user_query\": \"창원 귀산 맛집 추천\"}",
+          "detail": "{\"count\": 14, \"no_info\": 1, \"reranked_from\": 43, \"url_file\": \"tool_file\\\\1789005…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.95,
+          "tok_in": 3687,
+          "tok_out": 39,
+          "args": "",
+          "detail": "→ read_file"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "sec": 0.01,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"file_path\": \"tool_file\\\\\\\\1789005434208_info_summary.json\"}",
+          "detail": "<6944자>"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 13.03,
+          "tok_in": 7509,
+          "tok_out": 462,
+          "args": "",
+          "detail": "kind: recommendation message: 마창대교 뷰와 오션뷰를 즐길 수 있는 귀산의 다양한 맛…"
+        }
+      ],
+      "tool_calls": [
+        "collect_places",
+        "collect_info",
+        "read_file"
+      ],
+      "tokens_in": 18078,
+      "tokens_out": 562,
+      "files": {
+        "file": "tool_file\\1789005434208_collect_places.json",
+        "url_file": "tool_file\\1789005434208_info_urls.json",
+        "rerank_file": "tool_file\\1789005434208_info_rerank.json",
+        "summary_file": "tool_file\\1789005434208_info_summary.json"
+      },
+      "message": "마창대교 뷰와 오션뷰를 즐길 수 있는 귀산의 다양한 맛집들을 추천해 드립니다."
+    },
+    {
+      "question": "창원 가포 맛집 추천",
+      "answer": [
+        "등대집",
+        "개성순대",
+        "우동한그릇",
+        "동굴집"
+      ],
+      "kind": "recommendation",
+      "predicted": [
+        "동굴집",
+        "명성고깃집 마산월영점",
+        "바보형제쭈꾸미 가포점",
+        "고기",
+        "캠랑바베큐",
+        "가포장어황금어장",
+        "안민옥 마산직영점",
+        "옥수장어"
+      ],
+      "pool": [
+        "옛날영도집",
+        "마산시농협 한우명품정육식당 국향",
+        "동굴집",
+        "베이커리카페빵내음",
+        "가포장어구이",
+        "안민옥 마산직영점",
+        "더지노",
+        "명품갈비토반",
+        "해월수",
+        "고기&치킨",
+        "가포영도장어구이",
+        "가포장어황금어장",
+        "토담갈비찜",
+        "콜리나",
+        "어울림하우스",
+        "박배철베이커리 해유",
+        "디어피노",
+        "하루우동 마산가포점",
+        "캠랑바베큐",
+        "가포등대집",
+        "가포경양식",
+        "바보형제쭈꾸미 가포점",
+        "고기",
+        "김앤주과자점",
+        "옥수장어",
+        "낙원우동",
+        "미소식당",
+        "가포술집",
+        "야타이",
+        "갬량바베큐 마산본점",
+        "맛산브라운핸저",
+        "픽미 가포유보라점",
+        "반트(VANT)",
+        "부영포차",
+        "얼큰불닭 마산본점",
+        "스시혼 마산점",
+        "경원해물찜 신마산점",
+        "쌀통닭 마산월영점",
+        "명성고깃집 마산월영점",
+        "맛있는고기에솜씨를더하다 해운점",
+        "탐진강면사무소",
+        "담솥 마산합포점"
+      ],
+      "detail": [
+        {
+          "answer": "등대집",
+          "in_pool": true,
+          "pool_rank": 20,
+          "in_filter": true,
+          "in_rerank": false,
+          "in_final": false,
+          "final_rank": null
+        },
+        {
+          "answer": "개성순대",
+          "in_pool": false,
+          "pool_rank": null,
+          "in_filter": false,
+          "in_rerank": false,
+          "in_final": false,
+          "final_rank": null
+        },
+        {
+          "answer": "우동한그릇",
+          "in_pool": false,
+          "pool_rank": null,
+          "in_filter": false,
+          "in_rerank": false,
+          "in_final": false,
+          "final_rank": null
+        },
+        {
+          "answer": "동굴집",
+          "in_pool": true,
+          "pool_rank": 3,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": true,
+          "final_rank": 1
+        }
+      ],
+      "n_answer": 4,
+      "n_pool_hit": 2,
+      "n_filter_hit": 2,
+      "n_rerank_hit": 1,
+      "n_final_hit": 1,
+      "rr": 1.0,
+      "elapsed": 127.29771040000196,
+      "timing": {
+        "agent_llm_sec": 28.7,
+        "util_llm_sec": 271.68,
+        "tool_sec": 46.21,
+        "embed_sec": 1.59,
+        "io_sec": 48.98
+      },
+      "latency": {
+        "n_calls": 18,
+        "out_tok_total": 5811,
+        "ttft_mean": 6.489,
+        "ttft_max": 13.726,
+        "tpot_mean": 0.0282,
+        "decode_tps": 35.4,
+        "formatter": {
+          "ttft": 2.023,
+          "e2el": 12.885,
+          "tpot": 0.017,
+          "tps": 50.6,
+          "out_tok": 652
+        },
+        "calls": [
+          {
+            "ttft": 2.452,
+            "e2el": 7.625,
+            "tpot": 0.014,
+            "tps": 48.262,
+            "out_tok": 368
+          },
+          {
+            "ttft": 0.706,
+            "e2el": 4.693,
+            "tpot": 0.021,
+            "tps": 41.126,
+            "out_tok": 193
+          },
+          {
+            "ttft": 3.983,
+            "e2el": 6.857,
+            "tpot": 0.169,
+            "tps": 2.625,
+            "out_tok": 18
+          },
+          {
+            "ttft": 6.477,
+            "e2el": 10.412,
+            "tpot": 0.024,
+            "tps": 15.655,
+            "out_tok": 163
+          },
+          {
+            "ttft": 12.582,
+            "e2el": 12.878,
+            "tpot": 0.017,
+            "tps": 1.398,
+            "out_tok": 18
+          },
+          {
+            "ttft": 7.352,
+            "e2el": 13.88,
+            "tpot": 0.037,
+            "tps": 12.68,
+            "out_tok": 176
+          },
+          {
+            "ttft": 3.98,
+            "e2el": 13.95,
+            "tpot": 0.047,
+            "tps": 15.269,
+            "out_tok": 213
+          },
+          {
+            "ttft": 6.851,
+            "e2el": 16.284,
+            "tpot": 0.043,
+            "tps": 13.449,
+            "out_tok": 219
+          },
+          {
+            "ttft": 5.658,
+            "e2el": 17.855,
+            "tpot": 0.053,
+            "tps": 12.881,
+            "out_tok": 230
+          },
+          {
+            "ttft": 2.369,
+            "e2el": 21.263,
+            "tpot": 0.063,
+            "tps": 14.156,
+            "out_tok": 301
+          },
+          {
+            "ttft": 13.726,
+            "e2el": 23.172,
+            "tpot": 0.052,
+            "tps": 7.897,
+            "out_tok": 183
+          },
+          {
+            "ttft": 8.168,
+            "e2el": 17.076,
+            "tpot": 0.043,
+            "tps": 12.063,
+            "out_tok": 206
+          },
+          {
+            "ttft": 5.874,
+            "e2el": 13.648,
+            "tpot": 0.046,
+            "tps": 12.383,
+            "out_tok": 169
+          },
+          {
+            "ttft": 11.798,
+            "e2el": 24.464,
+            "tpot": 0.046,
+            "tps": 11.323,
+            "out_tok": 277
+          },
+          {
+            "ttft": 4.824,
+            "e2el": 12.032,
+            "tpot": 0.027,
+            "tps": 21.941,
+            "out_tok": 264
+          },
+          {
+            "ttft": 5.247,
+            "e2el": 11.554,
+            "tpot": 0.024,
+            "tps": 23.283,
+            "out_tok": 269
+          },
+          {
+            "ttft": 12.736,
+            "e2el": 39.477,
+            "tpot": 0.014,
+            "tps": 47.927,
+            "out_tok": 1892
+          },
+          {
+            "ttft": 2.023,
+            "e2el": 12.885,
+            "tpot": 0.017,
+            "tps": 50.6,
+            "out_tok": 652
+          }
+        ]
+      },
+      "steps": [
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.72,
+          "tok_in": 3355,
+          "tok_out": 29,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 8.26,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"category_code\": \"FD6\", \"query\": \"창원 가포 맛집\"}",
+          "detail": "{\"count\": 42, \"source_breakdown\": {\"kakao\": 45, \"web_harvest\": 0}, \"file\": \"tool…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 3.01,
+          "tok_in": 3527,
+          "tok_out": 32,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 37.94,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"region_prefix\": \"가포\", \"user_query\": \"창원 가포 맛집 추천\"}",
+          "detail": "{\"count\": 14, \"no_info\": 1, \"reranked_from\": 42, \"url_file\": \"tool_file\\\\1789005…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 7.65,
+          "tok_in": 3687,
+          "tok_out": 39,
+          "args": "",
+          "detail": "→ read_file"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "sec": 0.01,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"file_path\": \"tool_file\\\\\\\\1789005539244_info_summary.json\"}",
+          "detail": "<6941자>"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 15.32,
+          "tok_in": 7533,
+          "tok_out": 576,
+          "args": "",
+          "detail": "{   \"kind\": \"recommendation\",   \"message\": \"창원 가포에서 분위기와 맛을 …"
+        }
+      ],
+      "tool_calls": [
+        "collect_places",
+        "collect_info",
+        "read_file"
+      ],
+      "tokens_in": 18102,
+      "tokens_out": 676,
+      "files": {
+        "file": "tool_file\\1789005539244_collect_places.json",
+        "url_file": "tool_file\\1789005539244_info_urls.json",
+        "rerank_file": "tool_file\\1789005539244_info_rerank.json",
+        "summary_file": "tool_file\\1789005539244_info_summary.json"
+      },
+      "message": "창원 가포에서 분위기와 맛을 모두 잡은 맛집들을 추천해 드립니다. 이색적인 컨셉의 식당부터 가족 외식에 좋은 곳까지 다양하게 구성했습니다."
+    },
+    {
+      "question": "마산 합성동 피자 맛집",
+      "answer": [
+        "뜨라또리아 다젠나"
+      ],
+      "kind": "recommendation",
+      "predicted": [
+        "피제리아부부",
+        "뜨라또리아 다젠나",
+        "브롱스 마산합성점",
+        "델리쿡 마산합성점",
+        "나이스치킨&피자",
+        "오봉구맥주 마산합성점",
+        "봉대박스파게티 마산합성점",
+        "노모어피자 마산산호점"
+      ],
+      "pool": [
+        "맥주를구한피자 마산합성점",
+        "피제리아부부",
+        "가득피자 합성점",
+        "오르새피자 회원점",
+        "E맛있는피자 구암점",
+        "노모어피자 마산산호점",
+        "맥주를구한피자 산호점",
+        "나이스치킨&피자",
+        "뜨라또리아 다젠나",
+        "봉대박스파게티 마산합성점",
+        "함박눈",
+        "델리쿡 마산합성점",
+        "트라토리아 합성동점",
+        "브롱스 마산합성점",
+        "핫샷",
+        "비긴어게인",
+        "불난술집 마산점",
+        "꽃피는인생술집",
+        "오봉구맥주 마산합성점"
+      ],
+      "detail": [
+        {
+          "answer": "뜨라또리아 다젠나",
+          "in_pool": true,
+          "pool_rank": 9,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": true,
+          "final_rank": 2
+        }
+      ],
+      "n_answer": 1,
+      "n_pool_hit": 1,
+      "n_filter_hit": 1,
+      "n_rerank_hit": 1,
+      "n_final_hit": 1,
+      "rr": 0.5,
+      "elapsed": 95.98252130000037,
+      "timing": {
+        "agent_llm_sec": 22.98,
+        "util_llm_sec": 231.94,
+        "tool_sec": 43.63,
+        "embed_sec": 1.22,
+        "io_sec": 38.52
+      },
+      "latency": {
+        "n_calls": 19,
+        "out_tok_total": 4018,
+        "ttft_mean": 4.879,
+        "ttft_max": 15.892,
+        "tpot_mean": 0.03,
+        "decode_tps": 33.3,
+        "formatter": {
+          "ttft": 1.59,
+          "e2el": 11.307,
+          "tpot": 0.017,
+          "tps": 51.916,
+          "out_tok": 587
+        },
+        "calls": [
+          {
+            "ttft": 3.376,
+            "e2el": 9.931,
+            "tpot": 0.013,
+            "tps": 49.542,
+            "out_tok": 492
+          },
+          {
+            "ttft": 1.372,
+            "e2el": 5.845,
+            "tpot": 0.021,
+            "tps": 36.101,
+            "out_tok": 211
+          },
+          {
+            "ttft": 4.813,
+            "e2el": 7.225,
+            "tpot": 0.142,
+            "tps": 2.491,
+            "out_tok": 18
+          },
+          {
+            "ttft": 7.226,
+            "e2el": 8.838,
+            "tpot": 0.095,
+            "tps": 2.037,
+            "out_tok": 18
+          },
+          {
+            "ttft": 7.22,
+            "e2el": 8.841,
+            "tpot": 0.095,
+            "tps": 2.036,
+            "out_tok": 18
+          },
+          {
+            "ttft": 3.295,
+            "e2el": 3.593,
+            "tpot": 0.018,
+            "tps": 5.009,
+            "out_tok": 18
+          },
+          {
+            "ttft": 1.87,
+            "e2el": 2.312,
+            "tpot": 0.017,
+            "tps": 11.679,
+            "out_tok": 27
+          },
+          {
+            "ttft": 5.624,
+            "e2el": 14.013,
+            "tpot": 0.074,
+            "tps": 8.135,
+            "out_tok": 114
+          },
+          {
+            "ttft": 3.998,
+            "e2el": 14.52,
+            "tpot": 0.073,
+            "tps": 9.986,
+            "out_tok": 145
+          },
+          {
+            "ttft": 3.603,
+            "e2el": 7.046,
+            "tpot": 0.035,
+            "tps": 14.05,
+            "out_tok": 99
+          },
+          {
+            "ttft": 3.994,
+            "e2el": 16.332,
+            "tpot": 0.064,
+            "tps": 11.879,
+            "out_tok": 194
+          },
+          {
+            "ttft": 3.054,
+            "e2el": 3.342,
+            "tpot": 0.017,
+            "tps": 5.386,
+            "out_tok": 18
+          },
+          {
+            "ttft": 2.3,
+            "e2el": 16.617,
+            "tpot": 0.072,
+            "tps": 11.976,
+            "out_tok": 199
+          },
+          {
+            "ttft": 8.849,
+            "e2el": 17.286,
+            "tpot": 0.046,
+            "tps": 10.586,
+            "out_tok": 183
+          },
+          {
+            "ttft": 8.179,
+            "e2el": 17.35,
+            "tpot": 0.049,
+            "tps": 10.778,
+            "out_tok": 187
+          },
+          {
+            "ttft": 3.064,
+            "e2el": 9.155,
+            "tpot": 0.033,
+            "tps": 20.097,
+            "out_tok": 184
+          },
+          {
+            "ttft": 15.892,
+            "e2el": 20.828,
+            "tpot": 0.021,
+            "tps": 11.139,
+            "out_tok": 232
+          },
+          {
+            "ttft": 3.378,
+            "e2el": 18.04,
+            "tpot": 0.014,
+            "tps": 59.535,
+            "out_tok": 1074
+          },
+          {
+            "ttft": 1.59,
+            "e2el": 11.307,
+            "tpot": 0.017,
+            "tps": 51.916,
+            "out_tok": 587
+          }
+        ]
+      },
+      "steps": [
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.89,
+          "tok_in": 3356,
+          "tok_out": 29,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 10.5,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"category_code\": \"FD6\", \"query\": \"마산 합성동 피자\"}",
+          "detail": "{\"count\": 19, \"source_breakdown\": {\"kakao\": 45, \"web_harvest\": 0}, \"file\": \"tool…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 1.68,
+          "tok_in": 3528,
+          "tok_out": 34,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 33.12,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"region_prefix\": \"합성동\", \"user_query\": \"마산 합성동 피자 맛집\"}",
+          "detail": "{\"count\": 15, \"no_info\": 0, \"reranked_from\": 19, \"url_file\": \"tool_file\\\\1789005…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 7.04,
+          "tok_in": 3690,
+          "tok_out": 39,
+          "args": "",
+          "detail": "→ read_file"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "sec": 0.01,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"file_path\": \"tool_file\\\\\\\\1789005668962_info_summary.json\"}",
+          "detail": "<5579자>"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 11.37,
+          "tok_in": 6671,
+          "tok_out": 359,
+          "args": "",
+          "detail": "{   \"kind\": \"recommendation\",   \"message\": \"마산 합성동에서 화덕피자 전문…"
+        }
+      ],
+      "tool_calls": [
+        "collect_places",
+        "collect_info",
+        "read_file"
+      ],
+      "tokens_in": 17245,
+      "tokens_out": 461,
+      "files": {
+        "file": "tool_file\\1789005668962_collect_places.json",
+        "url_file": "tool_file\\1789005668962_info_urls.json",
+        "rerank_file": "tool_file\\1789005668962_info_rerank.json",
+        "summary_file": "tool_file\\1789005668962_info_summary.json"
+      },
+      "message": "마산 합성동에서 화덕피자 전문점부터 가성비 좋은 곳까지 취향에 맞는 곳을 추천해 드립니다."
+    },
+    {
+      "question": "창원 횟집 추천해줘",
+      "answer": [
+        "동부회센타",
+        "푸른회전문"
+      ],
+      "kind": "recommendation",
+      "predicted": [
+        "청사포횟집",
+        "어신횟집",
+        "한산도횟집",
+        "형제횟집",
+        "해군본부",
+        "강변횟집",
+        "최고횟집",
+        "우럭잡는총각"
+      ],
+      "pool": [
+        "동부회센타",
+        "강변횟집",
+        "대교횟집",
+        "김해횟집",
+        "이층횟집",
+        "홍은수산",
+        "어풍식당",
+        "거북집",
+        "바다실비식당",
+        "삼진횟집",
+        "최고횟집",
+        "노다지횟집",
+        "대밭횟집",
+        "형제횟집",
+        "동방횟집",
+        "신성바다횟집",
+        "좋은오후 상남점",
+        "청하횟집",
+        "아라회관",
+        "어신횟집",
+        "바다여행",
+        "진동수산횟집",
+        "창원회센타",
+        "회1번지 2호점",
+        "진동고현횟집",
+        "한일회센타",
+        "우럭잡는총각",
+        "영일만",
+        "속천자연산횟집",
+        "훈이횟집",
+        "바로횟집",
+        "해군본부",
+        "용이",
+        "소포만해횟집",
+        "해금강횟집",
+        "본포횟집",
+        "한산도횟집",
+        "낙원정횟집",
+        "용원횟집",
+        "한어부와바다",
+        "해모수",
+        "진동횟집",
+        "제일횟집",
+        "청사포횟집",
+        "일류자연산횟집"
+      ],
+      "detail": [
+        {
+          "answer": "동부회센타",
+          "in_pool": true,
+          "pool_rank": 1,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": false,
+          "final_rank": null
+        },
+        {
+          "answer": "푸른회전문",
+          "in_pool": false,
+          "pool_rank": null,
+          "in_filter": false,
+          "in_rerank": false,
+          "in_final": false,
+          "final_rank": null
+        }
+      ],
+      "n_answer": 2,
+      "n_pool_hit": 1,
+      "n_filter_hit": 1,
+      "n_rerank_hit": 1,
+      "n_final_hit": 0,
+      "rr": 0.0,
+      "elapsed": 121.35340500000166,
+      "timing": {
+        "agent_llm_sec": 25.78,
+        "util_llm_sec": 319.9,
+        "tool_sec": 52.28,
+        "embed_sec": 2.16,
+        "io_sec": 50.06
+      },
+      "latency": {
+        "n_calls": 19,
+        "out_tok_total": 6096,
+        "ttft_mean": 6.347,
+        "ttft_max": 15.203,
+        "tpot_mean": 0.0293,
+        "decode_tps": 34.1,
+        "formatter": {
+          "ttft": 5.528,
+          "e2el": 17.952,
+          "tpot": 0.018,
+          "tps": 38.269,
+          "out_tok": 687
+        },
+        "calls": [
+          {
+            "ttft": 3.978,
+            "e2el": 8.195,
+            "tpot": 0.014,
+            "tps": 38.194,
+            "out_tok": 313
+          },
+          {
+            "ttft": 2.431,
+            "e2el": 6.903,
+            "tpot": 0.021,
+            "tps": 30.567,
+            "out_tok": 211
+          },
+          {
+            "ttft": 4.24,
+            "e2el": 9.758,
+            "tpot": 0.034,
+            "tps": 16.909,
+            "out_tok": 165
+          },
+          {
+            "ttft": 5.638,
+            "e2el": 12.625,
+            "tpot": 0.049,
+            "tps": 11.327,
+            "out_tok": 143
+          },
+          {
+            "ttft": 1.741,
+            "e2el": 12.695,
+            "tpot": 0.051,
+            "tps": 16.858,
+            "out_tok": 214
+          },
+          {
+            "ttft": 6.645,
+            "e2el": 13.695,
+            "tpot": 0.034,
+            "tps": 15.188,
+            "out_tok": 208
+          },
+          {
+            "ttft": 3.422,
+            "e2el": 15.94,
+            "tpot": 0.052,
+            "tps": 15.245,
+            "out_tok": 243
+          },
+          {
+            "ttft": 5.06,
+            "e2el": 17.513,
+            "tpot": 0.046,
+            "tps": 15.474,
+            "out_tok": 271
+          },
+          {
+            "ttft": 12.548,
+            "e2el": 20.76,
+            "tpot": 0.046,
+            "tps": 8.622,
+            "out_tok": 179
+          },
+          {
+            "ttft": 11.982,
+            "e2el": 23.198,
+            "tpot": 0.049,
+            "tps": 9.872,
+            "out_tok": 229
+          },
+          {
+            "ttft": 11.169,
+            "e2el": 23.778,
+            "tpot": 0.048,
+            "tps": 10.976,
+            "out_tok": 261
+          },
+          {
+            "ttft": 15.203,
+            "e2el": 24.347,
+            "tpot": 0.046,
+            "tps": 8.256,
+            "out_tok": 201
+          },
+          {
+            "ttft": 5.766,
+            "e2el": 10.786,
+            "tpot": 0.026,
+            "tps": 17.986,
+            "out_tok": 194
+          },
+          {
+            "ttft": 4.097,
+            "e2el": 12.058,
+            "tpot": 0.033,
+            "tps": 20.153,
+            "out_tok": 243
+          },
+          {
+            "ttft": 6.147,
+            "e2el": 14.035,
+            "tpot": 0.028,
+            "tps": 19.879,
+            "out_tok": 279
+          },
+          {
+            "ttft": 5.948,
+            "e2el": 11.303,
+            "tpot": 0.026,
+            "tps": 18.579,
+            "out_tok": 210
+          },
+          {
+            "ttft": 6.105,
+            "e2el": 17.601,
+            "tpot": 0.057,
+            "tps": 11.59,
+            "out_tok": 204
+          },
+          {
+            "ttft": 2.945,
+            "e2el": 25.31,
+            "tpot": 0.014,
+            "tps": 64.836,
+            "out_tok": 1641
+          },
+          {
+            "ttft": 5.528,
+            "e2el": 17.952,
+            "tpot": 0.018,
+            "tps": 38.269,
+            "out_tok": 687
+          }
+        ]
+      },
+      "steps": [
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 4.45,
+          "tok_in": 3356,
+          "tok_out": 28,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 8.74,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"category_code\": \"FD6\", \"query\": \"창원 횟집\"}",
+          "detail": "{\"count\": 45, \"source_breakdown\": {\"kakao\": 45, \"web_harvest\": 0}, \"file\": \"tool…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 5.37,
+          "tok_in": 3526,
+          "tok_out": 33,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 43.52,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"region_prefix\": \"창원\", \"user_query\": \"창원 횟집 추천해줘\"}",
+          "detail": "{\"count\": 15, \"no_info\": 0, \"reranked_from\": 45, \"url_file\": \"tool_file\\\\1789005…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 3.66,
+          "tok_in": 3687,
+          "tok_out": 39,
+          "args": "",
+          "detail": "→ read_file"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "sec": 0.01,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"file_path\": \"tool_file\\\\\\\\1789005764755_info_summary.json\"}",
+          "detail": "<7872자>"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 12.29,
+          "tok_in": 8100,
+          "tok_out": 479,
+          "args": "",
+          "detail": "{   \"kind\": \"recommendation\",   \"message\": \"창원의 다양한 지역에서 평점이…"
+        }
+      ],
+      "tool_calls": [
+        "collect_places",
+        "collect_info",
+        "read_file"
+      ],
+      "tokens_in": 18669,
+      "tokens_out": 579,
+      "files": {
+        "file": "tool_file\\1789005764755_collect_places.json",
+        "url_file": "tool_file\\1789005764755_info_urls.json",
+        "rerank_file": "tool_file\\1789005764755_info_rerank.json",
+        "summary_file": "tool_file\\1789005764755_info_summary.json"
+      },
+      "message": "창원의 다양한 지역에서 평점이 높고 특징이 명확한 횟집들을 추천해 드립니다. 원하시는 분위기나 특정 메뉴에 맞춰 선택해 보세요."
+    },
+    {
+      "question": "신림역 근처 칼국수 맛집",
+      "answer": [
+        "손칼국수잘하는집"
+      ],
+      "error": "BadGatewayError: litellm.BadGatewayError: BadGatewayError: OpenAIException - <!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n  <title>Waiting for service to respond — RunPod</title>\n  <style>\n    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}\n    body{background:#0a0a0a;color:#e2e2e2;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}\n    .card{background:#141414;border:1px solid #2a2a2a;border-radius:.25rem;padding:48px 40px;max-width:480px;width:100%;text-align:center}\n    .logo{display:inline-block;margin-bottom:32px;text-decoration:none}\n    .logo svg{width:140px;height:auto}\n    .spinner-wrap{display:flex;justify-content:center;margin-bottom:24px}\n    .spinner{width:40px;height:40px;border:3px solid #2a2a2a;border-top-color:#5F4CFE;border-radius:50%;animation:spin .9s linear infinite}\n    @keyframes spin{to{transform:rotate(360deg)}}\n    h1{font-size:22px;font-weight:600;color:#fff;margin-bottom:12px;letter-spacing:-.3px}\n    p{font-size:15px;line-height:1.6;color:#888;margin-bottom:32px}\n    .actions{display:flex;flex-direction:column;gap:12px}\n    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 20px;border-radius:.25rem;font-size:14px;font-weight:500;cursor:pointer;text-decoration:none;border:none;transition:opacity .15s}\n    .btn:hover{opacity:.85}\n    .btn-primary{background:#5F4CFE;color:#fff}\n    .btn-secondary{background:transparent;color:#888;border:1px solid #2a2a2a}\n    .btn-secondary:hover{color:#ccc;border-color:#444;opacity:1}\n    .refresh-hint{margin-top:28px;font-size:13px;color:#555}\n    #countdown{color:#5F4CFE}\n  </style>\n</head>\n<body>\n  <div class=\"card\">\n    <a class=\"logo\" href=\"https://www.runpod.io\" target=\"_blank\" rel=\"noopener\">\n      <svg width=\"907\" height=\"206\" viewBox=\"0 0 907 206\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\" aria-label=\"RunPod\">\n        <path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M170.04 163.76C180.22 157.9 186.49 147.07 186.49 135.34L186.49 70.66C186.49 58.93 180.22 48.1 170.04 42.24L113.89 9.9C103.71 4.03 91.17 4.03 81 9.9L24.84 42.24C14.67 48.1 8.4 58.93 8.4 70.66L8.4 135.34C8.4 147.07 14.67 157.9 24.84 163.76L81 196.1C91.17 201.97 103.71 201.97 113.89 196.1L170.04 163.76ZM170.04 135.34C170.04 141.21 166.91 146.62 161.82 149.55L132.43 166.48C129.84 167.97 128.54 168.72 127.48 168.61C126.55 168.51 125.71 168.03 125.16 167.27C124.53 166.41 124.53 164.92 124.53 161.93L124.53 128.08C124.53 122.22 127.67 116.8 132.76 113.87L148.49 104.81C150.65 103.56 151.73 102.94 152.52 102.07C153.21 101.3 153.74 100.39 154.06 99.4C154.42 98.29 154.42 97.04 154.41 94.56L154.41 93.81C154.41 90.08 154.4 88.22 153.62 87.15C152.93 86.21 151.88 85.6 150.72 85.48C149.39 85.34 147.78 86.27 144.54 88.14L124.53 99.66C114.36 105.52 108.09 116.36 108.09 128.08V177.7C108.09 179.43 107.17 181.03 105.66 181.9C100.58 184.83 94.31 184.83 89.22 181.9L33.07 149.55C27.98 146.62 24.84 141.21 24.84 135.34L24.84 102C24.84 99.02 24.84 97.52 25.47 96.66C26.02 95.91 26.86 95.42 27.79 95.33C28.85 95.22 30.15 95.96 32.74 97.45L61.52 114.03C66.61 116.96 69.74 122.38 69.74 128.24L69.74 145.5C69.74 147.99 69.74 149.24 70.1 150.35C70.43 151.34 70.95 152.24 71.65 153.01C72.43 153.88 73.52 154.5 75.68 155.74L76.33 156.12C79.56 157.97 81.18 158.9 82.51 158.76C83.67 158.64 84.72 158.03 85.4 157.09C86.19 156.01 86.19 154.15 86.19 150.43L86.19 128.24C86.19 116.52 79.92 105.68 69.74 99.82L27.71 75.62C25.94 74.59 24.84 72.7 24.84 70.66C24.84 64.79 27.98 59.38 33.07 56.45L89.22 24.1C94.31 21.17 100.58 21.17 105.66 24.1L134.73 40.85C137.32 42.34 138.62 43.09 139.06 44.06C139.43 44.91 139.43 45.88 139.06 46.73C138.62 47.7 137.32 48.45 134.73 49.94L105.21 66.95C100.12 69.88 93.85 69.88 88.76 66.95L72.22 57.42C70.58 56.47 69.75 56 68.88 55.81C68.1 55.64 67.3 55.63 66.52 55.79C65.64 55.96 64.81 56.42 63.15 57.34L61.1 58.48C57.77 60.32 56.11 61.24 55.55 62.46C55.06 63.53 55.05 64.75 55.52 65.82C56.06 67.05 57.71 68 61 69.9L80.54 81.16C90.72 87.02 103.26 87.02 113.43 81.16L156.33 56.45C158.03 55.47 160.12 55.47 161.82 56.45C166.91 59.38 170.04 64.79 170.04 70.66V135.34Z\" fill=\"white\"/>\n        <path d=\"M312.19 58.01C314.28 58.01 315.98 59.68 315.98 61.75V72.54C315.98 74.59 314.3 76.27 312.21 76.28L287 76.44C276.85 76.44 274.63 78.08 274.63 90.49V145.5C274.63 147.57 272.94 149.25 270.85 149.25H256.27C254.18 149.25 252.48 147.57 252.48 145.5V82.28C252.48 65.85 259.87 58.01 277.03 58.01H312.19Z\" fill=\"white\"/>\n        <path d=\"M400.01 129.54C393 144.32 381.56 150.71 368.64 150.71C341.5 150.71 332.64 129.54 332.64 102.17V61.75C332.64 59.68 334.34 58.01 336.43 58.01H351.01C353.1 58.01 354.79 59.68 354.79 61.75V102.17C354.79 120.6 362.92 128.63 376.94 128.63C385.8 128.63 402.41 122.24 402.41 92.13V61.75C402.41 59.68 404.11 58.01 406.2 58.01H420.78C422.87 58.01 424.56 59.68 424.56 61.75V145.5C424.56 147.57 422.87 149.25 420.78 149.25H406.2C404.11 149.25 402.41 147.57 402.41 145.5V130.09C402.41 126.33 402.95 121.52 403.66 117.89C403.69 117.78 403.6 117.68 403.49 117.68C403.4 117.68 403.32 117.74 403.31 117.82C402.57 121.45 401.47 126.12 400.01 129.54Z\" fill=\"white\"/>\n        <path d=\"M465.84 78.81C473.22 63.3 487.62 56.55 499.98 56.55C524.35 56.55 533.58 77.72 533.58 105.09V145.5C533.58 147.57 531.88 149.25 529.79 149.25H515.03C512.94 149.25 511.24 147.57 511.24 145.5V105.09C511.24 88.48 504.23 78.63 491.86 78.63C482.26 78.63 463.25 85.01 463.25 115.12V145.5C463.25 147.57 461.56 149.25 459.47 149.25H444.89C442.8 149.25 441.1 147.57 441.1 145.5V61.75C441.1 59.68 442.8 58.01 444.89 58.01H459.47C461.56 58.01 463.25 59.68 463.25 61.75V78.26C463.25 81.84 462.72 86.65 462 90.28C461.98 90.39 462.07 90.49 462.18 90.49C462.27 90.49 462.34 90.43 462.36 90.35C463.1 86.72 464.2 82.23 465.84 78.81Z\" fill=\"white\"/>\n        <path d=\"M576.68 70.96C584.99 62.2 599.75 56.91 611.94 56.91C640.91 57.1 657.71 72.06 657.71 103.63C657.71 135.2 640.91 150.34 611.94 150.34C599.75 150.34 584.99 145.05 576.68 136.29C573.76 133.4 571.74 128.19 570.45 124.37C570.42 124.3 570.36 124.25 570.28 124.25C570.16 124.25 570.07 124.36 570.11 124.47C571.37 128.63 572.44 133.63 572.44 137.75V163.24C572.44 165.31 570.74 166.98 568.65 166.98H554.07C551.98 166.98 550.28 165.31 550.28 163.25L550.11 61.76C550.11 59.69 551.8 58.01 553.9 58.01H568.65C570.74 58.01 572.44 59.68 572.44 61.75V69.5C572.44 73.62 571.37 78.96 570.11 82.78C570.08 82.89 570.16 83.01 570.28 83.01C570.36 83.01 570.42 82.96 570.45 82.89C571.74 79.07 573.76 73.85 576.68 70.96ZM605.48 133.19C627.44 133.19 635.56 122.06 635.56 103.63C635.56 84.83 627.25 75.53 605.48 74.98C588.5 74.98 572.44 86.11 572.44 103.63C572.44 121.14 588.5 133.19 605.48 133.19Z\" fill=\"white\"/>\n        <path d=\"M777.88 103.63C777.88 135.2 752.97 150.34 723.99 150.34C695.2 150.34 670.28 135.2 670.28 103.63C670.28 72.06 695.2 56.91 723.99 56.91C752.97 56.91 777.88 72.24 777.88 103.63ZM755.74 103.63C755.74 85.2 740.79 74.8 723.99 74.8C707.75 74.8 692.43 85.2 692.43 103.63C692.43 122.61 706.64 132.28 723.99 132.28C740.97 132.28 755.74 122.24 755.74 103.63Z\" fill=\"white\"/>\n        <path d=\"M872.21 136.66C863.72 145.05 848.95 150.34 836.77 150.34C807.79 150.34 790.99 135.2 790.99 103.63C790.99 72.06 807.79 57.1 836.77 56.91C848.95 56.91 863.9 62.57 872.21 71.33C875.13 74.22 876.97 79.43 878.26 83.25C878.28 83.32 878.35 83.37 878.43 83.37C878.55 83.37 878.63 83.26 878.6 83.14C877.34 78.99 876.27 73.99 876.27 69.87V42.76C876.27 40.69 877.96 39.02 880.05 39.02H894.82C896.91 39.02 898.6 40.69 898.6 42.76V145.5C898.6 147.57 896.91 149.25 894.82 149.25H880.05C877.96 149.25 876.27 147.57 876.27 145.5V138.12C876.27 133.98 877.34 128.78 878.61 124.96C878.64 124.86 878.6 124.76 878.51 124.72C878.4 124.66 878.26 124.72 878.22 124.83C876.93 128.65 875.1 133.79 872.21 136.66ZM843.23 132.28C860.21 132.28 876.27 121.14 876.27 103.63C876.27 86.11 860.21 74.07 843.23 74.07C821.26 74.61 812.96 85.01 812.96 103.63C812.96 122.24 821.45 132.28 843.23 132.28Z\" fill=\"white\"/>\n      </svg>\n    </a>\n\n    <div class=\"spinner-wrap\">\n      <div class=\"spinner\"></div>\n    </div>\n\n    <h1>Waiting for service to respond</h1>\n    <p>\n      The service on this port is either still initializing or\n      not running. Check the container logs for more details.\n    </p>\n\n    <div class=\"actions\">\n      <a class=\"btn btn-primary\" id=\"logs\" target=\"_blank\" rel=\"noopener\">\n        View Container Logs &rarr;\n      </a>\n      <button class=\"btn btn-secondary\" onclick=\"location.reload()\">\n        Try Again\n      </button>\n    </div>\n\n    <p class=\"refresh-hint\">Auto-refreshing in <span id=\"countdown\">10</span>s</p>\n  </div>\n\n  <script>\n    var t = 10;\n    var cd = document.getElementById('countdown');\n    setInterval(function () {\n      if (t > 1) { t--; cd.textContent = t; } else { location.reload(); }\n    }, 1000);\n\n    var host = location.hostname;\n    var podId = host.split('.')[0].split('-')[0];\n    var base = host.indexOf('dev-proxy') > -1 ? 'https://dev.runpod.io' : 'https://console.runpod.io';\n    document.getElementById('logs').href = base + '/pods?id=' + podId + '&inspectorTab=logs';\n  </script>\n</body>\n</html>",
+      "elapsed": 38.268663700000616
+    },
+    {
+      "question": "신림역 부대찌개 맛집",
+      "answer": [
+        "옛맛의정부부대찌개"
+      ],
+      "error": "BadGatewayError: litellm.BadGatewayError: BadGatewayError: OpenAIException - <!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n  <title>Waiting for service to respond — RunPod</title>\n  <style>\n    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}\n    body{background:#0a0a0a;color:#e2e2e2;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}\n    .card{background:#141414;border:1px solid #2a2a2a;border-radius:.25rem;padding:48px 40px;max-width:480px;width:100%;text-align:center}\n    .logo{display:inline-block;margin-bottom:32px;text-decoration:none}\n    .logo svg{width:140px;height:auto}\n    .spinner-wrap{display:flex;justify-content:center;margin-bottom:24px}\n    .spinner{width:40px;height:40px;border:3px solid #2a2a2a;border-top-color:#5F4CFE;border-radius:50%;animation:spin .9s linear infinite}\n    @keyframes spin{to{transform:rotate(360deg)}}\n    h1{font-size:22px;font-weight:600;color:#fff;margin-bottom:12px;letter-spacing:-.3px}\n    p{font-size:15px;line-height:1.6;color:#888;margin-bottom:32px}\n    .actions{display:flex;flex-direction:column;gap:12px}\n    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 20px;border-radius:.25rem;font-size:14px;font-weight:500;cursor:pointer;text-decoration:none;border:none;transition:opacity .15s}\n    .btn:hover{opacity:.85}\n    .btn-primary{background:#5F4CFE;color:#fff}\n    .btn-secondary{background:transparent;color:#888;border:1px solid #2a2a2a}\n    .btn-secondary:hover{color:#ccc;border-color:#444;opacity:1}\n    .refresh-hint{margin-top:28px;font-size:13px;color:#555}\n    #countdown{color:#5F4CFE}\n  </style>\n</head>\n<body>\n  <div class=\"card\">\n    <a class=\"logo\" href=\"https://www.runpod.io\" target=\"_blank\" rel=\"noopener\">\n      <svg width=\"907\" height=\"206\" viewBox=\"0 0 907 206\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\" aria-label=\"RunPod\">\n        <path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M170.04 163.76C180.22 157.9 186.49 147.07 186.49 135.34L186.49 70.66C186.49 58.93 180.22 48.1 170.04 42.24L113.89 9.9C103.71 4.03 91.17 4.03 81 9.9L24.84 42.24C14.67 48.1 8.4 58.93 8.4 70.66L8.4 135.34C8.4 147.07 14.67 157.9 24.84 163.76L81 196.1C91.17 201.97 103.71 201.97 113.89 196.1L170.04 163.76ZM170.04 135.34C170.04 141.21 166.91 146.62 161.82 149.55L132.43 166.48C129.84 167.97 128.54 168.72 127.48 168.61C126.55 168.51 125.71 168.03 125.16 167.27C124.53 166.41 124.53 164.92 124.53 161.93L124.53 128.08C124.53 122.22 127.67 116.8 132.76 113.87L148.49 104.81C150.65 103.56 151.73 102.94 152.52 102.07C153.21 101.3 153.74 100.39 154.06 99.4C154.42 98.29 154.42 97.04 154.41 94.56L154.41 93.81C154.41 90.08 154.4 88.22 153.62 87.15C152.93 86.21 151.88 85.6 150.72 85.48C149.39 85.34 147.78 86.27 144.54 88.14L124.53 99.66C114.36 105.52 108.09 116.36 108.09 128.08V177.7C108.09 179.43 107.17 181.03 105.66 181.9C100.58 184.83 94.31 184.83 89.22 181.9L33.07 149.55C27.98 146.62 24.84 141.21 24.84 135.34L24.84 102C24.84 99.02 24.84 97.52 25.47 96.66C26.02 95.91 26.86 95.42 27.79 95.33C28.85 95.22 30.15 95.96 32.74 97.45L61.52 114.03C66.61 116.96 69.74 122.38 69.74 128.24L69.74 145.5C69.74 147.99 69.74 149.24 70.1 150.35C70.43 151.34 70.95 152.24 71.65 153.01C72.43 153.88 73.52 154.5 75.68 155.74L76.33 156.12C79.56 157.97 81.18 158.9 82.51 158.76C83.67 158.64 84.72 158.03 85.4 157.09C86.19 156.01 86.19 154.15 86.19 150.43L86.19 128.24C86.19 116.52 79.92 105.68 69.74 99.82L27.71 75.62C25.94 74.59 24.84 72.7 24.84 70.66C24.84 64.79 27.98 59.38 33.07 56.45L89.22 24.1C94.31 21.17 100.58 21.17 105.66 24.1L134.73 40.85C137.32 42.34 138.62 43.09 139.06 44.06C139.43 44.91 139.43 45.88 139.06 46.73C138.62 47.7 137.32 48.45 134.73 49.94L105.21 66.95C100.12 69.88 93.85 69.88 88.76 66.95L72.22 57.42C70.58 56.47 69.75 56 68.88 55.81C68.1 55.64 67.3 55.63 66.52 55.79C65.64 55.96 64.81 56.42 63.15 57.34L61.1 58.48C57.77 60.32 56.11 61.24 55.55 62.46C55.06 63.53 55.05 64.75 55.52 65.82C56.06 67.05 57.71 68 61 69.9L80.54 81.16C90.72 87.02 103.26 87.02 113.43 81.16L156.33 56.45C158.03 55.47 160.12 55.47 161.82 56.45C166.91 59.38 170.04 64.79 170.04 70.66V135.34Z\" fill=\"white\"/>\n        <path d=\"M312.19 58.01C314.28 58.01 315.98 59.68 315.98 61.75V72.54C315.98 74.59 314.3 76.27 312.21 76.28L287 76.44C276.85 76.44 274.63 78.08 274.63 90.49V145.5C274.63 147.57 272.94 149.25 270.85 149.25H256.27C254.18 149.25 252.48 147.57 252.48 145.5V82.28C252.48 65.85 259.87 58.01 277.03 58.01H312.19Z\" fill=\"white\"/>\n        <path d=\"M400.01 129.54C393 144.32 381.56 150.71 368.64 150.71C341.5 150.71 332.64 129.54 332.64 102.17V61.75C332.64 59.68 334.34 58.01 336.43 58.01H351.01C353.1 58.01 354.79 59.68 354.79 61.75V102.17C354.79 120.6 362.92 128.63 376.94 128.63C385.8 128.63 402.41 122.24 402.41 92.13V61.75C402.41 59.68 404.11 58.01 406.2 58.01H420.78C422.87 58.01 424.56 59.68 424.56 61.75V145.5C424.56 147.57 422.87 149.25 420.78 149.25H406.2C404.11 149.25 402.41 147.57 402.41 145.5V130.09C402.41 126.33 402.95 121.52 403.66 117.89C403.69 117.78 403.6 117.68 403.49 117.68C403.4 117.68 403.32 117.74 403.31 117.82C402.57 121.45 401.47 126.12 400.01 129.54Z\" fill=\"white\"/>\n        <path d=\"M465.84 78.81C473.22 63.3 487.62 56.55 499.98 56.55C524.35 56.55 533.58 77.72 533.58 105.09V145.5C533.58 147.57 531.88 149.25 529.79 149.25H515.03C512.94 149.25 511.24 147.57 511.24 145.5V105.09C511.24 88.48 504.23 78.63 491.86 78.63C482.26 78.63 463.25 85.01 463.25 115.12V145.5C463.25 147.57 461.56 149.25 459.47 149.25H444.89C442.8 149.25 441.1 147.57 441.1 145.5V61.75C441.1 59.68 442.8 58.01 444.89 58.01H459.47C461.56 58.01 463.25 59.68 463.25 61.75V78.26C463.25 81.84 462.72 86.65 462 90.28C461.98 90.39 462.07 90.49 462.18 90.49C462.27 90.49 462.34 90.43 462.36 90.35C463.1 86.72 464.2 82.23 465.84 78.81Z\" fill=\"white\"/>\n        <path d=\"M576.68 70.96C584.99 62.2 599.75 56.91 611.94 56.91C640.91 57.1 657.71 72.06 657.71 103.63C657.71 135.2 640.91 150.34 611.94 150.34C599.75 150.34 584.99 145.05 576.68 136.29C573.76 133.4 571.74 128.19 570.45 124.37C570.42 124.3 570.36 124.25 570.28 124.25C570.16 124.25 570.07 124.36 570.11 124.47C571.37 128.63 572.44 133.63 572.44 137.75V163.24C572.44 165.31 570.74 166.98 568.65 166.98H554.07C551.98 166.98 550.28 165.31 550.28 163.25L550.11 61.76C550.11 59.69 551.8 58.01 553.9 58.01H568.65C570.74 58.01 572.44 59.68 572.44 61.75V69.5C572.44 73.62 571.37 78.96 570.11 82.78C570.08 82.89 570.16 83.01 570.28 83.01C570.36 83.01 570.42 82.96 570.45 82.89C571.74 79.07 573.76 73.85 576.68 70.96ZM605.48 133.19C627.44 133.19 635.56 122.06 635.56 103.63C635.56 84.83 627.25 75.53 605.48 74.98C588.5 74.98 572.44 86.11 572.44 103.63C572.44 121.14 588.5 133.19 605.48 133.19Z\" fill=\"white\"/>\n        <path d=\"M777.88 103.63C777.88 135.2 752.97 150.34 723.99 150.34C695.2 150.34 670.28 135.2 670.28 103.63C670.28 72.06 695.2 56.91 723.99 56.91C752.97 56.91 777.88 72.24 777.88 103.63ZM755.74 103.63C755.74 85.2 740.79 74.8 723.99 74.8C707.75 74.8 692.43 85.2 692.43 103.63C692.43 122.61 706.64 132.28 723.99 132.28C740.97 132.28 755.74 122.24 755.74 103.63Z\" fill=\"white\"/>\n        <path d=\"M872.21 136.66C863.72 145.05 848.95 150.34 836.77 150.34C807.79 150.34 790.99 135.2 790.99 103.63C790.99 72.06 807.79 57.1 836.77 56.91C848.95 56.91 863.9 62.57 872.21 71.33C875.13 74.22 876.97 79.43 878.26 83.25C878.28 83.32 878.35 83.37 878.43 83.37C878.55 83.37 878.63 83.26 878.6 83.14C877.34 78.99 876.27 73.99 876.27 69.87V42.76C876.27 40.69 877.96 39.02 880.05 39.02H894.82C896.91 39.02 898.6 40.69 898.6 42.76V145.5C898.6 147.57 896.91 149.25 894.82 149.25H880.05C877.96 149.25 876.27 147.57 876.27 145.5V138.12C876.27 133.98 877.34 128.78 878.61 124.96C878.64 124.86 878.6 124.76 878.51 124.72C878.4 124.66 878.26 124.72 878.22 124.83C876.93 128.65 875.1 133.79 872.21 136.66ZM843.23 132.28C860.21 132.28 876.27 121.14 876.27 103.63C876.27 86.11 860.21 74.07 843.23 74.07C821.26 74.61 812.96 85.01 812.96 103.63C812.96 122.24 821.45 132.28 843.23 132.28Z\" fill=\"white\"/>\n      </svg>\n    </a>\n\n    <div class=\"spinner-wrap\">\n      <div class=\"spinner\"></div>\n    </div>\n\n    <h1>Waiting for service to respond</h1>\n    <p>\n      The service on this port is either still initializing or\n      not running. Check the container logs for more details.\n    </p>\n\n    <div class=\"actions\">\n      <a class=\"btn btn-primary\" id=\"logs\" target=\"_blank\" rel=\"noopener\">\n        View Container Logs &rarr;\n      </a>\n      <button class=\"btn btn-secondary\" onclick=\"location.reload()\">\n        Try Again\n      </button>\n    </div>\n\n    <p class=\"refresh-hint\">Auto-refreshing in <span id=\"countdown\">10</span>s</p>\n  </div>\n\n  <script>\n    var t = 10;\n    var cd = document.getElementById('countdown');\n    setInterval(function () {\n      if (t > 1) { t--; cd.textContent = t; } else { location.reload(); }\n    }, 1000);\n\n    var host = location.hostname;\n    var podId = host.split('.')[0].split('-')[0];\n    var base = host.indexOf('dev-proxy') > -1 ? 'https://dev.runpod.io' : 'https://console.runpod.io';\n    document.getElementById('logs').href = base + '/pods?id=' + podId + '&inspectorTab=logs';\n  </script>\n</body>\n</html>",
+      "elapsed": 6.225531200005207
+    },
+    {
+      "question": "신림역 근처 고기집 추천해줘",
+      "answer": [
+        "왕주먹",
+        "서울갈비 신림점",
+        "본화로",
+        "신림정"
+      ],
+      "error": "BadGatewayError: litellm.BadGatewayError: BadGatewayError: OpenAIException - <!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n  <title>Waiting for service to respond — RunPod</title>\n  <style>\n    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}\n    body{background:#0a0a0a;color:#e2e2e2;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}\n    .card{background:#141414;border:1px solid #2a2a2a;border-radius:.25rem;padding:48px 40px;max-width:480px;width:100%;text-align:center}\n    .logo{display:inline-block;margin-bottom:32px;text-decoration:none}\n    .logo svg{width:140px;height:auto}\n    .spinner-wrap{display:flex;justify-content:center;margin-bottom:24px}\n    .spinner{width:40px;height:40px;border:3px solid #2a2a2a;border-top-color:#5F4CFE;border-radius:50%;animation:spin .9s linear infinite}\n    @keyframes spin{to{transform:rotate(360deg)}}\n    h1{font-size:22px;font-weight:600;color:#fff;margin-bottom:12px;letter-spacing:-.3px}\n    p{font-size:15px;line-height:1.6;color:#888;margin-bottom:32px}\n    .actions{display:flex;flex-direction:column;gap:12px}\n    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 20px;border-radius:.25rem;font-size:14px;font-weight:500;cursor:pointer;text-decoration:none;border:none;transition:opacity .15s}\n    .btn:hover{opacity:.85}\n    .btn-primary{background:#5F4CFE;color:#fff}\n    .btn-secondary{background:transparent;color:#888;border:1px solid #2a2a2a}\n    .btn-secondary:hover{color:#ccc;border-color:#444;opacity:1}\n    .refresh-hint{margin-top:28px;font-size:13px;color:#555}\n    #countdown{color:#5F4CFE}\n  </style>\n</head>\n<body>\n  <div class=\"card\">\n    <a class=\"logo\" href=\"https://www.runpod.io\" target=\"_blank\" rel=\"noopener\">\n      <svg width=\"907\" height=\"206\" viewBox=\"0 0 907 206\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\" aria-label=\"RunPod\">\n        <path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M170.04 163.76C180.22 157.9 186.49 147.07 186.49 135.34L186.49 70.66C186.49 58.93 180.22 48.1 170.04 42.24L113.89 9.9C103.71 4.03 91.17 4.03 81 9.9L24.84 42.24C14.67 48.1 8.4 58.93 8.4 70.66L8.4 135.34C8.4 147.07 14.67 157.9 24.84 163.76L81 196.1C91.17 201.97 103.71 201.97 113.89 196.1L170.04 163.76ZM170.04 135.34C170.04 141.21 166.91 146.62 161.82 149.55L132.43 166.48C129.84 167.97 128.54 168.72 127.48 168.61C126.55 168.51 125.71 168.03 125.16 167.27C124.53 166.41 124.53 164.92 124.53 161.93L124.53 128.08C124.53 122.22 127.67 116.8 132.76 113.87L148.49 104.81C150.65 103.56 151.73 102.94 152.52 102.07C153.21 101.3 153.74 100.39 154.06 99.4C154.42 98.29 154.42 97.04 154.41 94.56L154.41 93.81C154.41 90.08 154.4 88.22 153.62 87.15C152.93 86.21 151.88 85.6 150.72 85.48C149.39 85.34 147.78 86.27 144.54 88.14L124.53 99.66C114.36 105.52 108.09 116.36 108.09 128.08V177.7C108.09 179.43 107.17 181.03 105.66 181.9C100.58 184.83 94.31 184.83 89.22 181.9L33.07 149.55C27.98 146.62 24.84 141.21 24.84 135.34L24.84 102C24.84 99.02 24.84 97.52 25.47 96.66C26.02 95.91 26.86 95.42 27.79 95.33C28.85 95.22 30.15 95.96 32.74 97.45L61.52 114.03C66.61 116.96 69.74 122.38 69.74 128.24L69.74 145.5C69.74 147.99 69.74 149.24 70.1 150.35C70.43 151.34 70.95 152.24 71.65 153.01C72.43 153.88 73.52 154.5 75.68 155.74L76.33 156.12C79.56 157.97 81.18 158.9 82.51 158.76C83.67 158.64 84.72 158.03 85.4 157.09C86.19 156.01 86.19 154.15 86.19 150.43L86.19 128.24C86.19 116.52 79.92 105.68 69.74 99.82L27.71 75.62C25.94 74.59 24.84 72.7 24.84 70.66C24.84 64.79 27.98 59.38 33.07 56.45L89.22 24.1C94.31 21.17 100.58 21.17 105.66 24.1L134.73 40.85C137.32 42.34 138.62 43.09 139.06 44.06C139.43 44.91 139.43 45.88 139.06 46.73C138.62 47.7 137.32 48.45 134.73 49.94L105.21 66.95C100.12 69.88 93.85 69.88 88.76 66.95L72.22 57.42C70.58 56.47 69.75 56 68.88 55.81C68.1 55.64 67.3 55.63 66.52 55.79C65.64 55.96 64.81 56.42 63.15 57.34L61.1 58.48C57.77 60.32 56.11 61.24 55.55 62.46C55.06 63.53 55.05 64.75 55.52 65.82C56.06 67.05 57.71 68 61 69.9L80.54 81.16C90.72 87.02 103.26 87.02 113.43 81.16L156.33 56.45C158.03 55.47 160.12 55.47 161.82 56.45C166.91 59.38 170.04 64.79 170.04 70.66V135.34Z\" fill=\"white\"/>\n        <path d=\"M312.19 58.01C314.28 58.01 315.98 59.68 315.98 61.75V72.54C315.98 74.59 314.3 76.27 312.21 76.28L287 76.44C276.85 76.44 274.63 78.08 274.63 90.49V145.5C274.63 147.57 272.94 149.25 270.85 149.25H256.27C254.18 149.25 252.48 147.57 252.48 145.5V82.28C252.48 65.85 259.87 58.01 277.03 58.01H312.19Z\" fill=\"white\"/>\n        <path d=\"M400.01 129.54C393 144.32 381.56 150.71 368.64 150.71C341.5 150.71 332.64 129.54 332.64 102.17V61.75C332.64 59.68 334.34 58.01 336.43 58.01H351.01C353.1 58.01 354.79 59.68 354.79 61.75V102.17C354.79 120.6 362.92 128.63 376.94 128.63C385.8 128.63 402.41 122.24 402.41 92.13V61.75C402.41 59.68 404.11 58.01 406.2 58.01H420.78C422.87 58.01 424.56 59.68 424.56 61.75V145.5C424.56 147.57 422.87 149.25 420.78 149.25H406.2C404.11 149.25 402.41 147.57 402.41 145.5V130.09C402.41 126.33 402.95 121.52 403.66 117.89C403.69 117.78 403.6 117.68 403.49 117.68C403.4 117.68 403.32 117.74 403.31 117.82C402.57 121.45 401.47 126.12 400.01 129.54Z\" fill=\"white\"/>\n        <path d=\"M465.84 78.81C473.22 63.3 487.62 56.55 499.98 56.55C524.35 56.55 533.58 77.72 533.58 105.09V145.5C533.58 147.57 531.88 149.25 529.79 149.25H515.03C512.94 149.25 511.24 147.57 511.24 145.5V105.09C511.24 88.48 504.23 78.63 491.86 78.63C482.26 78.63 463.25 85.01 463.25 115.12V145.5C463.25 147.57 461.56 149.25 459.47 149.25H444.89C442.8 149.25 441.1 147.57 441.1 145.5V61.75C441.1 59.68 442.8 58.01 444.89 58.01H459.47C461.56 58.01 463.25 59.68 463.25 61.75V78.26C463.25 81.84 462.72 86.65 462 90.28C461.98 90.39 462.07 90.49 462.18 90.49C462.27 90.49 462.34 90.43 462.36 90.35C463.1 86.72 464.2 82.23 465.84 78.81Z\" fill=\"white\"/>\n        <path d=\"M576.68 70.96C584.99 62.2 599.75 56.91 611.94 56.91C640.91 57.1 657.71 72.06 657.71 103.63C657.71 135.2 640.91 150.34 611.94 150.34C599.75 150.34 584.99 145.05 576.68 136.29C573.76 133.4 571.74 128.19 570.45 124.37C570.42 124.3 570.36 124.25 570.28 124.25C570.16 124.25 570.07 124.36 570.11 124.47C571.37 128.63 572.44 133.63 572.44 137.75V163.24C572.44 165.31 570.74 166.98 568.65 166.98H554.07C551.98 166.98 550.28 165.31 550.28 163.25L550.11 61.76C550.11 59.69 551.8 58.01 553.9 58.01H568.65C570.74 58.01 572.44 59.68 572.44 61.75V69.5C572.44 73.62 571.37 78.96 570.11 82.78C570.08 82.89 570.16 83.01 570.28 83.01C570.36 83.01 570.42 82.96 570.45 82.89C571.74 79.07 573.76 73.85 576.68 70.96ZM605.48 133.19C627.44 133.19 635.56 122.06 635.56 103.63C635.56 84.83 627.25 75.53 605.48 74.98C588.5 74.98 572.44 86.11 572.44 103.63C572.44 121.14 588.5 133.19 605.48 133.19Z\" fill=\"white\"/>\n        <path d=\"M777.88 103.63C777.88 135.2 752.97 150.34 723.99 150.34C695.2 150.34 670.28 135.2 670.28 103.63C670.28 72.06 695.2 56.91 723.99 56.91C752.97 56.91 777.88 72.24 777.88 103.63ZM755.74 103.63C755.74 85.2 740.79 74.8 723.99 74.8C707.75 74.8 692.43 85.2 692.43 103.63C692.43 122.61 706.64 132.28 723.99 132.28C740.97 132.28 755.74 122.24 755.74 103.63Z\" fill=\"white\"/>\n        <path d=\"M872.21 136.66C863.72 145.05 848.95 150.34 836.77 150.34C807.79 150.34 790.99 135.2 790.99 103.63C790.99 72.06 807.79 57.1 836.77 56.91C848.95 56.91 863.9 62.57 872.21 71.33C875.13 74.22 876.97 79.43 878.26 83.25C878.28 83.32 878.35 83.37 878.43 83.37C878.55 83.37 878.63 83.26 878.6 83.14C877.34 78.99 876.27 73.99 876.27 69.87V42.76C876.27 40.69 877.96 39.02 880.05 39.02H894.82C896.91 39.02 898.6 40.69 898.6 42.76V145.5C898.6 147.57 896.91 149.25 894.82 149.25H880.05C877.96 149.25 876.27 147.57 876.27 145.5V138.12C876.27 133.98 877.34 128.78 878.61 124.96C878.64 124.86 878.6 124.76 878.51 124.72C878.4 124.66 878.26 124.72 878.22 124.83C876.93 128.65 875.1 133.79 872.21 136.66ZM843.23 132.28C860.21 132.28 876.27 121.14 876.27 103.63C876.27 86.11 860.21 74.07 843.23 74.07C821.26 74.61 812.96 85.01 812.96 103.63C812.96 122.24 821.45 132.28 843.23 132.28Z\" fill=\"white\"/>\n      </svg>\n    </a>\n\n    <div class=\"spinner-wrap\">\n      <div class=\"spinner\"></div>\n    </div>\n\n    <h1>Waiting for service to respond</h1>\n    <p>\n      The service on this port is either still initializing or\n      not running. Check the container logs for more details.\n    </p>\n\n    <div class=\"actions\">\n      <a class=\"btn btn-primary\" id=\"logs\" target=\"_blank\" rel=\"noopener\">\n        View Container Logs &rarr;\n      </a>\n      <button class=\"btn btn-secondary\" onclick=\"location.reload()\">\n        Try Again\n      </button>\n    </div>\n\n    <p class=\"refresh-hint\">Auto-refreshing in <span id=\"countdown\">10</span>s</p>\n  </div>\n\n  <script>\n    var t = 10;\n    var cd = document.getElementById('countdown');\n    setInterval(function () {\n      if (t > 1) { t--; cd.textContent = t; } else { location.reload(); }\n    }, 1000);\n\n    var host = location.hostname;\n    var podId = host.split('.')[0].split('-')[0];\n    var base = host.indexOf('dev-proxy') > -1 ? 'https://dev.runpod.io' : 'https://console.runpod.io';\n    document.getElementById('logs').href = base + '/pods?id=' + podId + '&inspectorTab=logs';\n  </script>\n</body>\n</html>",
+      "elapsed": 2.5734023000113666
+    },
+    {
+      "question": "신림역 주변 감성있는 카페 추천좀 해줘",
+      "answer": [
+        "로드트립",
+        "폼앤노말"
+      ],
+      "error": "BadGatewayError: litellm.BadGatewayError: BadGatewayError: OpenAIException - <!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n  <title>Waiting for service to respond — RunPod</title>\n  <style>\n    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}\n    body{background:#0a0a0a;color:#e2e2e2;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}\n    .card{background:#141414;border:1px solid #2a2a2a;border-radius:.25rem;padding:48px 40px;max-width:480px;width:100%;text-align:center}\n    .logo{display:inline-block;margin-bottom:32px;text-decoration:none}\n    .logo svg{width:140px;height:auto}\n    .spinner-wrap{display:flex;justify-content:center;margin-bottom:24px}\n    .spinner{width:40px;height:40px;border:3px solid #2a2a2a;border-top-color:#5F4CFE;border-radius:50%;animation:spin .9s linear infinite}\n    @keyframes spin{to{transform:rotate(360deg)}}\n    h1{font-size:22px;font-weight:600;color:#fff;margin-bottom:12px;letter-spacing:-.3px}\n    p{font-size:15px;line-height:1.6;color:#888;margin-bottom:32px}\n    .actions{display:flex;flex-direction:column;gap:12px}\n    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 20px;border-radius:.25rem;font-size:14px;font-weight:500;cursor:pointer;text-decoration:none;border:none;transition:opacity .15s}\n    .btn:hover{opacity:.85}\n    .btn-primary{background:#5F4CFE;color:#fff}\n    .btn-secondary{background:transparent;color:#888;border:1px solid #2a2a2a}\n    .btn-secondary:hover{color:#ccc;border-color:#444;opacity:1}\n    .refresh-hint{margin-top:28px;font-size:13px;color:#555}\n    #countdown{color:#5F4CFE}\n  </style>\n</head>\n<body>\n  <div class=\"card\">\n    <a class=\"logo\" href=\"https://www.runpod.io\" target=\"_blank\" rel=\"noopener\">\n      <svg width=\"907\" height=\"206\" viewBox=\"0 0 907 206\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\" aria-label=\"RunPod\">\n        <path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M170.04 163.76C180.22 157.9 186.49 147.07 186.49 135.34L186.49 70.66C186.49 58.93 180.22 48.1 170.04 42.24L113.89 9.9C103.71 4.03 91.17 4.03 81 9.9L24.84 42.24C14.67 48.1 8.4 58.93 8.4 70.66L8.4 135.34C8.4 147.07 14.67 157.9 24.84 163.76L81 196.1C91.17 201.97 103.71 201.97 113.89 196.1L170.04 163.76ZM170.04 135.34C170.04 141.21 166.91 146.62 161.82 149.55L132.43 166.48C129.84 167.97 128.54 168.72 127.48 168.61C126.55 168.51 125.71 168.03 125.16 167.27C124.53 166.41 124.53 164.92 124.53 161.93L124.53 128.08C124.53 122.22 127.67 116.8 132.76 113.87L148.49 104.81C150.65 103.56 151.73 102.94 152.52 102.07C153.21 101.3 153.74 100.39 154.06 99.4C154.42 98.29 154.42 97.04 154.41 94.56L154.41 93.81C154.41 90.08 154.4 88.22 153.62 87.15C152.93 86.21 151.88 85.6 150.72 85.48C149.39 85.34 147.78 86.27 144.54 88.14L124.53 99.66C114.36 105.52 108.09 116.36 108.09 128.08V177.7C108.09 179.43 107.17 181.03 105.66 181.9C100.58 184.83 94.31 184.83 89.22 181.9L33.07 149.55C27.98 146.62 24.84 141.21 24.84 135.34L24.84 102C24.84 99.02 24.84 97.52 25.47 96.66C26.02 95.91 26.86 95.42 27.79 95.33C28.85 95.22 30.15 95.96 32.74 97.45L61.52 114.03C66.61 116.96 69.74 122.38 69.74 128.24L69.74 145.5C69.74 147.99 69.74 149.24 70.1 150.35C70.43 151.34 70.95 152.24 71.65 153.01C72.43 153.88 73.52 154.5 75.68 155.74L76.33 156.12C79.56 157.97 81.18 158.9 82.51 158.76C83.67 158.64 84.72 158.03 85.4 157.09C86.19 156.01 86.19 154.15 86.19 150.43L86.19 128.24C86.19 116.52 79.92 105.68 69.74 99.82L27.71 75.62C25.94 74.59 24.84 72.7 24.84 70.66C24.84 64.79 27.98 59.38 33.07 56.45L89.22 24.1C94.31 21.17 100.58 21.17 105.66 24.1L134.73 40.85C137.32 42.34 138.62 43.09 139.06 44.06C139.43 44.91 139.43 45.88 139.06 46.73C138.62 47.7 137.32 48.45 134.73 49.94L105.21 66.95C100.12 69.88 93.85 69.88 88.76 66.95L72.22 57.42C70.58 56.47 69.75 56 68.88 55.81C68.1 55.64 67.3 55.63 66.52 55.79C65.64 55.96 64.81 56.42 63.15 57.34L61.1 58.48C57.77 60.32 56.11 61.24 55.55 62.46C55.06 63.53 55.05 64.75 55.52 65.82C56.06 67.05 57.71 68 61 69.9L80.54 81.16C90.72 87.02 103.26 87.02 113.43 81.16L156.33 56.45C158.03 55.47 160.12 55.47 161.82 56.45C166.91 59.38 170.04 64.79 170.04 70.66V135.34Z\" fill=\"white\"/>\n        <path d=\"M312.19 58.01C314.28 58.01 315.98 59.68 315.98 61.75V72.54C315.98 74.59 314.3 76.27 312.21 76.28L287 76.44C276.85 76.44 274.63 78.08 274.63 90.49V145.5C274.63 147.57 272.94 149.25 270.85 149.25H256.27C254.18 149.25 252.48 147.57 252.48 145.5V82.28C252.48 65.85 259.87 58.01 277.03 58.01H312.19Z\" fill=\"white\"/>\n        <path d=\"M400.01 129.54C393 144.32 381.56 150.71 368.64 150.71C341.5 150.71 332.64 129.54 332.64 102.17V61.75C332.64 59.68 334.34 58.01 336.43 58.01H351.01C353.1 58.01 354.79 59.68 354.79 61.75V102.17C354.79 120.6 362.92 128.63 376.94 128.63C385.8 128.63 402.41 122.24 402.41 92.13V61.75C402.41 59.68 404.11 58.01 406.2 58.01H420.78C422.87 58.01 424.56 59.68 424.56 61.75V145.5C424.56 147.57 422.87 149.25 420.78 149.25H406.2C404.11 149.25 402.41 147.57 402.41 145.5V130.09C402.41 126.33 402.95 121.52 403.66 117.89C403.69 117.78 403.6 117.68 403.49 117.68C403.4 117.68 403.32 117.74 403.31 117.82C402.57 121.45 401.47 126.12 400.01 129.54Z\" fill=\"white\"/>\n        <path d=\"M465.84 78.81C473.22 63.3 487.62 56.55 499.98 56.55C524.35 56.55 533.58 77.72 533.58 105.09V145.5C533.58 147.57 531.88 149.25 529.79 149.25H515.03C512.94 149.25 511.24 147.57 511.24 145.5V105.09C511.24 88.48 504.23 78.63 491.86 78.63C482.26 78.63 463.25 85.01 463.25 115.12V145.5C463.25 147.57 461.56 149.25 459.47 149.25H444.89C442.8 149.25 441.1 147.57 441.1 145.5V61.75C441.1 59.68 442.8 58.01 444.89 58.01H459.47C461.56 58.01 463.25 59.68 463.25 61.75V78.26C463.25 81.84 462.72 86.65 462 90.28C461.98 90.39 462.07 90.49 462.18 90.49C462.27 90.49 462.34 90.43 462.36 90.35C463.1 86.72 464.2 82.23 465.84 78.81Z\" fill=\"white\"/>\n        <path d=\"M576.68 70.96C584.99 62.2 599.75 56.91 611.94 56.91C640.91 57.1 657.71 72.06 657.71 103.63C657.71 135.2 640.91 150.34 611.94 150.34C599.75 150.34 584.99 145.05 576.68 136.29C573.76 133.4 571.74 128.19 570.45 124.37C570.42 124.3 570.36 124.25 570.28 124.25C570.16 124.25 570.07 124.36 570.11 124.47C571.37 128.63 572.44 133.63 572.44 137.75V163.24C572.44 165.31 570.74 166.98 568.65 166.98H554.07C551.98 166.98 550.28 165.31 550.28 163.25L550.11 61.76C550.11 59.69 551.8 58.01 553.9 58.01H568.65C570.74 58.01 572.44 59.68 572.44 61.75V69.5C572.44 73.62 571.37 78.96 570.11 82.78C570.08 82.89 570.16 83.01 570.28 83.01C570.36 83.01 570.42 82.96 570.45 82.89C571.74 79.07 573.76 73.85 576.68 70.96ZM605.48 133.19C627.44 133.19 635.56 122.06 635.56 103.63C635.56 84.83 627.25 75.53 605.48 74.98C588.5 74.98 572.44 86.11 572.44 103.63C572.44 121.14 588.5 133.19 605.48 133.19Z\" fill=\"white\"/>\n        <path d=\"M777.88 103.63C777.88 135.2 752.97 150.34 723.99 150.34C695.2 150.34 670.28 135.2 670.28 103.63C670.28 72.06 695.2 56.91 723.99 56.91C752.97 56.91 777.88 72.24 777.88 103.63ZM755.74 103.63C755.74 85.2 740.79 74.8 723.99 74.8C707.75 74.8 692.43 85.2 692.43 103.63C692.43 122.61 706.64 132.28 723.99 132.28C740.97 132.28 755.74 122.24 755.74 103.63Z\" fill=\"white\"/>\n        <path d=\"M872.21 136.66C863.72 145.05 848.95 150.34 836.77 150.34C807.79 150.34 790.99 135.2 790.99 103.63C790.99 72.06 807.79 57.1 836.77 56.91C848.95 56.91 863.9 62.57 872.21 71.33C875.13 74.22 876.97 79.43 878.26 83.25C878.28 83.32 878.35 83.37 878.43 83.37C878.55 83.37 878.63 83.26 878.6 83.14C877.34 78.99 876.27 73.99 876.27 69.87V42.76C876.27 40.69 877.96 39.02 880.05 39.02H894.82C896.91 39.02 898.6 40.69 898.6 42.76V145.5C898.6 147.57 896.91 149.25 894.82 149.25H880.05C877.96 149.25 876.27 147.57 876.27 145.5V138.12C876.27 133.98 877.34 128.78 878.61 124.96C878.64 124.86 878.6 124.76 878.51 124.72C878.4 124.66 878.26 124.72 878.22 124.83C876.93 128.65 875.1 133.79 872.21 136.66ZM843.23 132.28C860.21 132.28 876.27 121.14 876.27 103.63C876.27 86.11 860.21 74.07 843.23 74.07C821.26 74.61 812.96 85.01 812.96 103.63C812.96 122.24 821.45 132.28 843.23 132.28Z\" fill=\"white\"/>\n      </svg>\n    </a>\n\n    <div class=\"spinner-wrap\">\n      <div class=\"spinner\"></div>\n    </div>\n\n    <h1>Waiting for service to respond</h1>\n    <p>\n      The service on this port is either still initializing or\n      not running. Check the container logs for more details.\n    </p>\n\n    <div class=\"actions\">\n      <a class=\"btn btn-primary\" id=\"logs\" target=\"_blank\" rel=\"noopener\">\n        View Container Logs &rarr;\n      </a>\n      <button class=\"btn btn-secondary\" onclick=\"location.reload()\">\n        Try Again\n      </button>\n    </div>\n\n    <p class=\"refresh-hint\">Auto-refreshing in <span id=\"countdown\">10</span>s</p>\n  </div>\n\n  <script>\n    var t = 10;\n    var cd = document.getElementById('countdown');\n    setInterval(function () {\n      if (t > 1) { t--; cd.textContent = t; } else { location.reload(); }\n    }, 1000);\n\n    var host = location.hostname;\n    var podId = host.split('.')[0].split('-')[0];\n    var base = host.indexOf('dev-proxy') > -1 ? 'https://dev.runpod.io' : 'https://console.runpod.io';\n    document.getElementById('logs').href = base + '/pods?id=' + podId + '&inspectorTab=logs';\n  </script>\n</body>\n</html>",
+      "elapsed": 4.504454199995962
+    },
+    {
+      "question": "신림역 주변 횟집 해줘",
+      "answer": [
+        "목포수산"
+      ],
+      "error": "BadGatewayError: litellm.BadGatewayError: BadGatewayError: OpenAIException - <!DOCTYPE html>\n<html lang=\"en\">\n<head>\n  <meta charset=\"UTF-8\" />\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" />\n  <title>Waiting for service to respond — RunPod</title>\n  <style>\n    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}\n    body{background:#0a0a0a;color:#e2e2e2;font-family:-apple-system,BlinkMacSystemFont,\"Segoe UI\",Roboto,sans-serif;min-height:100vh;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}\n    .card{background:#141414;border:1px solid #2a2a2a;border-radius:.25rem;padding:48px 40px;max-width:480px;width:100%;text-align:center}\n    .logo{display:inline-block;margin-bottom:32px;text-decoration:none}\n    .logo svg{width:140px;height:auto}\n    .spinner-wrap{display:flex;justify-content:center;margin-bottom:24px}\n    .spinner{width:40px;height:40px;border:3px solid #2a2a2a;border-top-color:#5F4CFE;border-radius:50%;animation:spin .9s linear infinite}\n    @keyframes spin{to{transform:rotate(360deg)}}\n    h1{font-size:22px;font-weight:600;color:#fff;margin-bottom:12px;letter-spacing:-.3px}\n    p{font-size:15px;line-height:1.6;color:#888;margin-bottom:32px}\n    .actions{display:flex;flex-direction:column;gap:12px}\n    .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:11px 20px;border-radius:.25rem;font-size:14px;font-weight:500;cursor:pointer;text-decoration:none;border:none;transition:opacity .15s}\n    .btn:hover{opacity:.85}\n    .btn-primary{background:#5F4CFE;color:#fff}\n    .btn-secondary{background:transparent;color:#888;border:1px solid #2a2a2a}\n    .btn-secondary:hover{color:#ccc;border-color:#444;opacity:1}\n    .refresh-hint{margin-top:28px;font-size:13px;color:#555}\n    #countdown{color:#5F4CFE}\n  </style>\n</head>\n<body>\n  <div class=\"card\">\n    <a class=\"logo\" href=\"https://www.runpod.io\" target=\"_blank\" rel=\"noopener\">\n      <svg width=\"907\" height=\"206\" viewBox=\"0 0 907 206\" fill=\"none\" xmlns=\"http://www.w3.org/2000/svg\" aria-label=\"RunPod\">\n        <path fill-rule=\"evenodd\" clip-rule=\"evenodd\" d=\"M170.04 163.76C180.22 157.9 186.49 147.07 186.49 135.34L186.49 70.66C186.49 58.93 180.22 48.1 170.04 42.24L113.89 9.9C103.71 4.03 91.17 4.03 81 9.9L24.84 42.24C14.67 48.1 8.4 58.93 8.4 70.66L8.4 135.34C8.4 147.07 14.67 157.9 24.84 163.76L81 196.1C91.17 201.97 103.71 201.97 113.89 196.1L170.04 163.76ZM170.04 135.34C170.04 141.21 166.91 146.62 161.82 149.55L132.43 166.48C129.84 167.97 128.54 168.72 127.48 168.61C126.55 168.51 125.71 168.03 125.16 167.27C124.53 166.41 124.53 164.92 124.53 161.93L124.53 128.08C124.53 122.22 127.67 116.8 132.76 113.87L148.49 104.81C150.65 103.56 151.73 102.94 152.52 102.07C153.21 101.3 153.74 100.39 154.06 99.4C154.42 98.29 154.42 97.04 154.41 94.56L154.41 93.81C154.41 90.08 154.4 88.22 153.62 87.15C152.93 86.21 151.88 85.6 150.72 85.48C149.39 85.34 147.78 86.27 144.54 88.14L124.53 99.66C114.36 105.52 108.09 116.36 108.09 128.08V177.7C108.09 179.43 107.17 181.03 105.66 181.9C100.58 184.83 94.31 184.83 89.22 181.9L33.07 149.55C27.98 146.62 24.84 141.21 24.84 135.34L24.84 102C24.84 99.02 24.84 97.52 25.47 96.66C26.02 95.91 26.86 95.42 27.79 95.33C28.85 95.22 30.15 95.96 32.74 97.45L61.52 114.03C66.61 116.96 69.74 122.38 69.74 128.24L69.74 145.5C69.74 147.99 69.74 149.24 70.1 150.35C70.43 151.34 70.95 152.24 71.65 153.01C72.43 153.88 73.52 154.5 75.68 155.74L76.33 156.12C79.56 157.97 81.18 158.9 82.51 158.76C83.67 158.64 84.72 158.03 85.4 157.09C86.19 156.01 86.19 154.15 86.19 150.43L86.19 128.24C86.19 116.52 79.92 105.68 69.74 99.82L27.71 75.62C25.94 74.59 24.84 72.7 24.84 70.66C24.84 64.79 27.98 59.38 33.07 56.45L89.22 24.1C94.31 21.17 100.58 21.17 105.66 24.1L134.73 40.85C137.32 42.34 138.62 43.09 139.06 44.06C139.43 44.91 139.43 45.88 139.06 46.73C138.62 47.7 137.32 48.45 134.73 49.94L105.21 66.95C100.12 69.88 93.85 69.88 88.76 66.95L72.22 57.42C70.58 56.47 69.75 56 68.88 55.81C68.1 55.64 67.3 55.63 66.52 55.79C65.64 55.96 64.81 56.42 63.15 57.34L61.1 58.48C57.77 60.32 56.11 61.24 55.55 62.46C55.06 63.53 55.05 64.75 55.52 65.82C56.06 67.05 57.71 68 61 69.9L80.54 81.16C90.72 87.02 103.26 87.02 113.43 81.16L156.33 56.45C158.03 55.47 160.12 55.47 161.82 56.45C166.91 59.38 170.04 64.79 170.04 70.66V135.34Z\" fill=\"white\"/>\n        <path d=\"M312.19 58.01C314.28 58.01 315.98 59.68 315.98 61.75V72.54C315.98 74.59 314.3 76.27 312.21 76.28L287 76.44C276.85 76.44 274.63 78.08 274.63 90.49V145.5C274.63 147.57 272.94 149.25 270.85 149.25H256.27C254.18 149.25 252.48 147.57 252.48 145.5V82.28C252.48 65.85 259.87 58.01 277.03 58.01H312.19Z\" fill=\"white\"/>\n        <path d=\"M400.01 129.54C393 144.32 381.56 150.71 368.64 150.71C341.5 150.71 332.64 129.54 332.64 102.17V61.75C332.64 59.68 334.34 58.01 336.43 58.01H351.01C353.1 58.01 354.79 59.68 354.79 61.75V102.17C354.79 120.6 362.92 128.63 376.94 128.63C385.8 128.63 402.41 122.24 402.41 92.13V61.75C402.41 59.68 404.11 58.01 406.2 58.01H420.78C422.87 58.01 424.56 59.68 424.56 61.75V145.5C424.56 147.57 422.87 149.25 420.78 149.25H406.2C404.11 149.25 402.41 147.57 402.41 145.5V130.09C402.41 126.33 402.95 121.52 403.66 117.89C403.69 117.78 403.6 117.68 403.49 117.68C403.4 117.68 403.32 117.74 403.31 117.82C402.57 121.45 401.47 126.12 400.01 129.54Z\" fill=\"white\"/>\n        <path d=\"M465.84 78.81C473.22 63.3 487.62 56.55 499.98 56.55C524.35 56.55 533.58 77.72 533.58 105.09V145.5C533.58 147.57 531.88 149.25 529.79 149.25H515.03C512.94 149.25 511.24 147.57 511.24 145.5V105.09C511.24 88.48 504.23 78.63 491.86 78.63C482.26 78.63 463.25 85.01 463.25 115.12V145.5C463.25 147.57 461.56 149.25 459.47 149.25H444.89C442.8 149.25 441.1 147.57 441.1 145.5V61.75C441.1 59.68 442.8 58.01 444.89 58.01H459.47C461.56 58.01 463.25 59.68 463.25 61.75V78.26C463.25 81.84 462.72 86.65 462 90.28C461.98 90.39 462.07 90.49 462.18 90.49C462.27 90.49 462.34 90.43 462.36 90.35C463.1 86.72 464.2 82.23 465.84 78.81Z\" fill=\"white\"/>\n        <path d=\"M576.68 70.96C584.99 62.2 599.75 56.91 611.94 56.91C640.91 57.1 657.71 72.06 657.71 103.63C657.71 135.2 640.91 150.34 611.94 150.34C599.75 150.34 584.99 145.05 576.68 136.29C573.76 133.4 571.74 128.19 570.45 124.37C570.42 124.3 570.36 124.25 570.28 124.25C570.16 124.25 570.07 124.36 570.11 124.47C571.37 128.63 572.44 133.63 572.44 137.75V163.24C572.44 165.31 570.74 166.98 568.65 166.98H554.07C551.98 166.98 550.28 165.31 550.28 163.25L550.11 61.76C550.11 59.69 551.8 58.01 553.9 58.01H568.65C570.74 58.01 572.44 59.68 572.44 61.75V69.5C572.44 73.62 571.37 78.96 570.11 82.78C570.08 82.89 570.16 83.01 570.28 83.01C570.36 83.01 570.42 82.96 570.45 82.89C571.74 79.07 573.76 73.85 576.68 70.96ZM605.48 133.19C627.44 133.19 635.56 122.06 635.56 103.63C635.56 84.83 627.25 75.53 605.48 74.98C588.5 74.98 572.44 86.11 572.44 103.63C572.44 121.14 588.5 133.19 605.48 133.19Z\" fill=\"white\"/>\n        <path d=\"M777.88 103.63C777.88 135.2 752.97 150.34 723.99 150.34C695.2 150.34 670.28 135.2 670.28 103.63C670.28 72.06 695.2 56.91 723.99 56.91C752.97 56.91 777.88 72.24 777.88 103.63ZM755.74 103.63C755.74 85.2 740.79 74.8 723.99 74.8C707.75 74.8 692.43 85.2 692.43 103.63C692.43 122.61 706.64 132.28 723.99 132.28C740.97 132.28 755.74 122.24 755.74 103.63Z\" fill=\"white\"/>\n        <path d=\"M872.21 136.66C863.72 145.05 848.95 150.34 836.77 150.34C807.79 150.34 790.99 135.2 790.99 103.63C790.99 72.06 807.79 57.1 836.77 56.91C848.95 56.91 863.9 62.57 872.21 71.33C875.13 74.22 876.97 79.43 878.26 83.25C878.28 83.32 878.35 83.37 878.43 83.37C878.55 83.37 878.63 83.26 878.6 83.14C877.34 78.99 876.27 73.99 876.27 69.87V42.76C876.27 40.69 877.96 39.02 880.05 39.02H894.82C896.91 39.02 898.6 40.69 898.6 42.76V145.5C898.6 147.57 896.91 149.25 894.82 149.25H880.05C877.96 149.25 876.27 147.57 876.27 145.5V138.12C876.27 133.98 877.34 128.78 878.61 124.96C878.64 124.86 878.6 124.76 878.51 124.72C878.4 124.66 878.26 124.72 878.22 124.83C876.93 128.65 875.1 133.79 872.21 136.66ZM843.23 132.28C860.21 132.28 876.27 121.14 876.27 103.63C876.27 86.11 860.21 74.07 843.23 74.07C821.26 74.61 812.96 85.01 812.96 103.63C812.96 122.24 821.45 132.28 843.23 132.28Z\" fill=\"white\"/>\n      </svg>\n    </a>\n\n    <div class=\"spinner-wrap\">\n      <div class=\"spinner\"></div>\n    </div>\n\n    <h1>Waiting for service to respond</h1>\n    <p>\n      The service on this port is either still initializing or\n      not running. Check the container logs for more details.\n    </p>\n\n    <div class=\"actions\">\n      <a class=\"btn btn-primary\" id=\"logs\" target=\"_blank\" rel=\"noopener\">\n        View Container Logs &rarr;\n      </a>\n      <button class=\"btn btn-secondary\" onclick=\"location.reload()\">\n        Try Again\n      </button>\n    </div>\n\n    <p class=\"refresh-hint\">Auto-refreshing in <span id=\"countdown\">10</span>s</p>\n  </div>\n\n  <script>\n    var t = 10;\n    var cd = document.getElementById('countdown');\n    setInterval(function () {\n      if (t > 1) { t--; cd.textContent = t; } else { location.reload(); }\n    }, 1000);\n\n    var host = location.hostname;\n    var podId = host.split('.')[0].split('-')[0];\n    var base = host.indexOf('dev-proxy') > -1 ? 'https://dev.runpod.io' : 'https://console.runpod.io';\n    document.getElementById('logs').href = base + '/pods?id=' + podId + '&inspectorTab=logs';\n  </script>\n</body>\n</html>",
+      "elapsed": 3.0553073000046425
+    }
+  ]
+}

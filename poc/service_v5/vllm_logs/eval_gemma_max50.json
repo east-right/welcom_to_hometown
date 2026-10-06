@@ -1,0 +1,539 @@
+{
+  "summary": {},
+  "cases": [
+    {
+      "question": "창원 귀산 바다가 보이는 커피 맛집",
+      "answer": [
+        "갱고반지하",
+        "블루피쉬",
+        "더로드101 귀산",
+        "카페모조"
+      ],
+      "kind": "recommendation",
+      "predicted": [
+        "224커피",
+        "하우요커피",
+        "엘리브",
+        "포엠커피웍스 귀산점",
+        "카페솔",
+        "갱고반지하",
+        "블루피쉬",
+        "카페더원"
+      ],
+      "pool": [
+        "바다로움",
+        "썬댄스",
+        "페이머스베니",
+        "몬스터로스터스",
+        "도시정원",
+        "하우요커피",
+        "엘리브",
+        "커피프렌즈",
+        "로스터리퐁",
+        "갱고반지하",
+        "카페솔",
+        "카페모조",
+        "카페몰토",
+        "더로드101 귀산",
+        "카페더원",
+        "224커피",
+        "브룸라이더카페",
+        "블루피쉬",
+        "아쿠아모스",
+        "포엠커피웍스 귀산점",
+        "시오리솔밭길",
+        "테이블코코카페",
+        "다온재",
+        "코델리아",
+        "찰리의커피공장",
+        "더웨이닝커피 창원두산중공업점",
+        "뽀글이&드링크 창원귀산점",
+        "더웨이닝커피 창원두산에너빌리티점",
+        "지중해",
+        "우주슈퍼",
+        "메르칼므",
+        "달빛라운지"
+      ],
+      "detail": [
+        {
+          "answer": "갱고반지하",
+          "in_pool": true,
+          "pool_rank": 10,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": true,
+          "final_rank": 6
+        },
+        {
+          "answer": "블루피쉬",
+          "in_pool": true,
+          "pool_rank": 18,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": true,
+          "final_rank": 7
+        },
+        {
+          "answer": "더로드101 귀산",
+          "in_pool": true,
+          "pool_rank": 14,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": false,
+          "final_rank": null
+        },
+        {
+          "answer": "카페모조",
+          "in_pool": true,
+          "pool_rank": 12,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": false,
+          "final_rank": null
+        }
+      ],
+      "n_answer": 4,
+      "n_pool_hit": 4,
+      "n_filter_hit": 4,
+      "n_rerank_hit": 4,
+      "n_final_hit": 2,
+      "rr": 0.16666666666666666,
+      "elapsed": 60.953821300005075,
+      "timing": {
+        "agent_llm_sec": 35.87,
+        "util_llm_sec": 35.51,
+        "tool_sec": 16.29,
+        "embed_sec": 1.23,
+        "io_sec": 52.88
+      },
+      "latency": {},
+      "steps": [
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 9.65,
+          "tok_in": 3358,
+          "tok_out": 28,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 3.21,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"category_code\": \"CE7\", \"query\": \"창원 귀산 카페\"}",
+          "detail": "{\"count\": 32, \"source_breakdown\": {\"kakao\": 33, \"web_harvest\": 5}, \"file\": \"tool…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 3.08,
+          "tok_in": 3459,
+          "tok_out": 35,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 13.08,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"region_prefix\": \"귀산\", \"user_query\": \"창원 귀산 바다가 보이는 커피 맛집\"}",
+          "detail": "{\"count\": 14, \"no_info\": 1, \"reranked_from\": 32, \"url_file\": \"tool_file\\\\1789023…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.85,
+          "tok_in": 3622,
+          "tok_out": 39,
+          "args": "",
+          "detail": "→ read_file"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "sec": 0.01,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"file_path\": \"tool_file\\\\\\\\1789023582423_info_summary.json\"}",
+          "detail": "<7505자>"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 20.29,
+          "tok_in": 7751,
+          "tok_out": 449,
+          "args": "",
+          "detail": "{   \"kind\": \"recommendation\",   \"message\": \"창원 귀산에서 바다 조망과 커…"
+        }
+      ],
+      "tool_calls": [
+        "collect_places",
+        "collect_info",
+        "read_file"
+      ],
+      "tokens_in": 18190,
+      "tokens_out": 551,
+      "files": {
+        "file": "tool_file\\1789023582423_collect_places.json",
+        "url_file": "tool_file\\1789023582423_info_urls.json",
+        "rerank_file": "tool_file\\1789023582423_info_rerank.json",
+        "summary_file": "tool_file\\1789023582423_info_summary.json"
+      },
+      "message": "창원 귀산에서 바다 조망과 커피 맛을 모두 잡은 곳들을 추천해 드립니다. 특히 블루리본 선정 카페들이 있어 취향에 맞는 커피를 즐기시기 좋습니다."
+    },
+    {
+      "question": "신림역 주변에서 혼밥하기 좋은 식당",
+      "answer": [
+        "24시서울밥집"
+      ],
+      "kind": "recommendation",
+      "predicted": [
+        "손칼국수잘하는집",
+        "서울밥집",
+        "혼맛",
+        "담솥 타임스트림점",
+        "우된장 타임스트림점",
+        "스시나마",
+        "강남한식뷔페",
+        "일인반닭"
+      ],
+      "pool": [
+        "신림양면소",
+        "우된장 타임스트림점",
+        "중화요리팔공",
+        "강남김밥",
+        "밥맛나는세상 신림역",
+        "두둑한샤브칼국수 신림점",
+        "퍼그 피자하우스 신림점",
+        "황토밭왕족발감자탕 직영점",
+        "부뚜막",
+        "세맛원종동장터순대국",
+        "신주옥미 신림역점",
+        "쩐호우양꼬치&샤브샤브",
+        "본동소바수제돈까스우동 본점",
+        "왕돈가스왕냉면 신원시장점",
+        "카레마치 포도몰점",
+        "일심기사식당",
+        "담솥 타임스트림점",
+        "봉이돈까스",
+        "고향순대국두부삼합전문점",
+        "멘지 신림역점",
+        "도쿄스테이크 타임스트림점",
+        "막불감동",
+        "서울밥집",
+        "하나감자탕",
+        "신바야시 쇼쿠도",
+        "남향티하우스",
+        "전주식당",
+        "서울뼛국",
+        "일인반닭",
+        "스시나마",
+        "구영회참치&초밥 신림점",
+        "라공방 신림점",
+        "손칼국수잘하는집",
+        "사이공본가 신림점",
+        "서림실비순대",
+        "혼맛",
+        "시골장칼국수",
+        "흥부보쌈",
+        "샤브로21 신림",
+        "옛날집",
+        "시장탕수육",
+        "고베규카츠 신림점",
+        "강남한식뷔페",
+        "앵그리포테이토 신림점",
+        "인디아더르바르"
+      ],
+      "detail": [
+        {
+          "answer": "24시서울밥집",
+          "in_pool": true,
+          "pool_rank": 23,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": true,
+          "final_rank": 2
+        }
+      ],
+      "n_answer": 1,
+      "n_pool_hit": 1,
+      "n_filter_hit": 1,
+      "n_rerank_hit": 1,
+      "n_final_hit": 1,
+      "rr": 0.5,
+      "elapsed": 52.85297769999306,
+      "timing": {
+        "agent_llm_sec": 27.12,
+        "util_llm_sec": 33.19,
+        "tool_sec": 18.53,
+        "embed_sec": 1.56,
+        "io_sec": 61.02
+      },
+      "latency": {},
+      "steps": [
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 3.26,
+          "tok_in": 3359,
+          "tok_out": 30,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 4.92,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"category_code\": \"FD6\", \"query\": \"신림역 혼밥 식당\"}",
+          "detail": "{\"count\": 45, \"source_breakdown\": {\"kakao\": 45, \"web_harvest\": 21}, \"file\": \"too…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.56,
+          "tok_in": 3534,
+          "tok_out": 36,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 13.6,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"region_prefix\": \"신림\", \"user_query\": \"신림역 주변에서 혼밥하기 좋은 식당\"}",
+          "detail": "{\"count\": 13, \"no_info\": 2, \"reranked_from\": 45, \"url_file\": \"tool_file\\\\1789023…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.98,
+          "tok_in": 3698,
+          "tok_out": 39,
+          "args": "",
+          "detail": "→ read_file"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "sec": 0.01,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"file_path\": \"tool_file\\\\\\\\1789023637791_info_summary.json\"}",
+          "detail": "<6932자>"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 18.31,
+          "tok_in": 7525,
+          "tok_out": 432,
+          "args": "",
+          "detail": "{   \"kind\": \"recommendation\",   \"message\": \"신림역 주변에서 혼밥하기 좋은…"
+        }
+      ],
+      "tool_calls": [
+        "collect_places",
+        "collect_info",
+        "read_file"
+      ],
+      "tokens_in": 18116,
+      "tokens_out": 537,
+      "files": {
+        "file": "tool_file\\1789023637791_collect_places.json",
+        "url_file": "tool_file\\1789023637791_info_urls.json",
+        "rerank_file": "tool_file\\1789023637791_info_rerank.json",
+        "summary_file": "tool_file\\1789023637791_info_summary.json"
+      },
+      "message": "신림역 주변에서 혼밥하기 좋은 가성비 식당과 깔끔한 전문점들을 추천해 드립니다."
+    },
+    {
+      "question": "창원 귀산 맛집 추천",
+      "answer": [
+        "귀산옥 해물칼국수",
+        "청하횟집"
+      ],
+      "kind": "recommendation",
+      "predicted": [
+        "안전가옥",
+        "백곰횟집",
+        "성산옥프리미엄",
+        "대교횟집",
+        "라온하제",
+        "해변횟집",
+        "낙원정",
+        "청하횟집"
+      ],
+      "pool": [
+        "포숑",
+        "남포수제비와주먹밥 시티세븐몰점",
+        "소바카츠 용지호수점",
+        "부타옥",
+        "푼푼",
+        "엄마손팥죽",
+        "충무김밥맛죽",
+        "사야 스시앤카츠 귀산본점",
+        "식당더원",
+        "청하횟집",
+        "성산옥프리미엄",
+        "일품전골",
+        "라온하제",
+        "테이블코코",
+        "카츠미도리",
+        "해변횟집",
+        "안전가옥",
+        "메리모나크",
+        "강씨횟집",
+        "형제횟집",
+        "코카로카",
+        "성산정",
+        "낙원정",
+        "포도나무집",
+        "올드몬트베이글 창원",
+        "백곰횟집",
+        "전라도팥바지락칼국수",
+        "노스",
+        "순식당",
+        "석교횟집",
+        "똘똘개횟집",
+        "겐츠베이커리 귀산점",
+        "시오리 솔밭길카페",
+        "NOSS 함박카레",
+        "별장가든횟집",
+        "대교횟집",
+        "상하이717",
+        "북면자연농원 귀산점",
+        "까사밍고 창원귀산점",
+        "라이진",
+        "대박집식당",
+        "보재기횟집",
+        "굿웨더",
+        "귀산돈까스 귀산본점",
+        "귀라카이버거 귀산직영점"
+      ],
+      "detail": [
+        {
+          "answer": "귀산옥 해물칼국수",
+          "in_pool": true,
+          "pool_rank": 44,
+          "in_filter": true,
+          "in_rerank": false,
+          "in_final": false,
+          "final_rank": null
+        },
+        {
+          "answer": "청하횟집",
+          "in_pool": true,
+          "pool_rank": 10,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": true,
+          "final_rank": 8
+        }
+      ],
+      "n_answer": 2,
+      "n_pool_hit": 2,
+      "n_filter_hit": 2,
+      "n_rerank_hit": 1,
+      "n_final_hit": 1,
+      "rr": 0.125,
+      "elapsed": 55.115756500003044,
+      "timing": {
+        "agent_llm_sec": 30.46,
+        "util_llm_sec": 31.34,
+        "tool_sec": 16.78,
+        "embed_sec": 1.52,
+        "io_sec": 48.48
+      },
+      "latency": {},
+      "steps": [
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.43,
+          "tok_in": 3355,
+          "tok_out": 29,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 4.4,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"category_code\": \"FD6\", \"query\": \"창원 귀산 맛집\"}",
+          "detail": "{\"count\": 45, \"source_breakdown\": {\"kakao\": 45, \"web_harvest\": 7}, \"file\": \"tool…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.39,
+          "tok_in": 3527,
+          "tok_out": 32,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 12.37,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"region_prefix\": \"귀산\", \"user_query\": \"창원 귀산 맛집 추천\"}",
+          "detail": "{\"count\": 13, \"no_info\": 2, \"reranked_from\": 45, \"url_file\": \"tool_file\\\\1789023…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.29,
+          "tok_in": 3687,
+          "tok_out": 39,
+          "args": "",
+          "detail": "→ read_file"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "sec": 0.01,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"file_path\": \"tool_file\\\\\\\\1789023689311_info_summary.json\"}",
+          "detail": "<7202자>"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 23.35,
+          "tok_in": 7656,
+          "tok_out": 525,
+          "args": "",
+          "detail": "{   \"kind\": \"recommendation\",   \"message\": \"창원 귀산의 아름다운 바다 뷰…"
+        }
+      ],
+      "tool_calls": [
+        "collect_places",
+        "collect_info",
+        "read_file"
+      ],
+      "tokens_in": 18225,
+      "tokens_out": 625,
+      "files": {
+        "file": "tool_file\\1789023689311_collect_places.json",
+        "url_file": "tool_file\\1789023689311_info_urls.json",
+        "rerank_file": "tool_file\\1789023689311_info_rerank.json",
+        "summary_file": "tool_file\\1789023689311_info_summary.json"
+      },
+      "message": "창원 귀산의 아름다운 바다 뷰와 함께 즐길 수 있는 현지인 추천 맛집들을 소개해 드립니다. 취향에 맞춰 선택해 보세요!"
+    }
+  ]
+}

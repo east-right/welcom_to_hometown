@@ -1,0 +1,326 @@
+{
+  "user_query": "창원 가포 맛집 추천",
+  "hypo_facets": [
+    "수십 년간 한자리를 지켜온 이곳은 깊은 내공이 담긴 손맛으로 지역 주민들의 꾸준한 사랑을 받는 노포입니다. 세월의 흔적이 묻어나는 정겨운 분위기 속에서 정성스럽게 차려낸 투박하지만 깊은 맛의 음식을 맛볼 수 있습니다.",
+    "가포에서 가장 활기찬 분위기를 자랑하는 이곳은 식사 시간마다 긴 대기 줄이 늘어설 정도로 현지인들에게 인기가 높습니다. 한번 맛보면 잊을 수 없는 중독성 덕분에 재방문하는 단골손님이 많아 늘 북적이는 활기찬 맛집입니다.",
+    "각종 미디어와 방송에 여러 차례 소개되며 맛과 품질을 확실하게 검증받은 곳입니다. 온라인상의 높은 평점과 긍정적인 리뷰가 증명하듯, 깔끔한 상차림과 실패 없는 맛으로 누구와 함께 방문해도 만족스러운 식사를 즐길 수 있습니다."
+  ],
+  "keep": 15,
+  "ranking": [
+    {
+      "rank": 1,
+      "name": "가포경양식",
+      "kept": true,
+      "cos": 0.7476,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 2,
+      "name": "가포등대집",
+      "kept": true,
+      "cos": 0.7238,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 3,
+      "name": "가포장어구이",
+      "kept": true,
+      "cos": 0.7231,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 4,
+      "name": "고기",
+      "kept": true,
+      "cos": 0.716,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 5,
+      "name": "가포영도장어구이",
+      "kept": true,
+      "cos": 0.7068,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 6,
+      "name": "개성순대",
+      "kept": true,
+      "cos": 0.7053,
+      "source": "web_harvest"
+    },
+    {
+      "rank": 7,
+      "name": "가포술집",
+      "kept": true,
+      "cos": 0.7042,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 8,
+      "name": "가포장어황금어장",
+      "kept": true,
+      "cos": 0.7034,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 9,
+      "name": "옛날영도집",
+      "kept": true,
+      "cos": 0.7001,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 10,
+      "name": "우동한그릇",
+      "kept": true,
+      "cos": 0.6968,
+      "source": "web_harvest"
+    },
+    {
+      "rank": 11,
+      "name": "토담갈비찜",
+      "kept": true,
+      "cos": 0.6921,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 12,
+      "name": "낙원우동",
+      "kept": true,
+      "cos": 0.6911,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 13,
+      "name": "해월수",
+      "kept": true,
+      "cos": 0.6856,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 14,
+      "name": "동굴집",
+      "kept": true,
+      "cos": 0.6847,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 15,
+      "name": "하루우동 마산가포점",
+      "kept": true,
+      "cos": 0.68,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 16,
+      "name": "옥수장어",
+      "kept": false,
+      "cos": 0.6796,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 17,
+      "name": "야타이",
+      "kept": false,
+      "cos": 0.6782,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 18,
+      "name": "디어피노",
+      "kept": false,
+      "cos": 0.6723,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 19,
+      "name": "바보형제쭈꾸미 가포점",
+      "kept": false,
+      "cos": 0.6716,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 20,
+      "name": "김앤주과자점",
+      "kept": false,
+      "cos": 0.6684,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 21,
+      "name": "콜리나",
+      "kept": false,
+      "cos": 0.6641,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 22,
+      "name": "어울림하우스",
+      "kept": false,
+      "cos": 0.6597,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 23,
+      "name": "부영포차",
+      "kept": false,
+      "cos": 0.6582,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 24,
+      "name": "백제령삼계탕",
+      "kept": false,
+      "cos": 0.6576,
+      "source": "web_harvest"
+    },
+    {
+      "rank": 25,
+      "name": "창동초가집",
+      "kept": false,
+      "cos": 0.6525,
+      "source": "web_harvest"
+    },
+    {
+      "rank": 26,
+      "name": "안민옥 마산직영점",
+      "kept": false,
+      "cos": 0.6483,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 27,
+      "name": "본길",
+      "kept": false,
+      "cos": 0.6465,
+      "source": "web_harvest"
+    },
+    {
+      "rank": 28,
+      "name": "더지노",
+      "kept": false,
+      "cos": 0.6462,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 29,
+      "name": "캠랑바베큐",
+      "kept": false,
+      "cos": 0.6374,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 30,
+      "name": "박배철베이커리 해유",
+      "kept": false,
+      "cos": 0.6347,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 31,
+      "name": "경원해물찜 신마산점",
+      "kept": false,
+      "cos": 0.6176,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 32,
+      "name": "베이커리카페빵내음",
+      "kept": false,
+      "cos": 0.6081,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 33,
+      "name": "해안선횟집 숯불장어구이",
+      "kept": false,
+      "cos": 0.606,
+      "source": "web_harvest"
+    },
+    {
+      "rank": 34,
+      "name": "스시혼 마산점",
+      "kept": false,
+      "cos": 0.5876,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 35,
+      "name": "마산시농협 한우명품정육식당 국향",
+      "kept": false,
+      "cos": 0.5855,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 36,
+      "name": "쌀통닭 마산월영점",
+      "kept": false,
+      "cos": 0.5773,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 37,
+      "name": "원시림횟집",
+      "kept": false,
+      "cos": 0.5308,
+      "source": "web_harvest"
+    },
+    {
+      "rank": 38,
+      "name": "명품갈비토반",
+      "kept": false,
+      "cos": -1.0,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 39,
+      "name": "고기&치킨",
+      "kept": false,
+      "cos": -1.0,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 40,
+      "name": "미소식당",
+      "kept": false,
+      "cos": -1.0,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 41,
+      "name": "갬량바베큐 마산본점",
+      "kept": false,
+      "cos": -1.0,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 42,
+      "name": "맛산브라운핸저",
+      "kept": false,
+      "cos": -1.0,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 43,
+      "name": "픽미 가포유보라점",
+      "kept": false,
+      "cos": -1.0,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 44,
+      "name": "반트(VANT)",
+      "kept": false,
+      "cos": -1.0,
+      "source": "kakao_local"
+    },
+    {
+      "rank": 45,
+      "name": "얼큰불닭 마산본점",
+      "kept": false,
+      "cos": -1.0,
+      "source": "kakao_local"
+    }
+  ]
+}
