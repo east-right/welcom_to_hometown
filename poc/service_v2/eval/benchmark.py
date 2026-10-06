@@ -1,17 +1,16 @@
-"""테스트셋 기반 평가. 답변 품질(recall/precision) + 서빙 지표(TTFT/E2EL/ITL).
+"""테스트셋 실행. recall + 추천 결과 + 실행별 로그(flow/agents) + 서버측 시간지표.
 
-두 가지를 서로 다른 방식으로 잰다:
-  - 답변 품질: 전체 플로우(understand→recommend)를 돌려 추천 카드 이름을
-    정답 맛집 리스트와 대조. recall = 정답 중 맞힌 비율, precision = 추천 중 정답 비율.
-  - 서빙 지표: vLLM OpenAI 엔드포인트에 '직접 스트리밍' 호출로 토큰 타이밍 측정.
-    (ADK 파이프라인은 토큰 단위 시각을 안 내주므로 raw 스트리밍이 정확)
+precision(정확도)은 추천 10개 중 매칭이라 원래 낮게 나와 무의미해 빼고, recall(정답 중
+몇 개를 담았나)만 잰다.
+  - report : test.json 전체를 파이프라인에 태워 recall·추천 결과 저장 + flow/agents 로그.
+  - serving: vLLM OpenAI 엔드포인트에 '직접 스트리밍' 호출로 토큰 타이밍(vLLM일 때만).
       TTFT = 첫 토큰까지 시간, E2EL = 전체 생성 시간, ITL = 토큰 간 평균 간격
 
 사용:
-  uv run python -m poc.service_v2.eval.benchmark quality        # recall/precision
-  uv run python -m poc.service_v2.eval.benchmark serving        # TTFT/E2EL/ITL
-  uv run python -m poc.service_v2.eval.benchmark all            # 둘 다
-  # 테스트셋 경로 지정: ... all --testset data/test.json
+  uv run python -m poc.service_v2.eval.benchmark report
+  uv run python -m poc.service_v2.eval.benchmark serving
+  uv run python -m poc.service_v2.eval.benchmark all
+  # 테스트셋 경로 지정: ... report --testset data/test.json
 """
 import argparse
 import asyncio
@@ -26,8 +25,7 @@ from datetime import datetime
 import httpx
 
 from ..config import MODEL, MODEL_API_BASE, MODEL_API_KEY
-from ..domain.models import Slots
-from ..main import build_recommender
+from ..main import build_search
 
 _DEFAULT_TESTSET = "data/test.json"
 
@@ -44,7 +42,7 @@ def load_testset(path: str) -> list[dict]:
         return json.load(f)
 
 
-# ── 답변 품질: 이름 매칭 ────────────────────────────────
+# ── recall: 정답 매장 중 몇 개를 추천에 담았나 (precision은 안 잰다) ──
 
 def _norm(s: str) -> str:
     return re.sub(r"\s+", "", s or "").lower()
@@ -56,60 +54,21 @@ def _variants(answer: str) -> list[str]:
     return [v for p in parts if len(v := _norm(p)) >= 2]
 
 
-def _same(a: str, b: str) -> bool:
-    return a in b or b in a
-
-
-def score(answers: list[str], recommended: list[str]) -> dict:
-    """recall/precision 계산. 부분일치(공백 제거 후 포함관계)로 관대하게 매칭."""
+def recall_of(answers: list[str], recommended: list[str]) -> dict:
+    """정답 중 추천에 담긴 비율. 공백 제거 후 포함관계로 관대하게 매칭."""
     rec_norm = [_norm(r) for r in recommended]
-
-    hit_answers = sum(
-        any(_same(v, rn) for v in _variants(a) for rn in rec_norm)
+    hit = sum(
+        any(v in rn or rn in v for v in _variants(a) for rn in rec_norm)
         for a in answers
     )
-    hit_cards = sum(
-        any(_same(v, rn) for a in answers for v in _variants(a))
-        for rn in rec_norm
-    )
-    recall = hit_answers / len(answers) if answers else 0.0
-    precision = hit_cards / len(recommended) if recommended else 0.0
-    return {"recall": recall, "precision": precision,
-            "matched": hit_answers, "n_answer": len(answers), "n_reco": len(recommended)}
+    return {"recall": hit / len(answers) if answers else 0.0,
+            "matched": hit, "n_answer": len(answers)}
 
 
-async def _recommend_names(rec, question: str) -> tuple[list[str], str]:
-    """질문 → 슬롯 추출 → 추천. 추천 카드 이름 목록을 돌려준다."""
-    ext = await rec.understand(f"User: {question}")
-    slots = ext.slots
-    if not slots.purpose:                 # 최소 목적은 있어야 검색 의미가 있음
-        slots = Slots(**{**slots.model_dump(), "purpose": question})
-    feed = await rec.recommend(slots)
-    return [c.name for c in feed.cards], slots.summary()
-
-
-async def quality(testset: list[dict]) -> None:
-    rec = build_recommender()
-    recalls, precisions = [], []
-    print(f"[답변 품질] 모델={MODEL}  문항={len(testset)}\n")
-    for i, item in enumerate(testset, 1):
-        q, answers = item["question"], item["answer"]
-        try:
-            names, slot_sum = await _recommend_names(rec, q)
-        except Exception as e:
-            print(f"{i}. ❌ {q}\n   실패: {type(e).__name__} — {str(e)[:120]}\n")
-            recalls.append(0.0); precisions.append(0.0)
-            continue
-        s = score(answers, names)
-        recalls.append(s["recall"]); precisions.append(s["precision"])
-        print(f"{i}. {q}")
-        print(f"   추천: {names}")
-        print(f"   정답: {answers}")
-        print(f"   recall={s['recall']:.2f} ({s['matched']}/{s['n_answer']})  "
-              f"precision={s['precision']:.2f}\n")
-    print("── 요약 ──")
-    print(f"  평균 recall    : {statistics.mean(recalls):.3f}")
-    print(f"  평균 precision : {statistics.mean(precisions):.3f}")
+async def _recommend_names(search, question: str) -> tuple[list[str], str]:
+    """질문 → search_agent 단발 호출 → 추천 카드 이름 목록."""
+    feed = await search.find(question)
+    return [c.name for c in feed.cards], ""
 
 
 # ── 서빙 지표: 직접 스트리밍 ─────────────────────────────
@@ -186,24 +145,31 @@ def _new_records(path: str, before_size: int) -> list[dict]:
 
 
 async def report(testset: list[dict]) -> None:
-    """test.json 전체 평가 → recall/precision + 서버측 시간지표(통신 제외) → 파일 저장."""
+    """test.json 전체를 파이프라인에 태워 recall + 추천 결과 + 서버측 시간지표를 저장.
+
+    precision은 빼고 recall만 잰다. 추천 결과 JSON과 flow/agents 로그를 같은
+    이름(report_<model>_<ts>)으로 짝지어 실행별로 분리 저장한다.
+    """
     runs = "logs/runs.jsonl"
     before = os.path.getsize(runs) if os.path.exists(runs) else 0
 
-    rec = build_recommender()
+    stem = f"report_{MODEL.replace('/', '_')}_{datetime.now():%Y%m%d_%H%M%S}"
+    search = build_search(log_name=stem)   # 이 실행 전용 flow/agents 로그
     per_q = []
     print(f"[리포트] 모델={MODEL}  문항={len(testset)}\n")
     for i, item in enumerate(testset, 1):
-        q, answers = item["question"], item["answer"]
+        q, answers = item["question"], item.get("answer", [])
         try:
-            names, _ = await _recommend_names(rec, q)
-            s = score(answers, names)
+            names, _ = await _recommend_names(search, q)
+            s = recall_of(answers, names)
         except Exception as e:
-            s = {"recall": 0.0, "precision": 0.0, "matched": 0, "n_answer": len(answers)}
+            names, s = [], {"recall": 0.0, "matched": 0, "n_answer": len(answers)}
             print(f"{i}. ❌ {q} — {type(e).__name__}")
         else:
-            print(f"{i}. {q}  recall={s['recall']:.2f} precision={s['precision']:.2f}")
-        per_q.append({"question": q, **s})
+            print(f"{i}. {q}  recall={s['recall']:.2f} ({s['matched']}/{s['n_answer']})")
+            print(f"   정답: {answers}")
+            print(f"   추천: {names}")
+        per_q.append({"question": q, "answer": answers, "recommended": names, **s})
 
     # 이번 실행이 남긴 서버측 지표(model_sec/ttft/itl = 통신시간 제외)
     steps = _new_records(runs, before)
@@ -215,7 +181,6 @@ async def report(testset: list[dict]) -> None:
         "model": MODEL,
         "questions": len(testset),
         "recall": round(statistics.mean(x["recall"] for x in per_q), 3),
-        "precision": round(statistics.mean(x["precision"] for x in per_q), 3),
         "steps": len(steps),
         "model_sec_mean": round(statistics.mean(model_secs), 3) if model_secs else None,
         "ttft_mean": round(statistics.mean(ttfts), 3) if ttfts else None,
@@ -227,25 +192,24 @@ async def report(testset: list[dict]) -> None:
     if summary["model_sec_mean"] is None:
         print("  ⚠️ 서버측 지표 비어있음 — vLLM /metrics 이름이 버전과 다를 수 있음 (metrics.py 후보 확인)")
 
-    out = f"logs/report_{MODEL.replace('/', '_')}_{datetime.now():%Y%m%d_%H%M%S}.json"
+    out = f"logs/{stem}.json"
     with open(out, "w", encoding="utf-8") as f:
         json.dump({"summary": summary, "per_question": per_q}, f, ensure_ascii=False, indent=2)
-    print(f"\n  → 저장: {out}")
+    print(f"\n  → 리포트: {out}")
+    print(f"  → flow  : logs/{stem}.flow.log")
+    print(f"  → agents: logs/{stem}.agents.log")
 
 
 def main() -> None:
     _utf8_stdout()
-    ap = argparse.ArgumentParser(description="테스트셋 평가 (recall/precision + 서버측 시간지표)")
-    ap.add_argument("cmd", choices=["quality", "serving", "report", "all"])
+    ap = argparse.ArgumentParser(description="테스트셋 실행(추천 결과·로그) + 서버측 시간지표")
+    ap.add_argument("cmd", choices=["report", "serving", "all"])
     ap.add_argument("--testset", default=_DEFAULT_TESTSET)
     args = ap.parse_args()
 
     testset = load_testset(args.testset)
-    if args.cmd == "report":
+    if args.cmd in ("report", "all"):
         asyncio.run(report(testset))
-        return
-    if args.cmd in ("quality", "all"):
-        asyncio.run(quality(testset))
     if args.cmd == "all":
         print()
     if args.cmd in ("serving", "all"):

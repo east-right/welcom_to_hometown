@@ -1,19 +1,15 @@
 """사용자에게 보여줄 문자열 구성. 출력 형태는 여기서만 다룬다."""
-from ..domain.models import Card, Feed, Slots
+from ..domain.models import Card, Feed
 
 BANNER = """
 ╔══════════════════════════════════════════════╗
 ║   Welcome Come to Hometown                   ║
 ║   어디로, 언제, 누구랑 갈지 편하게 말해주세요   ║
-║   (종료: quit / 처음부터: reset)              ║
+║   (종료: quit)                                ║
 ╚══════════════════════════════════════════════╝
 """
 
 DIVIDER = "─" * 50
-
-
-def slot_summary(slots: Slots) -> str:
-    return f"  📋 파악: {slots.summary()}"
 
 
 def feed(feed: Feed) -> str:

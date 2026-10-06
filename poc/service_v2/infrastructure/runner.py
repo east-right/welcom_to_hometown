@@ -14,22 +14,24 @@ from .model import model_label
 
 
 class AgentRunner:
-    def __init__(self, app_name: str, user_id: str, tracer, recorder=None, metrics=None) -> None:
+    def __init__(self, app_name: str, user_id: str, agent_log, recorder=None, metrics=None) -> None:
         self._app = app_name
         self._user = user_id
-        self._tracer = tracer
+        self._agent_log = agent_log   # 에이전트 입출력(프롬프트+JSON) 기록
         self._recorder = recorder
-        self._metrics = metrics   # vLLM 서버측 지표(통신시간 제외). 없으면 벽시계만.
+        self._metrics = metrics       # vLLM 서버측 지표(통신시간 제외). 없으면 벽시계만.
 
-    async def run(self, agent, text: str) -> str:
-        """에이전트를 한 번 실행하고 최종 응답 텍스트를 반환한다."""
+    async def run(self, agent, text: str, tag: str = "") -> str:
+        """에이전트를 한 번 실행하고 최종 응답 텍스트를 반환한다.
+
+        tag는 로그에서 이 실행을 구분하는 선택적 꼬리표.
+        """
         runner = InMemoryRunner(agent=agent, app_name=self._app)
         session = await runner.session_service.create_session(
             app_name=self._app, user_id=self._user
         )
 
         before = self._metrics.snapshot() if self._metrics else None
-        self._tracer.started(agent.name, model_label(agent.model), text)
         started_at = time.time()
 
         final = ""
@@ -39,14 +41,13 @@ class AgentRunner:
             session_id=session.id,
             new_message=self._as_message(text),
         ):
-            self._tracer.observe(event)
             tokens.add(getattr(event, "usage_metadata", None))
             if event.is_final_response() and event.content:
                 final = self._join_text(event.content.parts)
 
         elapsed = time.time() - started_at
         server = self._metrics.step(before, self._metrics.snapshot()) if self._metrics else {}
-        self._tracer.finished(agent.name, final, elapsed, server.get("model_sec"))
+        self._agent_log.record(agent.name, model_label(agent.model), text, final, elapsed, tag)
         self._record(agent, elapsed, server, tokens, final)
         return final
 

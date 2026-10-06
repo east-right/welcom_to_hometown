@@ -6,8 +6,8 @@
 각 레코드(에이전트 1회 실행)를 (model, agent)로 묶어 계산한다:
   - n       : 실행 횟수
   - ok%     : 출력이 그 에이전트에 유효했나 (약한 모델 판별의 핵심)
-              slot_extractor/formatter = JSON 파싱 + 필수 키
-              coordinator             = 근거 URL(http) 존재
+              모두 구조화 출력이므로 JSON 파싱 + 필수 키로 판정
+              search_agent=cards, planner=자연어
   - avg_s/p50_s : 지연(초, 네트워크+추론 벽시계)
   - avg_tok : 평균 total 토큰 (제공자가 usage를 줄 때만)
 
@@ -19,7 +19,7 @@ import json
 import statistics
 from collections import defaultdict
 
-_AGENT_ORDER = {"slot_extractor": 0, "coordinator": 1, "formatter": 2}
+_AGENT_ORDER = {"query_planner": 0, "review_agent": 1, "selector": 2}
 
 
 def load(path: str) -> list[dict]:
@@ -39,15 +39,15 @@ def load(path: str) -> list[dict]:
 def is_ok(agent: str, output: str) -> bool:
     """이 에이전트가 쓸모 있는 출력을 냈는가 (모델 실패 판별)."""
     output = output or ""
-    if agent == "coordinator":
-        return "http" in output          # 근거 URL을 하나라도 물어왔나
     try:
-        data = json.loads(output)         # 구조화 출력 에이전트: 유효 JSON인가
+        data = json.loads(output)              # 모든 에이전트가 구조화 출력
     except (json.JSONDecodeError, TypeError):
         return False
-    if agent == "slot_extractor":
-        return isinstance(data, dict) and "slots" in data and "ready" in data
-    if agent == "formatter":
+    if agent == "query_planner":
+        return isinstance(data, dict) and "queries" in data
+    if agent == "review_agent":
+        return isinstance(data, dict)          # 요약이 비어도 유효 JSON이면 성공
+    if agent == "selector":
         return isinstance(data, dict) and "cards" in data
     return bool(output)
 

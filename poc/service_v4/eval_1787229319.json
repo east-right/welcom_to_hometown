@@ -1,0 +1,102 @@
+{
+  "summary": {
+    "n_case": 1,
+    "n_answer": 4,
+    "recall_pool": 0.75,
+    "recall_final": 0.25,
+    "case_recall_pool": 1.0,
+    "case_recall_final": 1.0,
+    "mrr": 0.3333333333333333,
+    "avg_sec": 21.33970940008294,
+    "tokens_in": 18475,
+    "tokens_out": 949,
+    "kinds": {
+      "recommendation": 1
+    }
+  },
+  "cases": [
+    {
+      "question": "창원 귀산 바다가 보이는 커피 맛집",
+      "answer": [
+        "갱고반지하",
+        "블루피쉬",
+        "더로드101 귀산",
+        "카페모조"
+      ],
+      "kind": "recommendation",
+      "predicted": [
+        "22커피",
+        "하우요커피",
+        "갱고반지하",
+        "엘리브",
+        "카페몰토"
+      ],
+      "pool": [
+        "갱고반지하",
+        "하우요커피",
+        "엘리브",
+        "더로드101 귀산",
+        "카페모조",
+        "아쿠아모스",
+        "카페몰토",
+        "224커피",
+        "시오리솔밭길",
+        "라온하제",
+        "식당더원",
+        "황금코다리 창원귀산점",
+        "커피프렌즈",
+        "브룸라이더카페",
+        "로스터리퐁"
+      ],
+      "detail": [
+        {
+          "answer": "갱고반지하",
+          "in_pool": true,
+          "pool_rank": 1,
+          "in_final": true,
+          "final_rank": 3
+        },
+        {
+          "answer": "블루피쉬",
+          "in_pool": false,
+          "pool_rank": null,
+          "in_final": false,
+          "final_rank": null
+        },
+        {
+          "answer": "더로드101 귀산",
+          "in_pool": true,
+          "pool_rank": 4,
+          "in_final": false,
+          "final_rank": null
+        },
+        {
+          "answer": "카페모조",
+          "in_pool": true,
+          "pool_rank": 5,
+          "in_final": false,
+          "final_rank": null
+        }
+      ],
+      "n_answer": 4,
+      "n_pool_hit": 3,
+      "n_final_hit": 1,
+      "rr": 0.3333333333333333,
+      "elapsed": 21.33970940008294,
+      "tool_calls": [
+        "collect_places",
+        "collect_info",
+        "read_file",
+        "set_model_response"
+      ],
+      "tokens_in": 18475,
+      "tokens_out": 949,
+      "files": {
+        "file": "tool_file\\1787229303473_collect_places.json",
+        "url_file": "tool_file\\1787229303473_info_urls.json",
+        "summary_file": "tool_file\\1787229303473_info_summary.json"
+      },
+      "message": "창원 귀산동에서 바다와 마창대교가 한눈에 들어오는 커피 맛집들을 추천해 드립니다. 커피 맛과 조망을 모두 중요하게 고려하여 5곳을 엄선했습니다."
+    }
+  ]
+}

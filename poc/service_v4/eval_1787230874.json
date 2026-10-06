@@ -1,0 +1,103 @@
+{
+  "summary": {
+    "n_case": 1,
+    "n_answer": 4,
+    "recall_pool": 0.25,
+    "recall_final": 0.25,
+    "case_recall_pool": 1.0,
+    "case_recall_final": 1.0,
+    "mrr": 1.0,
+    "avg_sec": 22.929121099994518,
+    "tokens_in": 18321,
+    "tokens_out": 1038,
+    "kinds": {
+      "recommendation": 1
+    }
+  },
+  "cases": [
+    {
+      "question": "창원 가포 맛집 추천",
+      "answer": [
+        "등대집",
+        "개성순대",
+        "우동한그릇",
+        "동굴집"
+      ],
+      "kind": "recommendation",
+      "predicted": [
+        "동굴집",
+        "옛날영도집",
+        "디어피노",
+        "박배철베이커리 해유",
+        "브라운핸즈 마산점",
+        "가포경양식"
+      ],
+      "pool": [
+        "옛날영도집",
+        "박배철베이커리 해유",
+        "브라운핸즈 마산점",
+        "동굴집",
+        "지중해",
+        "디어피노",
+        "가포경양식",
+        "미소식당",
+        "베러먼데이 마창대교유보라점",
+        "가포술집",
+        "텐퍼센트커피 창원마린애시앙점",
+        "우주슈퍼",
+        "김인철동해장어막회",
+        "본도시락 마산경남대점",
+        "본길"
+      ],
+      "detail": [
+        {
+          "answer": "등대집",
+          "in_pool": false,
+          "pool_rank": null,
+          "in_final": false,
+          "final_rank": null
+        },
+        {
+          "answer": "개성순대",
+          "in_pool": false,
+          "pool_rank": null,
+          "in_final": false,
+          "final_rank": null
+        },
+        {
+          "answer": "우동한그릇",
+          "in_pool": false,
+          "pool_rank": null,
+          "in_final": false,
+          "final_rank": null
+        },
+        {
+          "answer": "동굴집",
+          "in_pool": true,
+          "pool_rank": 4,
+          "in_final": true,
+          "final_rank": 1
+        }
+      ],
+      "n_answer": 4,
+      "n_pool_hit": 1,
+      "n_final_hit": 1,
+      "rr": 1.0,
+      "elapsed": 22.929121099994518,
+      "tool_calls": [
+        "collect_places",
+        "collect_info",
+        "read_file",
+        "set_model_response"
+      ],
+      "tokens_in": 18321,
+      "tokens_out": 1038,
+      "files": {
+        "file": "tool_file\\1787230857574_collect_places.json",
+        "url_file": "tool_file\\1787230857574_info_urls.json",
+        "summary_file": "tool_file\\1787230857574_info_summary.json"
+      },
+      "message": "창원 가포 지역의 맛집과 카페를 정리해 드립니다. 가족 모임으로 좋은 오리 요리나 장어구이 전문점부터, 바다 전망을 즐길 수 있는 분위기 좋은 양식당과 베이커리 카페까지 다양하게 구성했습니다."
+    }
+  ]
+}

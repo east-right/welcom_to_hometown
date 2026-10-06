@@ -133,7 +133,7 @@ async function sendMessage(text) {
     if (data.feed) {
       addBubble(data.reply, "bot");
       renderFeed(data.feed);
-      el.feedSub.textContent = feedSubText(data.slots);
+      el.feedSub.textContent = "추천 결과예요";
       setTimeout(closeChat, 600);   // 봇 답변 잠깐 보여주고 피드로 전환
     } else {
       addBubble(data.reply, "bot");
