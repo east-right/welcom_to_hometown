@@ -1,0 +1,79 @@
+[
+  {
+    "question": "창원 귀산 바다가 보이는 커피 맛집",
+    "query": "창원 귀산동 카페",
+    "cc": "CE7",
+    "region": "귀산",
+    "user_query": "창원 귀산 바다가 보이는 커피 맛집"
+  },
+  {
+    "question": "신림역 주변에서 혼밥하기 좋은 식당",
+    "query": "신림역 혼밥 식당",
+    "cc": "FD6",
+    "region": "신림",
+    "user_query": "신림역 혼밥하기 좋은 식당"
+  },
+  {
+    "question": "창원 귀산 맛집 추천",
+    "query": "창원 귀산 맛집",
+    "cc": "FD6",
+    "region": "귀산",
+    "user_query": "창원 귀산 맛집 추천"
+  },
+  {
+    "question": "창원 가포 맛집 추천",
+    "query": "창원 가포 맛집",
+    "cc": "FD6",
+    "region": "가포",
+    "user_query": "창원 가포 맛집 추천"
+  },
+  {
+    "question": "마산 합성동 피자 맛집",
+    "query": "마산 합성동 피자 맛집",
+    "cc": "FD6",
+    "region": "합성동",
+    "user_query": "마산 합성동 피자 맛집"
+  },
+  {
+    "question": "창원 횟집 추천해줘",
+    "query": "창원 횟집",
+    "cc": "FD6",
+    "region": "창원",
+    "user_query": "창원 횟집 추천"
+  },
+  {
+    "question": "신림역 근처 칼국수 맛집",
+    "query": "신림 칼국수",
+    "cc": "FD6",
+    "region": "신림",
+    "user_query": "신림역 근처 칼국수 맛집"
+  },
+  {
+    "question": "신림역 부대찌개 맛집",
+    "query": "신림역 부대찌개",
+    "cc": "FD6",
+    "region": "신림",
+    "user_query": "신림역 부대찌개 맛집"
+  },
+  {
+    "question": "신림역 근처 고기집 추천해줘",
+    "query": "신림역 고기집",
+    "cc": "FD6",
+    "region": "신림",
+    "user_query": "신림역 근처 고기집 추천해줘"
+  },
+  {
+    "question": "신림역 주변 감성있는 카페 추천좀 해줘",
+    "query": "신림역 카페",
+    "cc": "CE7",
+    "region": "신림",
+    "user_query": "신림역 감성 카페 추천"
+  },
+  {
+    "question": "신림역 주변 횟집 해줘",
+    "query": "신림역 횟집",
+    "cc": "FD6",
+    "region": "신림",
+    "user_query": "신림역 주변 횟집"
+  }
+]

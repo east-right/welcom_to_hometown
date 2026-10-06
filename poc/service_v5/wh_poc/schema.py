@@ -11,10 +11,12 @@ from pydantic import BaseModel, Field
 
 class PlaceCard(BaseModel):
     name: str = Field(description="장소명")
-    address: str = Field(description="주소. 파일에 있는 값을 그대로 쓴다")
-    category: str = Field(default="", description="카테고리")
+    score: int = Field(default=0, description="요청 적합도 점수 0~100. 높을수록 잘 맞음")
     reason: str = Field(description="이 요청에 왜 맞는지 2~3문장")
-    highlights: List[str] = Field(description="핵심 강점 2~3개. 짧은 구문으로")
+    # 아래는 에이전트가 비워도 되는 부가필드 — Chat.send가 근거 파일에서 채운다.
+    address: str = Field(default="", description="주소. 비워두면 코드가 채운다")
+    category: str = Field(default="", description="카테고리")
+    highlights: List[str] = Field(default=[], description="핵심 강점 2~3개. 비워두면 코드가 채운다")
     caution: str = Field(default="", description="주의사항. 없으면 빈 문자열")
     period: str = Field(default="", description="행사 기간. 해당 없으면 빈 문자열")
     url: str = Field(default="", description="카카오맵 상세 페이지 URL")
@@ -39,5 +41,9 @@ class FeedOutput(BaseModel):
     )
     places: List[PlaceCard] = Field(
         default=[],
-        description="추천 장소 5~8곳. kind가 'recommendation'일 때만 채우고 그 외에는 빈 배열.",
+        description=(
+            "kind가 'recommendation'일 때, 근거 파일(summary_file)의 리랭크된 후보를 "
+            "'전부' 담고 각자 score를 매긴다(일부만 고르지 마라). 최종 상위 선별은 코드가 한다. "
+            "그 외 kind에서는 빈 배열."
+        ),
     )

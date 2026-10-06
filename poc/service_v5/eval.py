@@ -25,9 +25,11 @@ import asyncio
 import json
 import re
 import time
+from collections import defaultdict
 from pathlib import Path
 
 from wh_poc import Chat, load_json, set_verbose
+from wh_poc.clients import pop_llm_latency
 
 DEFAULT_DATA = "../../data/test.json"
 
@@ -100,6 +102,7 @@ async def eval_one(case: dict, idx: int, total: int) -> dict:
     try:
         out = await chat.send(q)
     except Exception as e:
+        pop_llm_latency()  # 다음 케이스로 지연 기록이 새지 않게 비운다
         print(f"   실패: {type(e).__name__}: {e}")
         return {
             "question": q, "answer": answers, "error": f"{type(e).__name__}: {e}",
@@ -169,6 +172,57 @@ async def eval_one(case: dict, idx: int, total: int) -> dict:
 
     tracer_turn = chat.tracer.turns[-1] if (chat.tracer and chat.tracer.turns) else {}
 
+    # 시간 분해(백엔드 의존성) — tracing.totals와 같은 기준.
+    steps = tracer_turn.get("steps", [])
+    bd = defaultdict(float)
+    for s in steps:
+        for k, v in s.get("breakdown", {}).items():
+            bd[k] += v
+    timing = {
+        "agent_llm_sec": round(sum(s["sec"] for s in steps if s["kind"] == "llm"), 2),
+        "util_llm_sec": round(bd.get("llm", 0.0), 2),   # 툴내부 로컬 LLM(HyDE·요약·포매터)
+        "tool_sec": round(sum(s["sec"] for s in steps if s["kind"] == "tool"), 2),
+        "embed_sec": round(bd.get("embed", 0.0), 2),
+        "io_sec": round(bd.get("naver", 0.0) + bd.get("scrape", 0.0) + bd.get("kakao", 0.0), 2),
+    }
+
+    # 스텝 타임라인 — 콜별 걸린 시간(LLM 대기/툴 실행)을 그대로 남긴다.
+    step_timeline = [
+        {
+            "kind": s["kind"],
+            "name": s.get("name", "llm"),
+            "sec": round(s["sec"], 2),
+            "tok_in": s.get("tok_in", 0),
+            "tok_out": s.get("tok_out", 0),
+            "args": s.get("args", ""),        # 툴에 던진 인자(검색쿼리 등)
+            "detail": s.get("detail", ""),
+        }
+        for s in steps
+    ]
+
+    # 로컬 서빙 지연(스트리밍 계측). 마지막 호출 = 최종 JSON 포매터(가장 무거운 생성).
+    lat = pop_llm_latency()
+    latency = {}
+    if lat:
+        n = len(lat)
+        tot_out = sum(r["out_tok"] for r in lat)
+        tpot_mean = (sum(r["tpot"] * r["out_tok"] for r in lat) / tot_out) if tot_out else 0.0
+        latency = {
+            "n_calls": n,
+            "out_tok_total": tot_out,
+            "ttft_mean": round(sum(r["ttft"] for r in lat) / n, 3),
+            "ttft_max": round(max(r["ttft"] for r in lat), 3),
+            "tpot_mean": round(tpot_mean, 4),                       # 초/토큰
+            "decode_tps": round(1 / tpot_mean, 1) if tpot_mean else 0.0,
+            "formatter": {k: round(lat[-1][k], 3) for k in ("ttft", "e2el", "tpot", "tps", "out_tok")},
+            # 콜별 상세 — 각 로컬 LLM 호출의 TTFT·E2EL·TPOT·출력토큰 전량.
+            "calls": [{k: round(r[k], 3) for k in ("ttft", "e2el", "tpot", "tps", "out_tok")} for r in lat],
+        }
+        f = latency["formatter"]
+        print(f"       ⏱ TTFT {latency['ttft_mean']:.2f}s(max {latency['ttft_max']:.2f}) "
+              f"| TPOT {latency['tpot_mean']*1000:.0f}ms → {latency['decode_tps']:.1f} tok/s "
+              f"| 호출 {n} out {tot_out}tok | 포매터 E2EL {f['e2el']:.1f}s({f['out_tok']}tok)")
+
     return {
         "question": q,
         "answer": answers,
@@ -183,6 +237,9 @@ async def eval_one(case: dict, idx: int, total: int) -> dict:
         "n_final_hit": n_final,
         "rr": rr,
         "elapsed": elapsed,
+        "timing": timing,
+        "latency": latency,
+        "steps": step_timeline,
         "tool_calls": [t["name"] for t in out["tool_calls"]],
         "tokens_in": tracer_turn.get("tokens_in", 0),
         "tokens_out": tracer_turn.get("tokens_out", 0),
@@ -226,6 +283,25 @@ def summarize(rows: list[dict]) -> dict:
     print(f"  평균 소요      {avg_sec:.1f}초")
     print(f"  토큰          in {tok_in:,} / out {tok_out:,}")
 
+    # 로컬 서빙 지연 집계(스트리밍 계측이 있는 케이스만).
+    lats = [r["latency"] for r in ok if r.get("latency")]
+    lat_stats = {}
+    if lats:
+        tot_out = sum(la["out_tok_total"] for la in lats)
+        tpot = sum(la["tpot_mean"] * la["out_tok_total"] for la in lats) / tot_out if tot_out else 0.0
+        ttft_mean = sum(la["ttft_mean"] for la in lats) / len(lats)
+        ttft_max = max(la["ttft_max"] for la in lats)
+        fmt_e2el = sum(la["formatter"]["e2el"] for la in lats) / len(lats)
+        lat_stats = {
+            "ttft_mean": round(ttft_mean, 3), "ttft_max": round(ttft_max, 3),
+            "tpot_mean": round(tpot, 4), "decode_tps": round(1 / tpot, 1) if tpot else 0.0,
+            "out_tok_total": tot_out, "formatter_e2el_mean": round(fmt_e2el, 2),
+        }
+        print(f"\n  로컬 서빙 지연 (vLLM 스트리밍 계측)")
+        print(f"    TTFT       평균 {ttft_mean:.2f}초 / 최대 {ttft_max:.2f}초")
+        print(f"    TPOT       {tpot * 1000:.0f}ms/토큰  →  decode {1 / tpot if tpot else 0:.1f} tok/s")
+        print(f"    포매터 E2EL 평균 {fmt_e2el:.1f}초 (최종 JSON 생성)")
+
     # 수집은 됐는데 최종에서 떨어진 것 = 어느 단계에서 샜나
     lost = n_pool - n_final
     if lost:
@@ -264,6 +340,7 @@ def summarize(rows: list[dict]) -> dict:
         "case_recall_pool": case_pool / len(ok), "case_recall_final": case_final / len(ok),
         "mrr": mrr, "avg_sec": avg_sec,
         "tokens_in": tok_in, "tokens_out": tok_out,
+        "latency": lat_stats,
         "kinds": kinds,
     }
 
@@ -282,17 +359,23 @@ async def main():
     if args.n:
         cases = cases[: args.n]
 
+    out_path = Path(args.out or f"eval_{int(time.time())}.json")
+
+    # 케이스마다 결과를 파일에 덮어써 부분 저장한다. 중간에 죽어도(로컬은 오래
+    # 걸려 끊길 수 있다) 완료분이 남는다. summary는 마지막에 채운다.
+    def _dump(stats: dict) -> None:
+        out_path.write_text(
+            json.dumps({"summary": stats, "cases": rows}, ensure_ascii=False, indent=2),
+            encoding="utf-8",
+        )
+
     rows = []
     for i, c in enumerate(cases, 1):
         rows.append(await eval_one(c, i, len(cases)))
+        _dump({})                 # 부분 저장
+        print(f"   [저장 {i}/{len(cases)}] {out_path.name}", flush=True)
 
-    stats = summarize(rows)
-
-    out_path = Path(args.out or f"eval_{int(time.time())}.json")
-    out_path.write_text(
-        json.dumps({"summary": stats, "cases": rows}, ensure_ascii=False, indent=2),
-        encoding="utf-8",
-    )
+    _dump(summarize(rows))
     print(f"\n기록 저장: {out_path}")
 
 

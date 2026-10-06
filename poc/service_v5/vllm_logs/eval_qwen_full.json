@@ -1,0 +1,2336 @@
+{
+  "summary": {
+    "n_case": 9,
+    "n_answer": 17,
+    "recall_pool": 0.8823529411764706,
+    "recall_filter": 0.9411764705882353,
+    "recall_rerank": 0.8235294117647058,
+    "recall_final": 0.5882352941176471,
+    "case_recall_pool": 0.8888888888888888,
+    "case_recall_final": 0.8888888888888888,
+    "mrr": 0.5777777777777778,
+    "avg_sec": 57.49220376666603,
+    "tokens_in": 468174,
+    "tokens_out": 7156,
+    "latency": {},
+    "kinds": {
+      "recommendation": 9
+    }
+  },
+  "cases": [
+    {
+      "question": "창원 귀산 바다가 보이는 커피 맛집",
+      "answer": [
+        "갱고반지하",
+        "블루피쉬",
+        "더로드101 귀산",
+        "카페모조"
+      ],
+      "kind": "recommendation",
+      "predicted": [
+        "224커피",
+        "하우요커피",
+        "엘리브",
+        "포엠커피웍스 귀산점",
+        "카페솔",
+        "갱고반지하",
+        "블루피쉬",
+        "카페더원"
+      ],
+      "pool": [
+        "바다로움",
+        "썬댄스",
+        "페이머스베니",
+        "몬스터로스터스",
+        "도시정원",
+        "하우요커피",
+        "엘리브",
+        "커피프렌즈",
+        "로스터리퐁",
+        "갱고반지하",
+        "카페솔",
+        "카페모조",
+        "카페몰토",
+        "더로드101 귀산",
+        "카페더원",
+        "224커피",
+        "브룸라이더카페",
+        "블루피쉬",
+        "아쿠아모스",
+        "포엠커피웍스 귀산점",
+        "시오리솔밭길",
+        "테이블코코카페",
+        "다온재",
+        "코델리아",
+        "찰리의커피공장",
+        "더웨이닝커피 창원두산중공업점",
+        "뽀글이&드링크 창원귀산점",
+        "더웨이닝커피 창원두산에너빌리티점",
+        "지중해",
+        "우주슈퍼",
+        "메르칼므",
+        "달빛라운지"
+      ],
+      "detail": [
+        {
+          "answer": "갱고반지하",
+          "in_pool": true,
+          "pool_rank": 10,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": true,
+          "final_rank": 6
+        },
+        {
+          "answer": "블루피쉬",
+          "in_pool": true,
+          "pool_rank": 18,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": true,
+          "final_rank": 7
+        },
+        {
+          "answer": "더로드101 귀산",
+          "in_pool": true,
+          "pool_rank": 14,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": false,
+          "final_rank": null
+        },
+        {
+          "answer": "카페모조",
+          "in_pool": true,
+          "pool_rank": 12,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": false,
+          "final_rank": null
+        }
+      ],
+      "n_answer": 4,
+      "n_pool_hit": 4,
+      "n_filter_hit": 4,
+      "n_rerank_hit": 4,
+      "n_final_hit": 2,
+      "rr": 0.16666666666666666,
+      "elapsed": 52.66695529999561,
+      "timing": {
+        "agent_llm_sec": 26.04,
+        "util_llm_sec": 34.83,
+        "tool_sec": 17.3,
+        "embed_sec": 1.22,
+        "io_sec": 55.82
+      },
+      "latency": {},
+      "steps": [
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 5.83,
+          "tok_in": 3478,
+          "tok_out": 81,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 3.96,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"query\": \"창원 귀산 카페\", \"category_code\": \"CE7\"}",
+          "detail": "{\"count\": 32, \"source_breakdown\": {\"kakao\": 33, \"web_harvest\": 5}, \"file\": \"tool…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.02,
+          "tok_in": 3635,
+          "tok_out": 51,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 13.33,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"user_query\": \"창원 귀산 바다가 보이는 커피 맛집\", \"region_prefix\": \"귀산\"}",
+          "detail": "{\"count\": 14, \"no_info\": 1, \"reranked_from\": 32, \"url_file\": \"tool_file\\\\1789022…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.13,
+          "tok_in": 3804,
+          "tok_out": 44,
+          "args": "",
+          "detail": "→ read_file"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "sec": 0.01,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"file_path\": \"tool_file\\\\1789022016558_info_summary.json\"}",
+          "detail": "<7505자>"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 3.37,
+          "tok_in": 7605,
+          "tok_out": 14,
+          "args": "",
+          "detail": "→ get_today"
+        },
+        {
+          "kind": "tool",
+          "name": "get_today",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{}",
+          "detail": "{\"date\": \"2026-09-10\", \"weekday\": \"목요일\", \"time\": \"15:33\", \"year\": 2026, \"month\":…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 12.69,
+          "tok_in": 7683,
+          "tok_out": 484,
+          "args": "",
+          "detail": "answer 창원 귀산에서 마창대교와 바다가 한눈에 보이는 커피 맛집 8곳을 골랐습니다. 커피 품질까지 중요…"
+        }
+      ],
+      "tool_calls": [
+        "collect_places",
+        "collect_info",
+        "read_file",
+        "get_today"
+      ],
+      "tokens_in": 26205,
+      "tokens_out": 674,
+      "files": {
+        "file": "tool_file\\1789022016558_collect_places.json",
+        "url_file": "tool_file\\1789022016558_info_urls.json",
+        "rerank_file": "tool_file\\1789022016558_info_rerank.json",
+        "summary_file": "tool_file\\1789022016558_info_summary.json"
+      },
+      "message": "창원 귀산에서 마창대교와 바다를 조망할 수 있는 커피 맛집 8곳을 선정했습니다. 커피 품질을 중시하신다면 224커피, 포엠커피웍스, 하우요커피를, 탁 트인 오션뷰를 우선하신다면 갱고반지하, 카페솔, 블루피쉬를 추천드립니다."
+    },
+    {
+      "question": "신림역 주변에서 혼밥하기 좋은 식당",
+      "answer": [
+        "24시서울밥집"
+      ],
+      "kind": "recommendation",
+      "predicted": [
+        "서울밥집",
+        "서울뼛국",
+        "흥부보쌈",
+        "중화요리팔공",
+        "해담촌 신림역점",
+        "청년포차",
+        "맑은시간",
+        "신림춘천집 본점"
+      ],
+      "pool": [
+        "배바우",
+        "서평면옥",
+        "도화불백",
+        "송씨제육",
+        "신가네생선구이 신림점",
+        "사계절백반",
+        "또바기기사식당",
+        "일심기사식당",
+        "제주꺼먹돼지",
+        "전주식당",
+        "장원분식",
+        "대박생고기김치찌개",
+        "보리떡과물고기",
+        "제주보쌈",
+        "강촌민물매운탕 2호점",
+        "오소리식당",
+        "군산식당",
+        "또와포차",
+        "재근국밥",
+        "옛집",
+        "옛날불고기",
+        "옛날솥뚜껑생삼겹살",
+        "명희네분식",
+        "고향의진미",
+        "동현맛집",
+        "본가숯불갈비",
+        "돈벼락삼겹살",
+        "계절담은밥상",
+        "남덕식당",
+        "현주네퓨전분식",
+        "옥돌백반전문",
+        "털보네",
+        "행복한식당",
+        "야시장청년들",
+        "월야",
+        "만양순대국소머리국밥 본점",
+        "삼봉 신림본점",
+        "유창숯불갈비"
+      ],
+      "detail": [
+        {
+          "answer": "24시서울밥집",
+          "in_pool": false,
+          "pool_rank": null,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": true,
+          "final_rank": 1
+        }
+      ],
+      "n_answer": 1,
+      "n_pool_hit": 0,
+      "n_filter_hit": 1,
+      "n_rerank_hit": 1,
+      "n_final_hit": 1,
+      "rr": 1.0,
+      "elapsed": 49.70034009999654,
+      "timing": {
+        "agent_llm_sec": 21.68,
+        "util_llm_sec": 48.2,
+        "tool_sec": 20.09,
+        "embed_sec": 1.48,
+        "io_sec": 84.38
+      },
+      "latency": {},
+      "steps": [
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 3.14,
+          "tok_in": 3477,
+          "tok_out": 133,
+          "args": "",
+          "detail": "→ collect_places, collect_places, collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 3.72,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"query\": \"신림역 백반집\", \"category_code\": \"FD6\"}",
+          "detail": "{\"count\": 38, \"source_breakdown\": {\"kakao\": 45, \"web_harvest\": 0}, \"file\": \"tool…"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"query\": \"신림역 국숫집\", \"category_code\": \"FD6\"}",
+          "detail": "{\"count\": 0, \"source_breakdown\": {\"kakao\": 0, \"web_harvest\": 0}, \"file\": \"tool_f…"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"query\": \"신림동 맛집\", \"category_code\": \"FD6\"}",
+          "detail": "{\"count\": 45, \"source_breakdown\": {\"kakao\": 45, \"web_harvest\": 34}, \"file\": \"too…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.34,
+          "tok_in": 3941,
+          "tok_out": 50,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 12.58,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"user_query\": \"신림역 주변에서 혼밥하기 좋은 식당\", \"region_prefix\": \"신림\"}",
+          "detail": "{\"count\": 12, \"no_info\": 3, \"reranked_from\": 45, \"url_file\": \"tool_file\\\\1789022…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.37,
+          "tok_in": 4109,
+          "tok_out": 44,
+          "args": "",
+          "detail": "→ read_file"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "sec": 0.01,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"file_path\": \"tool_file\\\\1789022065843_info_summary.json\"}",
+          "detail": "<5665자>"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 3.1,
+          "tok_in": 6930,
+          "tok_out": 14,
+          "args": "",
+          "detail": "→ get_today"
+        },
+        {
+          "kind": "tool",
+          "name": "get_today",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{}",
+          "detail": "{\"date\": \"2026-09-10\", \"weekday\": \"목요일\", \"time\": \"15:34\", \"year\": 2026, \"month\":…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.89,
+          "tok_in": 7008,
+          "tok_out": 79,
+          "args": "",
+          "detail": "→ get_today, collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "get_today",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{}",
+          "detail": "{\"date\": \"2026-09-10\", \"weekday\": \"목요일\", \"time\": \"15:34\", \"year\": 2026, \"month\":…"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 3.77,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"query\": \"신림역 백반집\", \"category_code\": \"FD6\"}",
+          "detail": "{\"count\": 38, \"source_breakdown\": {\"kakao\": 45, \"web_harvest\": 0}, \"file\": \"tool…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 7.84,
+          "tok_in": 7316,
+          "tok_out": 327,
+          "args": "",
+          "detail": "신림역 인근, 혼자 먹기 편한 식당 6곳을 골랐습니다.  [   {     \"name\": \"서울밥집\",   …"
+        }
+      ],
+      "tool_calls": [
+        "collect_places",
+        "collect_places",
+        "collect_places",
+        "collect_info",
+        "read_file",
+        "get_today",
+        "get_today",
+        "collect_places"
+      ],
+      "tokens_in": 32781,
+      "tokens_out": 647,
+      "files": {
+        "file": "tool_file\\1789022065843_collect_places.json",
+        "url_file": "tool_file\\1789022065843_info_urls.json",
+        "rerank_file": "tool_file\\1789022065843_info_rerank.json",
+        "summary_file": "tool_file\\1789022065843_info_summary.json"
+      },
+      "message": "신림역 인근에서 혼밥하기 좋은 식당 6곳을 추천해 드립니다. 가성비와 편의성을 고려하여 선정했습니다."
+    },
+    {
+      "question": "창원 귀산 맛집 추천",
+      "answer": [
+        "귀산옥 해물칼국수",
+        "청하횟집"
+      ],
+      "error": "LlmCallsLimitExceededError: Max number of llm calls limit of `30` exceeded",
+      "elapsed": 93.84498409999651
+    },
+    {
+      "question": "창원 가포 맛집 추천",
+      "answer": [
+        "등대집",
+        "개성순대",
+        "우동한그릇",
+        "동굴집"
+      ],
+      "error": "LlmCallsLimitExceededError: Max number of llm calls limit of `30` exceeded",
+      "elapsed": 92.04951310000615
+    },
+    {
+      "question": "마산 합성동 피자 맛집",
+      "answer": [
+        "뜨라또리아 다젠나"
+      ],
+      "kind": "recommendation",
+      "predicted": [
+        "피제리아부부",
+        "뜨라또리아 다젠나",
+        "컨트리맨즈 마산점",
+        "나이스치킨&피자",
+        "브롱스 마산합성점",
+        "노모어피자 마산산호점",
+        "포피나오르",
+        "봉대박스파게티 마산합성점"
+      ],
+      "pool": [
+        "챠밍복덕",
+        "가치관",
+        "난데모 창원합성점",
+        "고포차",
+        "프리고",
+        "똥꼬 합성점",
+        "꼬뎅 합성점",
+        "베비도",
+        "명성고깃집 마산월영점",
+        "상상화닭",
+        "고도우",
+        "툭툭타이",
+        "다꾸바숯불두마리치킨 합성점",
+        "오오브",
+        "비바 경남대점",
+        "디어피노",
+        "그래그래 마산현동점",
+        "피오름피자 신마산점",
+        "둘리피자",
+        "포피나오르",
+        "어울림하우스",
+        "컨트리맨즈 마산점",
+        "정희옥스시 경남대점",
+        "다이애나숯불바베큐 중앙점",
+        "맥주를구한피자 마산합성점",
+        "피제리아부부",
+        "가득피자 합성점",
+        "오르새피자 회원점",
+        "E맛있는피자 구암점",
+        "노모어피자 마산산호점",
+        "맥주를구한피자 산호점",
+        "나이스치킨&피자",
+        "뜨라또리아 다젠나",
+        "봉대박스파게티 마산합성점",
+        "함박눈",
+        "델리쿡 마산합성점",
+        "트라토리아 합성동점",
+        "몬스터보드카페",
+        "브롱스 마산합성점",
+        "핫샷",
+        "비긴어게인",
+        "불난술집 마산점",
+        "꽃피는인생술집",
+        "오봉구맥주 마산합성점"
+      ],
+      "detail": [
+        {
+          "answer": "뜨라또리아 다젠나",
+          "in_pool": true,
+          "pool_rank": 33,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": true,
+          "final_rank": 2
+        }
+      ],
+      "n_answer": 1,
+      "n_pool_hit": 1,
+      "n_filter_hit": 1,
+      "n_rerank_hit": 1,
+      "n_final_hit": 1,
+      "rr": 0.5,
+      "elapsed": 46.393339099988225,
+      "timing": {
+        "agent_llm_sec": 19.7,
+        "util_llm_sec": 29.64,
+        "tool_sec": 20.39,
+        "embed_sec": 1.57,
+        "io_sec": 70.61
+      },
+      "latency": {},
+      "steps": [
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.09,
+          "tok_in": 3474,
+          "tok_out": 49,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 5.35,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"query\": \"마산 합성동 피자\"}",
+          "detail": "{\"count\": 44, \"source_breakdown\": {\"kakao\": 45, \"web_harvest\": 24}, \"file\": \"too…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.71,
+          "tok_in": 3665,
+          "tok_out": 70,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 15.03,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"user_query\": \"마산 합성동 피자 맛집\", \"region_prefix\": \"합성동\"}",
+          "detail": "{\"count\": 14, \"no_info\": 1, \"reranked_from\": 44, \"url_file\": \"tool_file\\\\1789022…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.17,
+          "tok_in": 3853,
+          "tok_out": 44,
+          "args": "",
+          "detail": "→ read_file"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "sec": 0.01,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"file_path\": \"tool_file\\\\1789022301664_info_summary.json\"}",
+          "detail": "<6160자>"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 3.43,
+          "tok_in": 6878,
+          "tok_out": 29,
+          "args": "",
+          "detail": "→ get_today"
+        },
+        {
+          "kind": "tool",
+          "name": "get_today",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{}",
+          "detail": "{\"date\": \"2026-09-10\", \"weekday\": \"목요일\", \"time\": \"15:38\", \"year\": 2026, \"month\":…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.47,
+          "tok_in": 6971,
+          "tok_out": 38,
+          "args": "",
+          "detail": "→ get_today"
+        },
+        {
+          "kind": "tool",
+          "name": "get_today",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{}",
+          "detail": "{\"date\": \"2026-09-10\", \"weekday\": \"목요일\", \"time\": \"15:38\", \"year\": 2026, \"month\":…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 6.84,
+          "tok_in": 7109,
+          "tok_out": 241,
+          "args": "",
+          "detail": "마산 합성동에서 피자를 잘 먹는 곳 5곳을 골라왔어요.  - **피제리아부부** — APN 인증 화덕 피자 …"
+        }
+      ],
+      "tool_calls": [
+        "collect_places",
+        "collect_info",
+        "read_file",
+        "get_today",
+        "get_today"
+      ],
+      "tokens_in": 31950,
+      "tokens_out": 471,
+      "files": {
+        "file": "tool_file\\1789022301664_collect_places.json",
+        "url_file": "tool_file\\1789022301664_info_urls.json",
+        "rerank_file": "tool_file\\1789022301664_info_rerank.json",
+        "summary_file": "tool_file\\1789022301664_info_summary.json"
+      },
+      "message": "마산 합성동에서 정통 화덕 피자부터 가성비 좋은 피자까지, 취향에 맞춰 즐기기 좋은 맛집 5곳을 선정했습니다."
+    },
+    {
+      "question": "창원 횟집 추천해줘",
+      "answer": [
+        "동부회센타",
+        "푸른회전문"
+      ],
+      "kind": "recommendation",
+      "predicted": [
+        "대교횟집",
+        "참바다횟집 창원상남본점",
+        "강남횟집",
+        "청해담",
+        "동부회센타",
+        "남해횟집",
+        "금보횟집",
+        "청해횟집"
+      ],
+      "pool": [
+        "금보횟집",
+        "덕산횟집",
+        "더옴푸드",
+        "거영수산in해녀의집",
+        "수달횟집",
+        "민박산호정횟집",
+        "무진장횟집",
+        "어시장횟집",
+        "만선참가자미회 팔용본점",
+        "강남횟집",
+        "어판장",
+        "도해",
+        "참치어때",
+        "푸른회전문",
+        "청해담",
+        "깻잎막회 상남점",
+        "뱌오회 창원본점",
+        "화주가 봉곡본점",
+        "번개회센터",
+        "빨간등대",
+        "부부횟집",
+        "참바다횟집 창원상남본점",
+        "자연산횟집",
+        "포숑",
+        "방콕산장",
+        "청해횟집",
+        "다다횟집 중앙점",
+        "바다이야기",
+        "남해횟집",
+        "바다초장",
+        "원돼지국밥",
+        "청춘키친",
+        "하라식당 본점",
+        "장인닭갈비 창원상남점",
+        "메르시메르시",
+        "동부회센타",
+        "강변횟집",
+        "대교횟집",
+        "김해횟집",
+        "이층횟집",
+        "홍은수산",
+        "어풍식당",
+        "거북집",
+        "바다실비식당",
+        "삼진횟집"
+      ],
+      "detail": [
+        {
+          "answer": "동부회센타",
+          "in_pool": true,
+          "pool_rank": 36,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": true,
+          "final_rank": 5
+        },
+        {
+          "answer": "푸른회전문",
+          "in_pool": true,
+          "pool_rank": 14,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": false,
+          "final_rank": null
+        }
+      ],
+      "n_answer": 2,
+      "n_pool_hit": 2,
+      "n_filter_hit": 2,
+      "n_rerank_hit": 2,
+      "n_final_hit": 1,
+      "rr": 0.2,
+      "elapsed": 84.66258999999263,
+      "timing": {
+        "agent_llm_sec": 59.71,
+        "util_llm_sec": 37.05,
+        "tool_sec": 17.05,
+        "embed_sec": 1.49,
+        "io_sec": 44.06
+      },
+      "latency": {},
+      "steps": [
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.12,
+          "tok_in": 3475,
+          "tok_out": 55,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 4.19,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"query\": \"창원 횟집\", \"category_code\": \"FD6\"}",
+          "detail": "{\"count\": 45, \"source_breakdown\": {\"kakao\": 45, \"web_harvest\": 35}, \"file\": \"too…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 3.18,
+          "tok_in": 3671,
+          "tok_out": 83,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 12.84,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"user_query\": \"창원 횟집 추천해줘\", \"region_prefix\": \"창원\"}",
+          "detail": "{\"count\": 15, \"no_info\": 0, \"reranked_from\": 45, \"url_file\": \"tool_file\\\\1789022…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.12,
+          "tok_in": 3872,
+          "tok_out": 44,
+          "args": "",
+          "detail": "→ read_file"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "sec": 0.01,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"file_path\": \"tool_file\\\\1789022346942_info_summary.json\"}",
+          "detail": "<7376자>"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 4.97,
+          "tok_in": 7583,
+          "tok_out": 90,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"region_prefix\": \"창원\", \"user_query\": \"창원 횟집 추천해줘\"}",
+          "detail": "{\"count\": 15, \"no_info\": 0, \"reranked_from\": 45, \"url_file\": \"tool_file\\\\1789022…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 4.3,
+          "tok_in": 7836,
+          "tok_out": 95,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"category_code\": \"FD6\", \"query\": \"창원 횟집\"}",
+          "detail": "{\"status\": \"ok\", \"already_collected\": true, \"file\": \"tool_file\\\\1789022346942_co…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 3.12,
+          "tok_in": 8023,
+          "tok_out": 81,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"region_prefix\": \"창원\", \"user_query\": \"창원 횟집 추천해줘\"}",
+          "detail": "{\"count\": 15, \"no_info\": 0, \"reranked_from\": 45, \"url_file\": \"tool_file\\\\1789022…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.65,
+          "tok_in": 8267,
+          "tok_out": 77,
+          "args": "",
+          "detail": "→ read_file"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"file_path\": \"tool_file\\\\1789022346942_info_summary.json\"}",
+          "detail": "{\"already_read\": true, \"note\": \"이미 읽은 파일입니다. 근거는 앞서 읽은 그대로이니 다시 수집·조회하지 말고 그 내용으…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.46,
+          "tok_in": 8400,
+          "tok_out": 71,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"category_code\": \"FD6\", \"query\": \"창원 횟집\"}",
+          "detail": "{\"status\": \"ok\", \"already_collected\": true, \"file\": \"tool_file\\\\1789022346942_co…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 3.4,
+          "tok_in": 8563,
+          "tok_out": 120,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"region_prefix\": \"창원\", \"user_query\": \"창원 횟집 추천해줘\"}",
+          "detail": "{\"count\": 15, \"no_info\": 0, \"reranked_from\": 45, \"url_file\": \"tool_file\\\\1789022…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.23,
+          "tok_in": 8846,
+          "tok_out": 44,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"category_code\": \"FD6\", \"query\": \"창원 횟집\"}",
+          "detail": "{\"status\": \"ok\", \"already_collected\": true, \"file\": \"tool_file\\\\1789022346942_co…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.99,
+          "tok_in": 8982,
+          "tok_out": 44,
+          "args": "",
+          "detail": "→ read_file"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"file_path\": \"tool_file\\\\1789022346942_info_summary.json\"}",
+          "detail": "{\"already_read\": true, \"note\": \"이미 읽은 파일입니다. 근거는 앞서 읽은 그대로이니 다시 수집·조회하지 말고 그 내용으…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.99,
+          "tok_in": 9082,
+          "tok_out": 95,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"category_code\": \"FD6\", \"query\": \"창원 횟집\"}",
+          "detail": "{\"status\": \"ok\", \"already_collected\": true, \"file\": \"tool_file\\\\1789022346942_co…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.52,
+          "tok_in": 9269,
+          "tok_out": 48,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"region_prefix\": \"창원\", \"user_query\": \"창원 횟집 추천해줘\"}",
+          "detail": "{\"count\": 15, \"no_info\": 0, \"reranked_from\": 45, \"url_file\": \"tool_file\\\\1789022…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 3.37,
+          "tok_in": 9480,
+          "tok_out": 116,
+          "args": "",
+          "detail": "→ read_file"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"file_path\": \"tool_file\\\\1789022346942_info_summary.json\"}",
+          "detail": "{\"already_read\": true, \"note\": \"이미 읽은 파일입니다. 근거는 앞서 읽은 그대로이니 다시 수집·조회하지 말고 그 내용으…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 3.5,
+          "tok_in": 9652,
+          "tok_out": 116,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"category_code\": \"FD6\", \"query\": \"창원 횟집\"}",
+          "detail": "{\"status\": \"ok\", \"already_collected\": true, \"file\": \"tool_file\\\\1789022346942_co…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.84,
+          "tok_in": 9860,
+          "tok_out": 120,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"region_prefix\": \"창원\", \"user_query\": \"창원 횟집 추천해줘\"}",
+          "detail": "{\"count\": 15, \"no_info\": 0, \"reranked_from\": 45, \"url_file\": \"tool_file\\\\1789022…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.22,
+          "tok_in": 10143,
+          "tok_out": 44,
+          "args": "",
+          "detail": "→ read_file"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"file_path\": \"tool_file\\\\1789022346942_info_summary.json\"}",
+          "detail": "{\"already_read\": true, \"note\": \"이미 읽은 파일입니다. 근거는 앞서 읽은 그대로이니 다시 수집·조회하지 말고 그 내용으…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 8.72,
+          "tok_in": 10243,
+          "tok_out": 439,
+          "args": "",
+          "detail": "{\"kind\": \"recommendation\", \"message\": \"창원 횟집 8곳을 추천합니다. 회식·가…"
+        }
+      ],
+      "tool_calls": [
+        "collect_places",
+        "collect_info",
+        "read_file",
+        "collect_info",
+        "collect_places",
+        "collect_info",
+        "read_file",
+        "collect_places",
+        "collect_info",
+        "collect_places",
+        "read_file",
+        "collect_places",
+        "collect_info",
+        "read_file",
+        "collect_places",
+        "collect_info",
+        "read_file"
+      ],
+      "tokens_in": 145247,
+      "tokens_out": 1782,
+      "files": {
+        "file": "tool_file\\1789022346942_collect_places.json",
+        "url_file": "tool_file\\1789022346942_info_urls.json",
+        "rerank_file": "tool_file\\1789022346942_info_rerank.json",
+        "summary_file": "tool_file\\1789022346942_info_summary.json"
+      },
+      "message": "창원 횟집 8곳을 추천합니다. 회식·가족 모임용 프라이빗 룸부터 가성비 좋은 현지인 맛집까지 골랐으니, 편한 동네로 더 좁히면 더 정확한 추천이 가능합니다."
+    },
+    {
+      "question": "신림역 근처 칼국수 맛집",
+      "answer": [
+        "손칼국수잘하는집"
+      ],
+      "kind": "recommendation",
+      "predicted": [
+        "손칼국수잘하는집",
+        "형제홍두깨손칼국수",
+        "시골장칼국수",
+        "착한생칼국수",
+        "이모네전칼국수",
+        "서우얼큰칼국수",
+        "진천손칼국수",
+        "봉평옹심이메밀칼국수"
+      ],
+      "pool": [
+        "신림양면소",
+        "남향티하우스",
+        "머시기쪽갈비",
+        "가마솥닭한마리 신림점",
+        "삼성산장",
+        "중화요리팔공",
+        "카레마치 포도몰점",
+        "담솥 타임스트림점",
+        "서울뼛국",
+        "부뚜막",
+        "서울갈비 신림점",
+        "심가면옥",
+        "신림목포수산",
+        "해인어시장 신림본점",
+        "비타민수산세꼬시",
+        "미남참치 신림점",
+        "히토리더사까나",
+        "콩두주백 관악직영점",
+        "정원쌈밥보리밥",
+        "우리설렁탕",
+        "멘지 신림역점",
+        "도쿄스테이크 타임스트림점",
+        "상무초밥 구로디지털점",
+        "강강술래 신림본동점",
+        "신림춘천집 본점",
+        "손칼국수잘하는집",
+        "서우얼큰칼국수",
+        "봉평옹심이메밀칼국수",
+        "고시칼국수냉면",
+        "바지락칼국수",
+        "이가네바지락칼국수 신림점",
+        "시골장칼국수",
+        "진천손칼국수",
+        "고시칼국수냉면 2호점",
+        "월악통큰칼국수",
+        "연희국시",
+        "이모네전칼국수",
+        "부자바지락칼국수",
+        "독도해물탕 신림점",
+        "물찬조개",
+        "착한생칼국수",
+        "엄마손칼국수&전",
+        "도토리면옥 신림점",
+        "형제홍두깨손칼국수",
+        "샤브로21 신림"
+      ],
+      "detail": [
+        {
+          "answer": "손칼국수잘하는집",
+          "in_pool": true,
+          "pool_rank": 26,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": true,
+          "final_rank": 1
+        }
+      ],
+      "n_answer": 1,
+      "n_pool_hit": 1,
+      "n_filter_hit": 1,
+      "n_rerank_hit": 1,
+      "n_final_hit": 1,
+      "rr": 1.0,
+      "elapsed": 58.47089340000821,
+      "timing": {
+        "agent_llm_sec": 31.18,
+        "util_llm_sec": 35.19,
+        "tool_sec": 19.76,
+        "embed_sec": 1.55,
+        "io_sec": 63.69
+      },
+      "latency": {},
+      "steps": [
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.41,
+          "tok_in": 3475,
+          "tok_out": 65,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 6.16,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"query\": \"신림 칼국수\", \"category_code\": \"FD6\"}",
+          "detail": "{\"count\": 45, \"source_breakdown\": {\"kakao\": 45, \"web_harvest\": 25}, \"file\": \"too…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.86,
+          "tok_in": 3681,
+          "tok_out": 71,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 13.59,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"user_query\": \"신림역 근처 칼국수 맛집\", \"region_prefix\": \"신림\"}",
+          "detail": "{\"count\": 14, \"no_info\": 1, \"reranked_from\": 45, \"url_file\": \"tool_file\\\\1789022…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.14,
+          "tok_in": 3870,
+          "tok_out": 44,
+          "args": "",
+          "detail": "→ read_file"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "sec": 0.01,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"file_path\": \"tool_file\\\\1789022433875_info_summary.json\"}",
+          "detail": "<7453자>"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 3.7,
+          "tok_in": 7649,
+          "tok_out": 31,
+          "args": "",
+          "detail": "→ get_today"
+        },
+        {
+          "kind": "tool",
+          "name": "get_today",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{}",
+          "detail": "{\"date\": \"2026-09-10\", \"weekday\": \"목요일\", \"time\": \"15:40\", \"year\": 2026, \"month\":…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.03,
+          "tok_in": 7744,
+          "tok_out": 14,
+          "args": "",
+          "detail": "→ get_today"
+        },
+        {
+          "kind": "tool",
+          "name": "get_today",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{}",
+          "detail": "{\"date\": \"2026-09-10\", \"weekday\": \"목요일\", \"time\": \"15:40\", \"year\": 2026, \"month\":…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.69,
+          "tok_in": 7858,
+          "tok_out": 42,
+          "args": "",
+          "detail": "→ get_today"
+        },
+        {
+          "kind": "tool",
+          "name": "get_today",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{}",
+          "detail": "{\"date\": \"2026-09-10\", \"weekday\": \"목요일\", \"time\": \"15:41\", \"year\": 2026, \"month\":…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.8,
+          "tok_in": 8000,
+          "tok_out": 49,
+          "args": "",
+          "detail": "→ get_today"
+        },
+        {
+          "kind": "tool",
+          "name": "get_today",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{}",
+          "detail": "{\"date\": \"2026-09-10\", \"weekday\": \"목요일\", \"time\": \"15:41\", \"year\": 2026, \"month\":…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 12.54,
+          "tok_in": 8149,
+          "tok_out": 580,
+          "args": "",
+          "detail": "신림역 근처 칼국수 맛집 7곳을 골랐습니다. 대부분 5~7천 원대 가성비 좋은 손칼국수 전문점이에요.  ``…"
+        }
+      ],
+      "tool_calls": [
+        "collect_places",
+        "collect_info",
+        "read_file",
+        "get_today",
+        "get_today",
+        "get_today",
+        "get_today"
+      ],
+      "tokens_in": 50426,
+      "tokens_out": 896,
+      "files": {
+        "file": "tool_file\\1789022433875_collect_places.json",
+        "url_file": "tool_file\\1789022433875_info_urls.json",
+        "rerank_file": "tool_file\\1789022433875_info_rerank.json",
+        "summary_file": "tool_file\\1789022433875_info_summary.json"
+      },
+      "message": "신림역 도보 거리에서 가성비 좋은 칼국수 전문점 7곳을 골랐습니다. 대부분 5~7천 원대로 저렴한 편입니다."
+    },
+    {
+      "question": "신림역 부대찌개 맛집",
+      "answer": [
+        "옛맛의정부부대찌개"
+      ],
+      "kind": "recommendation",
+      "predicted": [
+        "옛맛의정부부대찌개",
+        "경아식당 신림점",
+        "다부찌",
+        "해방촌부대찌개",
+        "경아식당 난곡점",
+        "신림춘천집 본점",
+        "하나감자탕",
+        "명가김치찌개"
+      ],
+      "pool": [
+        "중화요리팔공",
+        "신림양면소",
+        "남향티하우스",
+        "머시기쪽갈비",
+        "도화불백",
+        "서울갈비 신림점",
+        "막불감동",
+        "두둑한샤브칼국수 신림점",
+        "신림춘천집 본점",
+        "만성찬팅",
+        "멘지 신림역점",
+        "콩두주백 관악직영점",
+        "심가면옥",
+        "퍼그 피자하우스 신림점",
+        "상군이네고깃집",
+        "마뇨떡볶이 신림점",
+        "24시 옛날농장",
+        "문성골족발집",
+        "흥부보쌈",
+        "털보네왕족발",
+        "구영회참치&초밥 신림점",
+        "하나감자탕",
+        "맛사랑쭈꾸미 신림점",
+        "다부찌",
+        "해방촌부대찌개",
+        "옛맛의정부부대찌개",
+        "미소김밥",
+        "다리목",
+        "삼봉 신림본점",
+        "경아식당 난곡점",
+        "꼴목 신림녹두거리점",
+        "노크 신림직영점",
+        "라밥 신대방2호점",
+        "명가김치찌개",
+        "롤앤밥스",
+        "호남식당",
+        "햇빛식당",
+        "경아식당 신림점",
+        "삼미김밥",
+        "예소담",
+        "예소반",
+        "일미보쌈순대국전문",
+        "전주콩나물국밥유명한집 대학점",
+        "다인 직영본점",
+        "산골녹두파전 2호점"
+      ],
+      "detail": [
+        {
+          "answer": "옛맛의정부부대찌개",
+          "in_pool": true,
+          "pool_rank": 26,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": true,
+          "final_rank": 1
+        }
+      ],
+      "n_answer": 1,
+      "n_pool_hit": 1,
+      "n_filter_hit": 1,
+      "n_rerank_hit": 1,
+      "n_final_hit": 1,
+      "rr": 1.0,
+      "elapsed": 79.39759990001039,
+      "timing": {
+        "agent_llm_sec": 34.7,
+        "util_llm_sec": 50.49,
+        "tool_sec": 38.17,
+        "embed_sec": 2.96,
+        "io_sec": 127.02
+      },
+      "latency": {},
+      "steps": [
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 1.92,
+          "tok_in": 3475,
+          "tok_out": 46,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 5.13,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"query\": \"신림역 부대찌개\", \"category_code\": \"FD6\"}",
+          "detail": "{\"count\": 45, \"source_breakdown\": {\"kakao\": 45, \"web_harvest\": 25}, \"file\": \"too…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 1.96,
+          "tok_in": 3664,
+          "tok_out": 48,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 14.44,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"user_query\": \"신림역 부대찌개 맛집\", \"region_prefix\": \"신림\"}",
+          "detail": "{\"count\": 11, \"no_info\": 4, \"reranked_from\": 45, \"url_file\": \"tool_file\\\\1789022…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.18,
+          "tok_in": 3830,
+          "tok_out": 44,
+          "args": "",
+          "detail": "→ read_file"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "sec": 0.01,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"file_path\": \"tool_file\\\\1789022490839_info_summary.json\"}",
+          "detail": "<4519자>"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 3.11,
+          "tok_in": 6126,
+          "tok_out": 46,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 5.58,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"query\": \"신림동 부대찌개\", \"category_code\": \"FD6\"}",
+          "detail": "{\"count\": 45, \"source_breakdown\": {\"kakao\": 45, \"web_harvest\": 23}, \"file\": \"too…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.57,
+          "tok_in": 6315,
+          "tok_out": 48,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 13.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"user_query\": \"신림역 부대찌개 맛집\", \"region_prefix\": \"신림\"}",
+          "detail": "{\"count\": 12, \"no_info\": 3, \"reranked_from\": 45, \"url_file\": \"tool_file\\\\1789022…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.58,
+          "tok_in": 6481,
+          "tok_out": 44,
+          "args": "",
+          "detail": "→ read_file"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "sec": 0.01,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"file_path\": \"tool_file\\\\1789022490839_info_summary.json\"}",
+          "detail": "<5905자>"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.81,
+          "tok_in": 9513,
+          "tok_out": 14,
+          "args": "",
+          "detail": "→ get_today"
+        },
+        {
+          "kind": "tool",
+          "name": "get_today",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{}",
+          "detail": "{\"date\": \"2026-09-10\", \"weekday\": \"목요일\", \"time\": \"15:42\", \"year\": 2026, \"month\":…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.69,
+          "tok_in": 9591,
+          "tok_out": 46,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"query\": \"신림동 부대찌개\", \"category_code\": \"FD6\"}",
+          "detail": "{\"status\": \"ok\", \"already_collected\": true, \"file\": \"tool_file\\\\1789022490839_co…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.63,
+          "tok_in": 9729,
+          "tok_out": 48,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"user_query\": \"신림역 부대찌개 맛집\", \"region_prefix\": \"신림\"}",
+          "detail": "{\"count\": 12, \"no_info\": 3, \"reranked_from\": 45, \"url_file\": \"tool_file\\\\1789022…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 1.92,
+          "tok_in": 9940,
+          "tok_out": 44,
+          "args": "",
+          "detail": "→ read_file"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"file_path\": \"tool_file\\\\1789022490839_info_summary.json\"}",
+          "detail": "{\"already_read\": true, \"note\": \"이미 읽은 파일입니다. 근거는 앞서 읽은 그대로이니 다시 수집·조회하지 말고 그 내용으…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 1.57,
+          "tok_in": 10040,
+          "tok_out": 14,
+          "args": "",
+          "detail": "→ get_today"
+        },
+        {
+          "kind": "tool",
+          "name": "get_today",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{}",
+          "detail": "{\"date\": \"2026-09-10\", \"weekday\": \"목요일\", \"time\": \"15:42\", \"year\": 2026, \"month\":…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 8.75,
+          "tok_in": 10154,
+          "tok_out": 380,
+          "args": "",
+          "detail": "신림역 인근에서 실제로 부대찌개를 팔고, 후기 근거가 있는 5곳을 골라 추천드립니다.  {   \"kind\":…"
+        }
+      ],
+      "tool_calls": [
+        "collect_places",
+        "collect_info",
+        "read_file",
+        "collect_places",
+        "collect_info",
+        "read_file",
+        "get_today",
+        "collect_places",
+        "collect_info",
+        "read_file",
+        "get_today"
+      ],
+      "tokens_in": 88858,
+      "tokens_out": 822,
+      "files": {
+        "file": "tool_file\\1789022490839_collect_places.json",
+        "url_file": "tool_file\\1789022490839_info_urls.json",
+        "rerank_file": "tool_file\\1789022490839_info_rerank.json",
+        "summary_file": "tool_file\\1789022490839_info_summary.json"
+      },
+      "message": "신림역 부근 부대찌개 맛집 5곳입니다. 대부분 1인 주문 가능하고 가성비 평이 좋아 혼밥·친구 식사에 무난합니다."
+    },
+    {
+      "question": "신림역 근처 고기집 추천해줘",
+      "answer": [
+        "왕주먹",
+        "서울갈비 신림점",
+        "본화로",
+        "신림정"
+      ],
+      "kind": "recommendation",
+      "predicted": [
+        "신림화로",
+        "강강술래 신림본동점",
+        "본화로",
+        "황제갈비",
+        "대원갈비",
+        "돼봉삼겹살 신림점",
+        "미나리생삼겹",
+        "신림정"
+      ],
+      "pool": [
+        "신림화로",
+        "장터대패농장 신림점",
+        "서울초밥 신림점",
+        "신림양면소",
+        "남향티하우스",
+        "마장동고기집 서울신림점",
+        "중화요리팔공",
+        "아리차이 신림점",
+        "미남참치 신림점",
+        "육진정육식당 본점",
+        "화로상회 서울대점",
+        "생생조개 본점1호",
+        "신사조개",
+        "행복한조개맛집",
+        "두둑한샤브칼국수 신림점",
+        "멘지 신림역점",
+        "고향순대국두부삼합전문점",
+        "골뱅이랑치킨",
+        "진격의곱창",
+        "소품은돼지",
+        "퍼그 피자하우스 신림점",
+        "서울갈비 신림점",
+        "신림춘천집 본점",
+        "정담은보쌈 신림점",
+        "강강술래 신림본동점",
+        "봄날의 햇살",
+        "문성골족발집",
+        "미나리생삼겹",
+        "서울집 신림직영점",
+        "신림황소곱창",
+        "깡통닭갈비",
+        "대원갈비",
+        "황제갈비",
+        "강남곱창이야기 신림점",
+        "돼봉삼겹살 신림점",
+        "본화로",
+        "부뚜막",
+        "신풍루곱창구이",
+        "십원집 신림점",
+        "신림정",
+        "왕주먹",
+        "상록회관연탄구이 신림역점",
+        "고기박사 서울대점",
+        "곱창나라",
+        "나는남자닭"
+      ],
+      "detail": [
+        {
+          "answer": "왕주먹",
+          "in_pool": true,
+          "pool_rank": 41,
+          "in_filter": true,
+          "in_rerank": false,
+          "in_final": false,
+          "final_rank": null
+        },
+        {
+          "answer": "서울갈비 신림점",
+          "in_pool": true,
+          "pool_rank": 22,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": false,
+          "final_rank": null
+        },
+        {
+          "answer": "본화로",
+          "in_pool": true,
+          "pool_rank": 11,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": true,
+          "final_rank": 3
+        },
+        {
+          "answer": "신림정",
+          "in_pool": true,
+          "pool_rank": 24,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": true,
+          "final_rank": 8
+        }
+      ],
+      "n_answer": 4,
+      "n_pool_hit": 4,
+      "n_filter_hit": 4,
+      "n_rerank_hit": 3,
+      "n_final_hit": 2,
+      "rr": 0.3333333333333333,
+      "elapsed": 50.45455769999535,
+      "timing": {
+        "agent_llm_sec": 23.68,
+        "util_llm_sec": 37.3,
+        "tool_sec": 19.11,
+        "embed_sec": 1.54,
+        "io_sec": 58.75
+      },
+      "latency": {},
+      "steps": [
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.34,
+          "tok_in": 3477,
+          "tok_out": 66,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 6.21,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"query\": \"신림역 고기집\", \"category_code\": \"FD6\"}",
+          "detail": "{\"count\": 45, \"source_breakdown\": {\"kakao\": 45, \"web_harvest\": 21}, \"file\": \"too…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.8,
+          "tok_in": 3685,
+          "tok_out": 68,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 12.88,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"user_query\": \"신림역 근처 고기집 추천\", \"region_prefix\": \"신림\"}",
+          "detail": "{\"count\": 14, \"no_info\": 1, \"reranked_from\": 45, \"url_file\": \"tool_file\\\\1789022…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.49,
+          "tok_in": 3871,
+          "tok_out": 55,
+          "args": "",
+          "detail": "→ read_file"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "sec": 0.02,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"file_path\": \"tool_file\\\\1789022571750_info_summary.json\"}",
+          "detail": "<7656자>"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 4.4,
+          "tok_in": 7712,
+          "tok_out": 67,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"user_query\": \"신림역 근처 고기집 추천\", \"region_prefix\": \"신림\"}",
+          "detail": "{\"count\": 14, \"no_info\": 1, \"reranked_from\": 45, \"url_file\": \"tool_file\\\\1789022…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 3.33,
+          "tok_in": 7942,
+          "tok_out": 51,
+          "args": "",
+          "detail": "→ get_today"
+        },
+        {
+          "kind": "tool",
+          "name": "get_today",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{}",
+          "detail": "{\"date\": \"2026-09-10\", \"weekday\": \"목요일\", \"time\": \"15:43\", \"year\": 2026, \"month\":…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 8.32,
+          "tok_in": 8057,
+          "tok_out": 325,
+          "args": "",
+          "detail": "신림역 근처 고기집을 방문자 후기를 바탕으로 골라봤습니다. 초벌구이 편의성, 가성비, 분위기별로 고르게 담았…"
+        }
+      ],
+      "tool_calls": [
+        "collect_places",
+        "collect_info",
+        "read_file",
+        "collect_info",
+        "get_today"
+      ],
+      "tokens_in": 34744,
+      "tokens_out": 632,
+      "files": {
+        "file": "tool_file\\1789022571750_collect_places.json",
+        "url_file": "tool_file\\1789022571750_info_urls.json",
+        "rerank_file": "tool_file\\1789022571750_info_rerank.json",
+        "summary_file": "tool_file\\1789022571750_info_summary.json"
+      },
+      "message": "신림역 근처에서 초벌구이 편의성, 가성비, 분위기 등을 고려해 엄선한 고기집 7곳을 추천해 드립니다."
+    },
+    {
+      "question": "신림역 주변 감성있는 카페 추천좀 해줘",
+      "answer": [
+        "로드트립",
+        "폼앤노말"
+      ],
+      "kind": "recommendation",
+      "predicted": [
+        "폼앤노말",
+        "블러커피",
+        "달다어요",
+        "인투커피",
+        "프레오커피",
+        "진서의정원 카페",
+        "바빕",
+        "릴띵스"
+      ],
+      "pool": [
+        "서라당",
+        "더빈마켓",
+        "만랩커피 신림별빛거리점",
+        "데니스커피 남강점",
+        "신림다락",
+        "커피플래닛",
+        "디저트문",
+        "메이지커피",
+        "커피니쉬",
+        "프레오커피",
+        "폼앤노말",
+        "블러커피",
+        "달다어요",
+        "카페레이브",
+        "진서의정원 카페",
+        "카페 코아르",
+        "프롬카페",
+        "포브타파",
+        "사생활 신림점",
+        "카페달달스콘",
+        "히코",
+        "체크커피",
+        "인투커피",
+        "나티",
+        "레스트어와일",
+        "더머커피",
+        "저스트로맨틱",
+        "하우스공감",
+        "우주커피",
+        "프로스퍼",
+        "릴띵스",
+        "301h",
+        "카페드보사",
+        "틱택커피",
+        "뫀커피",
+        "위드모리",
+        "카페알코브",
+        "바모스",
+        "해피페페",
+        "신림마당",
+        "도토리소년",
+        "NOHJ",
+        "인파라다이스",
+        "바빕",
+        "카페오월"
+      ],
+      "detail": [
+        {
+          "answer": "로드트립",
+          "in_pool": false,
+          "pool_rank": null,
+          "in_filter": false,
+          "in_rerank": false,
+          "in_final": false,
+          "final_rank": null
+        },
+        {
+          "answer": "폼앤노말",
+          "in_pool": true,
+          "pool_rank": 11,
+          "in_filter": true,
+          "in_rerank": true,
+          "in_final": true,
+          "final_rank": 1
+        }
+      ],
+      "n_answer": 2,
+      "n_pool_hit": 1,
+      "n_filter_hit": 1,
+      "n_rerank_hit": 1,
+      "n_final_hit": 1,
+      "rr": 1.0,
+      "elapsed": 42.61130410000624,
+      "timing": {
+        "agent_llm_sec": 16.68,
+        "util_llm_sec": 35.79,
+        "tool_sec": 19.39,
+        "embed_sec": 1.55,
+        "io_sec": 64.12
+      },
+      "latency": {},
+      "steps": [
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.64,
+          "tok_in": 3479,
+          "tok_out": 45,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 5.18,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"query\": \"신림역 감성 카페\", \"category_code\": \"CE7\"}",
+          "detail": "{\"count\": 45, \"source_breakdown\": {\"kakao\": 43, \"web_harvest\": 10}, \"file\": \"too…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.03,
+          "tok_in": 3601,
+          "tok_out": 49,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 14.2,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"user_query\": \"신림역 주변 감성있는 카페 추천\", \"region_prefix\": \"신림\"}",
+          "detail": "{\"count\": 14, \"no_info\": 1, \"reranked_from\": 45, \"url_file\": \"tool_file\\\\1789022…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.11,
+          "tok_in": 3768,
+          "tok_out": 44,
+          "args": "",
+          "detail": "→ read_file"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "sec": 0.01,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"file_path\": \"tool_file\\\\1789022621485_info_summary.json\"}",
+          "detail": "<7318자>"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 3.25,
+          "tok_in": 7358,
+          "tok_out": 14,
+          "args": "",
+          "detail": "→ get_today"
+        },
+        {
+          "kind": "tool",
+          "name": "get_today",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{}",
+          "detail": "{\"date\": \"2026-09-10\", \"weekday\": \"목요일\", \"time\": \"15:44\", \"year\": 2026, \"month\":…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 6.65,
+          "tok_in": 7436,
+          "tok_out": 260,
+          "args": "",
+          "detail": "{\"kind\": \"recommendation\", \"message\": \"신림역 도보권에서 감성적인 분위기로 후…"
+        }
+      ],
+      "tool_calls": [
+        "collect_places",
+        "collect_info",
+        "read_file",
+        "get_today"
+      ],
+      "tokens_in": 25642,
+      "tokens_out": 412,
+      "files": {
+        "file": "tool_file\\1789022621485_collect_places.json",
+        "url_file": "tool_file\\1789022621485_info_urls.json",
+        "rerank_file": "tool_file\\1789022621485_info_rerank.json",
+        "summary_file": "tool_file\\1789022621485_info_summary.json"
+      },
+      "message": "신림역 도보권에서 감성적인 분위기로 후기가 좋은 카페 6곳을 골랐습니다."
+    },
+    {
+      "question": "신림역 주변 횟집 해줘",
+      "answer": [
+        "목포수산"
+      ],
+      "kind": "recommendation",
+      "predicted": [
+        "길회센타",
+        "해인어시장 신림본점",
+        "대주수산 직영점",
+        "캐리비안회적",
+        "막해",
+        "지중해",
+        "군산회집",
+        "행복한조개맛집"
+      ],
+      "pool": [
+        "신림양면소",
+        "남향티하우스",
+        "머시기쪽갈비",
+        "중화요리팔공",
+        "만성찬팅",
+        "퍼그 피자하우스 신림점",
+        "산오징어 양푼무침 신림점",
+        "서울뼛국",
+        "멘지 신림역점",
+        "도쿄스테이크 타임스트림점",
+        "생생조개 본점1호",
+        "물찬조개",
+        "신사조개",
+        "행복한조개맛집",
+        "고향순대국두부삼합전문점",
+        "세맛원종동장터순대국",
+        "신주옥미 신림역점",
+        "또순이순대 본점",
+        "해담촌 신림역점",
+        "독도해물탕 신림점",
+        "빵장수단팥빵cafe 신림점",
+        "플러팅버거",
+        "세울타코 서울대직영점",
+        "길회센타",
+        "도림항",
+        "캐리비안회적",
+        "오빠야회포차",
+        "신림목포수산",
+        "어부세꼬시 조원점",
+        "올바른숙성회 신림2호점",
+        "군산회집",
+        "광어&연어",
+        "해인어시장 신림본점",
+        "통통회 신림점",
+        "어사출또 신림역점",
+        "신사수산",
+        "막해",
+        "보라매셀프 회 수산시장",
+        "독도수산회어시장",
+        "지중해",
+        "탐나종합어시장 구로디지털역점",
+        "탐나종합어시장 난곡사거리점",
+        "신림광어",
+        "대주수산 직영점",
+        "어부회세꼬시전문"
+      ],
+      "detail": [
+        {
+          "answer": "목포수산",
+          "in_pool": true,
+          "pool_rank": 28,
+          "in_filter": true,
+          "in_rerank": false,
+          "in_final": false,
+          "final_rank": null
+        }
+      ],
+      "n_answer": 1,
+      "n_pool_hit": 1,
+      "n_filter_hit": 1,
+      "n_rerank_hit": 0,
+      "n_final_hit": 0,
+      "rr": 0.0,
+      "elapsed": 53.07225430000108,
+      "timing": {
+        "agent_llm_sec": 27.78,
+        "util_llm_sec": 28.51,
+        "tool_sec": 18.72,
+        "embed_sec": 1.42,
+        "io_sec": 53.19
+      },
+      "latency": {},
+      "steps": [
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.58,
+          "tok_in": 3476,
+          "tok_out": 63,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 5.55,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"query\": \"신림 횟집\", \"category_code\": \"FD6\"}",
+          "detail": "{\"count\": 45, \"source_breakdown\": {\"kakao\": 45, \"web_harvest\": 23}, \"file\": \"too…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 3.2,
+          "tok_in": 3680,
+          "tok_out": 81,
+          "args": "",
+          "detail": "→ collect_info"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_info",
+          "sec": 13.16,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"user_query\": \"신림역 주변 횟집 추천\", \"region_prefix\": \"신림\"}",
+          "detail": "{\"count\": 12, \"no_info\": 3, \"reranked_from\": 45, \"url_file\": \"tool_file\\\\1789022…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 3.44,
+          "tok_in": 3879,
+          "tok_out": 67,
+          "args": "",
+          "detail": "→ read_file"
+        },
+        {
+          "kind": "tool",
+          "name": "read_file",
+          "sec": 0.01,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"file_path\": \"tool_file\\\\1789022664436_info_summary.json\"}",
+          "detail": "<6049자>"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 4.14,
+          "tok_in": 6962,
+          "tok_out": 58,
+          "args": "",
+          "detail": "→ get_today"
+        },
+        {
+          "kind": "tool",
+          "name": "get_today",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{}",
+          "detail": "{\"date\": \"2026-09-10\", \"weekday\": \"목요일\", \"time\": \"15:44\", \"year\": 2026, \"month\":…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 2.89,
+          "tok_in": 7084,
+          "tok_out": 64,
+          "args": "",
+          "detail": "→ collect_places"
+        },
+        {
+          "kind": "tool",
+          "name": "collect_places",
+          "sec": 0.0,
+          "tok_in": 0,
+          "tok_out": 0,
+          "args": "{\"query\": \"신림 횟집\"}",
+          "detail": "{\"status\": \"ok\", \"already_collected\": true, \"file\": \"tool_file\\\\1789022664436_co…"
+        },
+        {
+          "kind": "llm",
+          "name": "llm",
+          "sec": 11.53,
+          "tok_in": 7240,
+          "tok_out": 487,
+          "args": "",
+          "detail": "후기 분석까지 마쳤으니 바로 추천으로 정리합니다.  {   \"kind\": \"recommendation\",  …"
+        }
+      ],
+      "tool_calls": [
+        "collect_places",
+        "collect_info",
+        "read_file",
+        "get_today",
+        "collect_places"
+      ],
+      "tokens_in": 32321,
+      "tokens_out": 820,
+      "files": {
+        "file": "tool_file\\1789022664436_collect_places.json",
+        "url_file": "tool_file\\1789022664436_info_urls.json",
+        "rerank_file": "tool_file\\1789022664436_info_rerank.json",
+        "summary_file": "tool_file\\1789022664436_info_summary.json"
+      },
+      "message": "신림역 인근에서 가성비·신선도·접근성을 갖춘 횟집 6곳을 방문 후기 기준으로 골랐습니다."
+    }
+  ]
+}

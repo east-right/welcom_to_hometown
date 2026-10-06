@@ -13,16 +13,18 @@ import asyncio
 import itertools
 import os
 import re
+import time
 from urllib.parse import urlparse
 
 import httpx
 import lxml.html
 import requests
 from google import genai
-from google.genai import types
+from google.genai import errors, types
 
 from .core import (
     FAIL_PREFIX,
+    KAKAO_SEM,
     LLM_SEM,
     NAVER_SEM,
     SCRAPE_SEM,
@@ -32,8 +34,10 @@ from .core import (
 
 UTIL_MODEL = os.getenv("WH_UTIL_MODEL", "gemini-3.1-flash-lite")
 
-# LLM 백엔드 스왑 — 기본은 호스티드 Gemini. WH_LLM_BACKEND=local이면 유틸 LLM과
-# 에이전트 LLM만 vLLM(OpenAI 호환)으로 라우팅한다. 임베딩은 항상 Gemini(아래 _client).
+# 유틸 LLM 백엔드 스왑 — 기본은 호스티드 Gemini. WH_LLM_BACKEND=local이면 유틸
+# LLM(llm_async: HyDE·이름추출·요약·포매터)을 vLLM(OpenAI 호환)으로 라우팅한다.
+# 에이전트 LLM은 agent.AGENT_BACKEND(WH_AGENT_BACKEND)로 별도 스왑한다 — 툴은 Gemini,
+# 메인 에이전트만 로컬처럼 독립 전환이 가능하다. 임베딩은 항상 Gemini(아래 _client).
 # env를 안 주면 현행(gemini)과 100% 동일하게 동작한다.
 LLM_BACKEND = os.getenv("WH_LLM_BACKEND", "gemini").lower()
 LOCAL_MODEL = os.getenv("WH_LOCAL_MODEL", "")           # 예: openai/Qwen/Qwen3.8-27B-FP8
@@ -82,9 +86,25 @@ async def _llm_gemini(prompt: str, *, json_mode: bool, temperature: float) -> st
     return resp.text
 
 
+# 로컬 LLM 호출별 서빙 지연 지표(스트리밍 계측). eval이 케이스마다 pop해서 비운다.
+#   ttft  첫 토큰까지(prefill 지배)   e2el  전체(첫→마지막)
+#   tpot  토큰당 decode 시간 = (e2el-ttft)/(out_tok-1)   out_tok  출력 토큰 수
+_LLM_LAT: list[dict] = []
+
+
+def pop_llm_latency() -> list[dict]:
+    """누적된 로컬 LLM 지연 기록을 반환하고 비운다."""
+    global _LLM_LAT
+    recs, _LLM_LAT = _LLM_LAT, []
+    return recs
+
+
 async def _llm_local(prompt: str, *, json_mode: bool, temperature: float) -> str:
     """vLLM OpenAI 호환 엔드포인트 호출. 에이전트의 LiteLlm과 같은 litellm을 쓴다
     (새 의존성 없음). json_mode는 OpenAI식 response_format으로 매핑한다.
+
+    스트리밍으로 받아 첫/마지막 토큰 시각을 재고 TTFT·E2EL·TPOT·출력토큰을 _LLM_LAT에
+    기록한다(로컬 서빙 지연 계측). 스트리밍이라도 최종 텍스트는 동일하게 합쳐 반환한다.
 
     Qwen3 같은 추론 모델은 기본으로 답 앞에 <think> 사고과정을 붙인다. 유틸 LLM은
     HyDE 문서·요약처럼 '결과 텍스트'만 필요하므로 chat_template_kwargs로 thinking을 꺼
@@ -98,17 +118,69 @@ async def _llm_local(prompt: str, *, json_mode: bool, temperature: float) -> str
         "api_base": LOCAL_API_BASE or None,
         "api_key": LOCAL_API_KEY or None,
         "extra_body": {"chat_template_kwargs": {"enable_thinking": False}},
+        "stream": True,
+        "stream_options": {"include_usage": True},  # 마지막 청크에 usage 실림
     }
     if json_mode:
         kwargs["response_format"] = {"type": "json_object"}
+
+    t0 = time.perf_counter()
+    ttft = None
+    parts: list[str] = []
+    usage = None
     resp = await litellm.acompletion(**kwargs)
-    return resp.choices[0].message.content
+    async for chunk in resp:
+        if getattr(chunk, "usage", None):        # usage 전용 청크는 choices가 빔
+            usage = chunk.usage
+        try:
+            delta = chunk.choices[0].delta.content
+        except (IndexError, AttributeError):
+            delta = None
+        if delta:
+            if ttft is None:
+                ttft = time.perf_counter() - t0
+            parts.append(delta)
+    e2el = time.perf_counter() - t0
+    if ttft is None:
+        ttft = e2el
+
+    out_tok = getattr(usage, "completion_tokens", 0) or 0
+    _LLM_LAT.append({
+        "ttft": ttft,
+        "e2el": e2el,
+        "out_tok": out_tok,
+        "tpot": (e2el - ttft) / (out_tok - 1) if out_tok > 1 else 0.0,
+        "tps": out_tok / e2el if e2el else 0.0,
+    })
+    return "".join(parts)
 
 
 # ---------------------------------------------------------------- 임베딩
 
 EMBED_MODEL = os.getenv("WH_EMBED_MODEL", "gemini-embedding-001")
 EMBED_DIM = 768  # 3072 기본에서 축소 — 벡터가 가벼워지고 코사인도 빨라진다
+
+# 임베딩 쿼터(global_embed_content_requests_per_minute_per_base_model)는 전 고객이
+# 공유하는 글로벌 RPM 풀이다. 배치를 딜레이 없이 gather로 동시에 쏘면 순간 요청률이
+# 튀어 429가 난다. 두 겹으로 막는다:
+#   ① 페이싱   — 요청 간 최소 간격(1/RPS)을 강제해 버스트를 눌러 우리 기여분을 줄인다.
+#   ② 백오프   — 그래도 429가 나면(공유 풀이라 우리 밖 트래픽으로도 남) 지수 백오프로
+#                물러났다 재시도해 케이스를 통째로 실패시키지 않는다.
+EMBED_RPS = float(os.getenv("WH_EMBED_RPS", "6"))         # 초당 임베딩 요청 상한
+EMBED_MAX_RETRY = int(os.getenv("WH_EMBED_MAX_RETRY", "5"))
+_embed_gate = asyncio.Lock()
+_embed_next = 0.0  # 다음 요청 허용 시각(event loop monotonic clock)
+
+
+async def _embed_pace() -> None:
+    """요청 사이에 최소 1/RPS 간격을 둔다. 동시 배치도 이 게이트로 줄세운다."""
+    global _embed_next
+    async with _embed_gate:
+        now = asyncio.get_event_loop().time()
+        if now < _embed_next:
+            await asyncio.sleep(_embed_next - now)
+            now = _embed_next
+        _embed_next = now + 1.0 / EMBED_RPS
 
 
 @track("embed")
@@ -121,13 +193,22 @@ async def embed_texts(texts: list[str]) -> list[list[float]]:
         return []
 
     async def one_batch(batch: list[str]) -> list[list[float]]:
-        async with LLM_SEM:
-            resp = await _client.aio.models.embed_content(
-                model=EMBED_MODEL,
-                contents=batch,
-                config=types.EmbedContentConfig(output_dimensionality=EMBED_DIM),
-            )
-        return [e.values for e in resp.embeddings]
+        for attempt in range(EMBED_MAX_RETRY):
+            await _embed_pace()
+            try:
+                async with LLM_SEM:
+                    resp = await _client.aio.models.embed_content(
+                        model=EMBED_MODEL,
+                        contents=batch,
+                        config=types.EmbedContentConfig(
+                            output_dimensionality=EMBED_DIM
+                        ),
+                    )
+                return [e.values for e in resp.embeddings]
+            except errors.APIError as e:
+                if e.code != 429 or attempt + 1 == EMBED_MAX_RETRY:
+                    raise
+                await asyncio.sleep(2**attempt)  # 1, 2, 4, 8초…
 
     chunks = [texts[i : i + 100] for i in range(0, len(texts), 100)]
     batched = await asyncio.gather(*[one_batch(c) for c in chunks])
@@ -347,15 +428,24 @@ async def naver_search(
     async with NAVER_SEM:
         for attempt in range(3):
             cid, csec = next(_naver_cycle)  # 호출·재시도마다 키 교대
-            async with httpx.AsyncClient(timeout=5) as client:
-                resp = await client.get(
-                    f"https://openapi.naver.com/v1/search/{kind}",
-                    headers={
-                        "X-Naver-Client-Id": cid,
-                        "X-Naver-Client-Secret": csec,
-                    },
-                    params={"query": query, "display": display, "sort": sort},
-                )
+            try:
+                async with httpx.AsyncClient(timeout=5) as client:
+                    resp = await client.get(
+                        f"https://openapi.naver.com/v1/search/{kind}",
+                        headers={
+                            "X-Naver-Client-Id": cid,
+                            "X-Naver-Client-Secret": csec,
+                        },
+                        params={"query": query, "display": display, "sort": sort},
+                    )
+            except httpx.TransportError:
+                # connect/read 타임아웃 등 일시적 전송 오류 — 부하가 몰리면 간헐 발생한다.
+                # 한 콜의 타임아웃이 쿼리 전체를 죽이지 않도록 흡수하고 다음 키로 재시도,
+                # 다 실패하면 빈 결과로 degrade한다(수집이 그만큼 얕아질 뿐).
+                if attempt + 1 < 3:
+                    await asyncio.sleep(0.3 * (attempt + 1))
+                    continue
+                return [], "error"
             if resp.status_code == 429:
                 # 429는 키(앱)당 걸리므로, 아직 안 써본 키가 남았으면 sleep 없이 즉시
                 # 다른 키로 재시도한다. 모든 키가 429일 때만(=진짜 과부하) 백오프한다.
@@ -383,4 +473,41 @@ async def naver_search(
             "date": i.get("postdate", "") or i.get("pubDate", ""),
         }
         for i in items
+    ], "ok"
+
+
+async def daum_blog(
+    query: str, display: int = 10, sort: str = "accuracy"
+) -> tuple[list[dict], str]:
+    """카카오(다음) 블로그 검색. 카카오 REST 키를 그대로 쓴다.
+
+    같은 상호명이라도 네이버와 인덱스가 달라 잡히는 글이 다르다 — 로컬 노포는 다음
+    쪽이 더 풍부한 경우가 많다. naver_search와 같은 (결과, 상태) 형태로 반환한다.
+    sort: 'accuracy'(정확도) / 'recency'(최신). size 최대 50.
+    """
+    async with KAKAO_SEM:
+        try:
+            async with httpx.AsyncClient(timeout=5) as client:
+                resp = await client.get(
+                    "https://dapi.kakao.com/v2/search/blog",
+                    headers={"Authorization": f"KakaoAK {os.environ['KAKAO_REST_API_KEY']}"},
+                    params={"query": query, "size": display, "sort": sort},
+                )
+        except httpx.TransportError:
+            return [], "error"
+
+    if resp.status_code != 200:
+        return [], str(resp.status_code)
+    docs = resp.json().get("documents", [])
+    if not docs:
+        return [], "empty"
+
+    return [
+        {
+            "title": strip_tags(d.get("title", "")),
+            "description": strip_tags(d.get("contents", "")),
+            "link": d.get("url", ""),
+            "date": d.get("datetime", ""),
+        }
+        for d in docs
     ], "ok"

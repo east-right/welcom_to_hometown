@@ -1,0 +1,35 @@
+# 리랭커 ablation 실행 결과 (bench/_ablation.py, 1회 라이브 실행, Gemini, temp=0)
+# 정답 24개 / 질의 11개. PPT Q1(Judge 기여도) · Q2(facet·max vs mean) 근거.
+# 주의: 1회 라이브 수집이라 facet 단독/single/raw 절대값은 ±노이즈. Judge +20.8%p, max>mean은 효과 커서 방향 견고.
+
+  run1 [창원 귀산 바다가 보이는 커피  ] multi_max@8=2  judge@8=2 /4
+  run1 [신림역 주변에서 혼밥하기 좋은  ] multi_max@8=0  judge@8=1 /1
+  run1 [창원 귀산 맛집 추천       ] multi_max@8=0  judge@8=0 /2
+  run1 [창원 가포 맛집 추천       ] multi_max@8=2  judge@8=4 /5
+  run1 [마산 합성동 피자 맛집      ] multi_max@8=1  judge@8=1 /1
+  run1 [창원 횟집 추천해줘        ] multi_max@8=0  judge@8=1 /2
+  run1 [신림역 근처 칼국수 맛집     ] multi_max@8=1  judge@8=1 /1
+  run1 [신림역 부대찌개 맛집       ] multi_max@8=1  judge@8=1 /1
+  run1 [신림역 근처 고기집 추천해줘   ] multi_max@8=2  judge@8=2 /4
+  run1 [신림역 주변 감성있는 카페 추  ] multi_max@8=1  judge@8=1 /2
+  run1 [신림역 주변 횟집 해줘      ] multi_max@8=0  judge@8=1 /1
+RUN 1 완료: multi_max rerank@8=10/24  Judge@8=15/24
+
+========================================================
+리랭크 Recall (정답 24개, 1회 평균)
+========================================================
+method                 @8        @15
+raw_cos            29.2%     66.7%
+hyde_single        37.5%     66.7%
+f_전통               54.2%     79.2%
+f_인기               50.0%     87.5%
+f_미디어              33.3%     58.3%
+multi_mean         37.5%     79.2%
+multi_max          41.7%     87.5%
+
+========================================================
+Q1 Judge 기여도 (top8, 같은 컬렉션)
+========================================================
+  HyDE_multi rerank@8 (Judge X): 41.7%  (10.0/24)
+  rerank15→요약→Judge→top8     : 62.5%  (15.0/24)
+  Δ Judge 기여                  : +20.8%p

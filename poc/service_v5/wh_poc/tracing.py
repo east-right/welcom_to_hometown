@@ -136,7 +136,7 @@ class Tracer:
                 "kind": "tool",
                 "name": tool.name,
                 "sec": (time.perf_counter() - t0) if t0 else 0.0,
-                "args": _brief(args, 60),
+                "args": _brief(args, 200),
                 "detail": _brief(tool_response),
                 # 툴 내부 Layer 1 호출의 카테고리별 초(llm/naver/scrape/embed/kakao).
                 # 비계측 툴은 빈 dict. LLM 생성과 외부 I/O를 분리해 보는 근거다.

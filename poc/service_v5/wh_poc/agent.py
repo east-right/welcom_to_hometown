@@ -24,6 +24,7 @@ import os
 import uuid
 
 from google.adk.agents import LlmAgent
+from google.adk.agents.run_config import RunConfig
 from google.adk.runners import InMemoryRunner
 from google.genai import types
 
@@ -37,11 +38,22 @@ from .tracing import Tracer
 APP_NAME = "wh_poc"
 USER_ID = "user1"
 
+# 에이전트 백엔드는 툴 내부 LLM(clients.llm_async, LLM_BACKEND)과 독립적으로 스왑한다.
+# WH_AGENT_BACKEND를 안 주면 WH_LLM_BACKEND를 따라가 현행과 동일하게 동작한다.
+# 예: 툴 요약·HyDE는 Gemini로 두고(WH_LLM_BACKEND=gemini) 메인 에이전트만
+# 로컬 vLLM(27B)로 돌리려면 WH_AGENT_BACKEND=local 만 켠다.
+AGENT_BACKEND = os.getenv("WH_AGENT_BACKEND", LLM_BACKEND).lower()
+
+# 한 요청에서 허용할 LLM 호출 수 상한. 정상 흐름은 4~5스텝(수집·요약선택·최종)이라
+# 넉넉하다. 약한 로컬 모델이 get_today 등을 반복 호출하는 폭주 루프를 여기서 강제로
+# 끊어(초과 시 ADK가 중단) 케이스가 수백 초로 늘어나는 걸 막는다.
+MAX_LLM_CALLS = int(os.getenv("WH_MAX_LLM_CALLS", "30"))
+
 
 def agent_model():
     """백엔드에 맞는 에이전트 모델을 만든다. gemini면 ADK 네이티브 문자열,
     local이면 vLLM(OpenAI 호환)을 가리키는 LiteLlm 객체."""
-    if LLM_BACKEND != "local":
+    if AGENT_BACKEND != "local":
         return os.getenv("WH_AGENT_MODEL", "gemini-3.1-flash-lite")
     # 원격 오픈모델을 쓸 때만 임포트 (litellm 미설치 환경에서도 gemini 경로는 동작)
     from google.adk.models.lite_llm import LiteLlm
@@ -73,17 +85,19 @@ INSTRUCTION = """당신은 지역 장소를 찾아 추천하는 어시스턴트�
 # 되물어야 할 때 / 되묻지 말아야 할 때
 
 되묻습니다(kind='question'):
-- 지역이 특정되지 않은 경우. "카페 추천해줘"처럼 어디인지 없으면 검색 자체가 무의미합니다.
+- 지역이 아예 없는 경우. "카페 추천해줘"처럼 어디인지 없으면 검색 자체가 무의미합니다.
   → "어느 지역에서 찾아드릴까요?"
-- collect_places가 'too_broad'를 반환했고, 사용자 요청에 좁히는 기준이 없는 경우.
-  → "신림동 백반집이 30곳 넘게 있어요. 신림역 주변으로 좁혀드릴까요?"
+- 지역이 광역시·특별시 전체처럼 지나치게 넓고 좁히는 기준이 전혀 없는 경우.
+  → "서울 어디쯤에서 찾아드릴까요?"
 
 되묻지 않습니다:
-- 'too_broad'여도 요청에 이미 기준점이 있는 경우. 그대로 진행하세요.
+- 요청에 구체적 지역(동네·역·시/군 이름)이 있으면 too_broad여도 그대로 진행하세요.
+  후보가 많으면 상위 결과로 추천하고, message에서 "더 좁혀줄 수 있다"고 안내만 합니다.
     "신림역 백반집" → 역이 기준점 → 진행
     "성수동 카공카페" → 동네와 용도가 명확 → 진행
-    "신림동 백반" → 기준점 없음 → 되묻기
-    "서울 카페" → 너무 넓음 → 되묻기
+    "창원 횟집" → 시(市) 이름이 있으니 진행 + message로 동네 좁히기 제안
+    "서울 카페" → 너무 넓고 기준 없음 → 되묻기
+    "카페 추천" → 지역 없음 → 되묻기
 - 한 대화에서 이미 두 번 되물었다면 더 묻지 말고 가진 결과로 진행하세요.
 - 사용자가 "아무거나", "그냥 보여줘"라고 하면 즉시 진행하세요.
 
@@ -93,8 +107,10 @@ INSTRUCTION = """당신은 지역 장소를 찾아 추천하는 어시스턴트�
 '지역 + 짧은 명사' 형태의 검색어를 만들어 collect_places를 호출합니다.
   예: "성수동에서 조용히 작업할 카페" → "성수동 카공카페"
   예: "이번 봄에 진해 벚꽃 축제 언제야" → "진해 군항제"
-  업종 없이 막연히 '맛집'만 찾으면 '식사 맛집'으로 검색해 식당 위주로 좁힙니다(카페 제외).
-  예: "가포 맛집 추천해줘" → "가포 식사 맛집"
+  업종 없이 막연히 '맛집'만 찾으면 '지역 맛집'으로 검색하고 category_code='FD6'(음식점)를
+  지정해 카페를 제외합니다. '식사 맛집' 같은 어색한 조합은 카카오가 문자 그대로 매칭해
+  결과가 거의 안 나오니 쓰지 마세요.
+  예: "가포 맛집 추천해줘" → query="가포 맛집", category_code="FD6"
 
 status별 행동:
 - 'too_broad' → 위 기준으로 진행할지 되물을지 판단합니다.
@@ -116,24 +132,28 @@ status별 행동:
 - **collect_context** (웹문서·뉴스 사실 정리)
   일정·기간·요금·예약처럼 확인된 사실이 필요한 경우.
   축제·행사·전시처럼 시기가 중요하거나, 관광지·캠핑장처럼 운영 정보가 필요할 때 씁니다.
-  시점이 걸린 요청이면 먼저 get_today로 오늘 날짜를 확인하세요.
+  축제·행사처럼 **날짜가 결과를 바꾸는 요청에만** get_today로 오늘 날짜를 확인하세요.
+  음식점·카페·술집 같은 상설 매장 추천에는 get_today를 호출하지 마세요.
+  이미 호출한 툴은 같은 인자로 다시 호출하지 말고 다음 단계로 넘어가세요.
 
 애매하면 둘 다 호출해도 됩니다. "캠핑장 추천"은 운영 정보와 이용 후기가 모두 도움이 됩니다.
 
 ## 3단계 — 근거 확인
-최종 추천을 쓰기 직전에 read_file을 **한 번만** 호출해 근거를 읽습니다.
+최종 추천 매장을 확정할 때 read_file을 **한 번만** 호출해 근거를 읽습니다.
 - collect_info를 썼으면 summary_file, collect_context를 썼으면 context_file **하나만** 읽습니다.
 - 이 파일 하나에 판단에 필요한 모든 근거(장소별 요약·주소·url·강점)가 들어 있습니다.
 - rerank_file·url_file·collect_places의 file 등 다른 파일은 읽지 마세요. 답변에 불필요하고
   맥락만 무겁게 만듭니다.
 파일을 읽지 않고 답변을 만들면 안 됩니다.
 
+**툴 결과에 `already_collected`나 `already_read`가 있으면 그 단계는 이미 끝난 것입니다.**
+다시 수집·조회하지 말고, 이미 확보한 근거로 곧바로 4단계(최종 추천)로 넘어가세요.
+같은 수집을 반복하면 답이 나빠지고 실패합니다.
+
 ## 4단계 — 추천 (kind='recommendation')
-요청에 가장 잘 맞는 5~8곳을 골라 places에 담습니다.
-- review_count 또는 source_count가 많을수록 신뢰도가 높습니다.
-- freshness가 'outdated'면 지난 연도 정보이므로 caution에 그 사실을 적으세요.
-- address와 url은 파일에 있는 값을 그대로 씁니다. 절대 지어내지 마세요.
-- 파일에 없는 정보는 쓰지 마세요. 강점이 부족하면 그 장소를 빼는 편이 낫습니다.
+근거를 확인했으면 kind='recommendation'으로 답합니다.
+- message: 요청에 맞는 추천을 찾았다는 두 문장 이내의 짧은 요약.
+- places는 비워둡니다 — 최종 추천 목록(장소·순위·근거)은 collect_info가 매긴 점수 순위로 코드가 근거 파일에서 자동 구성합니다.
 - 후기를 확보한 곳이 적었다면 message에 그 사실을 밝히세요.
 
 # 이어지는 대화
@@ -149,6 +169,23 @@ status별 행동:
 collect_info나 collect_context가 error를 반환하면 collect_places부터 다시 실행하세요.
 수집이 실패했는데 collect_places 결과만으로 평가를 지어내면 안 됩니다.
 """
+
+# 로컬(vLLM) 최종 응답은 decode-bound(실측 ≈19 tok/s)라, 느린 워커가 장황한 산문을
+# 통째로 뽑는 것 자체가 병목이다(827토큰 ≈ 45초). 로컬에서는 워커(27B)가 '어느 곳을
+# 고르나 + 왜'만 짧게 내고, address·url·highlights·caution 등 근거 파일에 이미 있는
+# 필드는 Chat.send의 _format_feed(Gemini)가 채워 완성한다. 무거운 생성을 느린 워커에서
+# 빠른 포매터로 옮기는 것. gemini 경로는 output_schema로 직접 FeedOutput을 내므로 무변경.
+if AGENT_BACKEND == "local":
+    _STEP4_FULL = """## 4단계 — 추천 (kind='recommendation')
+근거를 확인했으면 kind='recommendation'으로 답합니다.
+- message: 요청에 맞는 추천을 찾았다는 두 문장 이내의 짧은 요약.
+- places는 비워둡니다 — 최종 추천 목록(장소·순위·근거)은 collect_info가 매긴 점수 순위로 코드가 근거 파일에서 자동 구성합니다.
+- 후기를 확보한 곳이 적었다면 message에 그 사실을 밝히세요."""
+    _STEP4_TERSE = """## 4단계 — 추천 (kind='recommendation')
+근거를 확인했으면 추천을 완료합니다. 최종 장소 목록은 근거 파일의 점수 순위로 코드가 자동 구성하니,
+당신은 장소를 나열하지 말고 요청에 맞는 추천을 찾았다는 짧은 안내 문장(message)만 답하세요.
+후기를 확보한 곳이 적었다면 그 사실도 밝히세요."""
+    INSTRUCTION = INSTRUCTION.replace(_STEP4_FULL, _STEP4_TERSE)
 
 
 def build_agent(model=None, tracer: Tracer | None = None) -> LlmAgent:
@@ -176,7 +213,7 @@ def build_agent(model=None, tracer: Tracer | None = None) -> LlmAgent:
     # 주면 vLLM이 스키마로 guided decoding을 걸어 tool 호출 자체를 막는다(ADK가 LiteLlm을
     # 네이티브 지원으로 오인해 set_model_response 우회를 안 씀). 그래서 로컬은 tools만으로
     # 돌리고, 최종 응답은 Chat.send에서 _format_feed로 FeedOutput으로 정형화한다.
-    if LLM_BACKEND != "local":
+    if AGENT_BACKEND != "local":
         agent_kwargs["output_schema"] = FeedOutput
     return LlmAgent(**agent_kwargs)
 
@@ -193,6 +230,9 @@ STATUS_TEXT = {
 
 _FILE_KEYS = ("file", "url_file", "rerank_file", "summary_file", "source_file", "context_file")
 
+# 최종 추천 개수. 에이전트가 매긴 score로 정렬해 상위 이 수만큼 코드가 확정한다(형식 통제).
+FINAL_K = int(os.getenv("WH_FINAL_K", "8"))
+
 
 async def _format_feed(user_query: str, agent_text: str, files: dict) -> dict:
     """로컬 백엔드 전용 포매터. output_schema 없이 돌린 워커의 자연어 답을 근거 파일과
@@ -201,7 +241,7 @@ async def _format_feed(user_query: str, agent_text: str, files: dict) -> dict:
     for k in ("summary_file", "context_file"):
         if files.get(k):
             try:
-                evidence = json.dumps(load_json(files[k]), ensure_ascii=False)[:8000]
+                evidence = json.dumps(load_json(files[k]), ensure_ascii=False)[:20000]
                 break
             except (OSError, ValueError):
                 pass
@@ -269,7 +309,8 @@ class Chat:
         }
 
         async for event in self.runner.run_async(
-            user_id=USER_ID, session_id=self.session_id, new_message=content
+            user_id=USER_ID, session_id=self.session_id, new_message=content,
+            run_config=RunConfig(max_llm_calls=MAX_LLM_CALLS),
         ):
             for call in event.get_function_calls():
                 out["tool_calls"].append({"name": call.name, "args": dict(call.args)})
@@ -298,7 +339,7 @@ class Chat:
         # 로컬(vLLM)은 output_schema 없이 tools만으로 돌리므로 최종이 자연어다 → 포매터로
         # FeedOutput 정형화. gemini는 스키마로 JSON을 직접 내지만, 자유 텍스트로 답하는
         # 경우가 있어 파싱 실패 시 chat으로 감싼다.
-        if LLM_BACKEND == "local":
+        if AGENT_BACKEND == "local":
             out["result"] = await _format_feed(text, out["final_text"], out["files"])
         else:
             try:
@@ -309,6 +350,34 @@ class Chat:
                     "message": out["final_text"],
                     "places": [],
                 }
+
+        # 최종 추천 목록 — collect_info가 이미 요약된 후보를 '전수' 스코어링해 score 순으로
+        # 정렬해둔 summary_file에서, 상위 FINAL_K곳을 코드가 그대로 places로 구성한다. 최종
+        # 선택을 LLM 자유판단이 아니라 결정론적 코드 컷으로 확정해 정확도·재현성을 확보한다.
+        # (에이전트는 검색어·되물음·kind 판단 등 오케스트레이션을 맡는다.)
+        result = out["result"] or {}
+        if result.get("kind") == "recommendation" and out["files"].get("summary_file"):
+            try:
+                summ = load_json(out["files"]["summary_file"])
+            except (OSError, ValueError):
+                summ = {}
+            if summ:
+                places = []
+                for name, v in list(summ.items())[:FINAL_K]:
+                    weaknesses = v.get("weaknesses") or []
+                    places.append({
+                        "name": name,
+                        "score": v.get("score", 0),
+                        "reason": v.get("select_reason") or v.get("summary", ""),
+                        "address": v.get("address", ""),
+                        "category": v.get("category", ""),
+                        "highlights": (v.get("strengths") or [])[:3],
+                        "caution": weaknesses[0] if weaknesses else "",
+                        "period": "",
+                        "url": v.get("url", ""),
+                    })
+                result["places"] = places
+                out["result"] = result
 
         if self.tracer:
             self.tracer.end_turn(out["result"])

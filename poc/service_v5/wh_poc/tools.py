@@ -10,6 +10,7 @@
 import asyncio
 import json
 import math
+import os
 import re
 import time
 from collections import Counter
@@ -21,6 +22,7 @@ from google.adk.tools import ToolContext
 
 from . import prompts
 from .clients import (
+    daum_blog,
     embed_texts,
     in_same_region,
     kakao_all,
@@ -42,8 +44,10 @@ from .core import (
 # collect_places 수집 기준
 MAX_COUNT = 45  # 카카오가 노출하는 상한. 이만큼 채우면 후보가 넘친다는 신호(too_broad).
 
-RERANK_KEEP = 15        # HyDE 리랭크로 최종 남길 매장 수 (크롤·요약 비용이 여기 비례)
-RERANK_SNIPPETS = 5     # 매장당 확보할 블로그 스니펫 수 (리랭크는 스니펫으로)
+RERANK_KEEP = int(os.getenv("WH_RERANK_KEEP", "15"))  # HyDE 리랭크로 남길 매장 수(크롤·요약·
+                        # 2차 스코어링 대상). 약한 cos 필터가 정답을 미리 버리지 않게 넉넉히 남겨
+                        # 강한 2차 스코어러로 넘긴다. KEEP 스윕 실험용으로 env로도 조정 가능.
+RERANK_SNIPPETS = 10    # 매장당 확보할 블로그 스니펫 수 (많을수록 매장 신호가 풍부)
 INFO_PER_PLACE = 3      # 남긴 매장당 요약에 쓸 블로그 본문 수
 INFO_BODY_CHARS = 2000  # 요약에 넣는 본문 최대 길이
 CONTEXT_BODY_CHARS = 4000
@@ -86,27 +90,31 @@ def _is_franchise(place: dict) -> bool:
     return len(segs[-1]) >= 2 and place["name"].startswith(segs[-1])
 
 
-def _lvl2(cat: str) -> str:
-    """카카오 카테고리의 2단계(대분류 다음) — 업종군. '음식점>한식>국수'→'한식'."""
+def _domain(cat: str) -> str:
+    """장소의 대분류 도메인 — 카페 / 관광·문화(sight) / 음식점(food, 그 외 식당 전체).
+    카카오는 카페도 '음식점 > 카페 …'로 분류해 1단계(음식점)로는 식당과 안 갈린다.
+    수확 노이즈 제거는 '한식 vs 일식' 같은 장르가 아니라 이 도메인 단위로만 판단한다 —
+    장르로 거르면 한식 base에 딸려온 우동(일식)·칼국수(분식) 같은 정답까지 잘려나간다."""
     segs = [s.strip() for s in cat.split(">")]
-    return segs[1] if len(segs) >= 2 else (segs[0] if segs else "")
+    if "카페" in segs:
+        return "cafe"
+    if segs and segs[0] in ("관광명소", "문화시설", "여행"):
+        return "sight"
+    return "food"
 
 
-def _dominant_cats(base: list[dict]) -> set[str] | None:
-    """카카오 base의 지배 업종군을 구한다. 한 업종이 절반 이상이면(구체 쿼리) 그
-    업종군들(≥25%)을 반환, 여러 업종에 퍼져 있으면(막연한 '맛집') None(필터 안 함)."""
+def _dominant_domain(base: list[dict]) -> str | None:
+    """base가 한 도메인에 확실히 몰려 있으면(60%+) 그 도메인, 섞였으면 None(필터 안 함).
+    구체 쿼리(카페·횟집 등)면 한 도메인이 대부분이라 다른 도메인 수확은 노이즈다."""
     if not base:
         return None
-    cnt = Counter(_lvl2(p["category"]) for p in base)
-    n = len(base)
-    if cnt.most_common(1)[0][1] / n < 0.5:
-        return None
-    return {c for c, v in cnt.items() if v / n >= 0.25}
+    top, n = Counter(_domain(p["category"]) for p in base).most_common(1)[0]
+    return top if n / len(base) >= 0.6 else None
 
 
 # ---------------------------------------------------------------- get_today
 
-def get_today() -> dict:
+def get_today(tool_context: ToolContext | None = None) -> dict:
     """오늘 날짜와 요일, 현재 시각을 알려준다.
 
     '오늘', '이번 주말', '지금 하는' 같은 상대적 시점이 요청에 포함되거나,
@@ -117,13 +125,22 @@ def get_today() -> dict:
     """
     now = datetime.now(ZoneInfo("Asia/Seoul"))
     weekdays = ["월요일", "화요일", "수요일", "목요일", "금요일", "토요일", "일요일"]
-    return {
+    today = {
         "date": now.strftime("%Y-%m-%d"),
         "weekday": weekdays[now.weekday()],
         "time": now.strftime("%H:%M"),
         "year": now.year,
         "month": now.month,
     }
+    # 재호출 가드: 날짜는 한 요청 안에서 안 바뀐다. 이미 확인했으면 같은 값에 "그만 부르라"는
+    # 신호를 붙여 반복 호출 루프를 누른다. tool_context 없이 부르는 내부 호출은 그대로 값만 준다.
+    if tool_context is not None:
+        if tool_context.state.get("today_checked"):
+            return {**today, "already_checked": True,
+                    "note": "오늘 날짜는 이미 확인했습니다. 다시 호출하지 말고 지금 정보로 "
+                            "다음 단계를 진행하거나 최종 답을 내세요."}
+        tool_context.state["today_checked"] = True
+    return today
 
 
 # ---------------------------------------------------------------- collect_places
@@ -158,15 +175,28 @@ async def collect_places(
         status가 'ok'면 수집이 끝난 것이므로 다음 단계로 넘어간다.
         축제나 특정 시설처럼 대상이 하나뿐인 경우 결과가 적어도 'ok'가 나온다. 정상이다.
     """
-    # 1) 카카오 로컬 전량 — 기준점이자 수확분의 지역 필터 근거
-    places = kakao_all(query, category_code=category_code)
-    base = list(places)                 # 지역 필터 기준 스냅샷
+    # 재호출 가드: 같은 검색어로 이미 수집했으면 재수집하지 않고 이전 결과를 돌려준다.
+    # 27B가 최종 답 대신 파이프라인을 반복하는 걸 막아 시간·컨텍스트 낭비를 없앤다.
+    # 검색어가 바뀌면(되묻고 좁힌 경우 등) 정당한 재검색이므로 그대로 수행한다.
+    if (tool_context.state.get("last_query") == query
+            and tool_context.state.get("last_places_file")):
+        return {
+            "status": "ok",
+            "already_collected": True,
+            "file": tool_context.state["last_places_file"],
+            "message": "이미 이 검색어로 수집을 마쳤습니다. 다시 수집하지 말고 다음 "
+                       "단계로 넘어가세요 (필요하면 collect_info, 이미 했으면 최종 추천).",
+        }
+
+    # 1) 카카오 로컬 전량 — 지역 필터 기준이자, 수확 뒤 부족분을 채울 후보 풀
+    base = kakao_all(query, category_code=category_code)
     base_n = len(base)                  # too_broad 판정은 카카오 base 기준 (수확분 제외)
     log(f"[collect_places] '{query}' 카카오 {base_n}개")
 
-    # 2) 수확 보강 — 웹검색 스니펫에서 상호명만 LLM으로 뽑는다. 카카오 '맛집' 태그가 없는
-    #    로컬 노포는 카카오가 놓치지만 웹 스니펫엔 리스트로 잡힌다. 'Top'을 붙여 랭킹 리스트
-    #    페이지를 노린다 — 한 스니펫에 로컬 매장이 촘촘히 나열돼 수확 밀도가 높다.
+    # 2) 수확 — 웹 'Top' 리스트(diningcode 등)의 스니펫에서 상호명만 LLM으로 뽑는다.
+    #    카카오 '맛집' 태그가 없는 로컬 노포는 카카오가 놓치지만 웹 스니펫엔 리스트로
+    #    잡힌다. 한 스니펫에 매장이 촘촘히 나열돼 수확 밀도가 높다. 블로그는 노이즈가 커
+    #    여기선 안 쓴다 — 블로그는 collect_info의 후기 요약에서만 쓴다.
     web_items, _ = await naver_search(f"{query} Top", kind="webkr", display=30)
     snippets = "\n".join(f"{w['title']} | {w['description']}" for w in web_items)
     try:
@@ -178,8 +208,7 @@ async def collect_places(
         names = []
 
     # 카카오 base에 이미 있는 이름은 문자열 유사도로 먼저 걸러 카카오 역조회를 아낀다.
-    # base는 주소·좌표가 이미 있으니 우선한다. 표기가 조금 달라도('서울밥집' vs '서울밥집
-    # 신림점') 정규화 후 부분포함이면 같은 매장으로 보고 제외한다.
+    # 표기가 조금 달라도('서울밥집' vs '서울밥집 신림점') 정규화 후 부분포함이면 같은 매장.
     base_norms = [_norm_name(p["name"]) for p in base]
     new_names = [
         n for n in names
@@ -198,37 +227,38 @@ async def collect_places(
                 ps, _ = await asyncio.to_thread(kakao_keyword, n)
         return ps[0] if ps else None
 
-    seen = {p["id"] for p in places}
-    n_harvest = 0
+    seen = {p["id"] for p in base}
+    harvest = []
     for p in await asyncio.gather(*[_verify(n) for n in new_names]):
         if p and p["id"] not in seen and in_same_region(p, base):
             p["source"] = "web_harvest"
-            places.append(p)
+            harvest.append(p)
             seen.add(p["id"])
-            n_harvest += 1
     log(
         f"[collect_places] 수확 이름 {len(names)}개 → base중복 제외 후 {len(new_names)}개 검증 "
-        f"→ 신규 확보 {n_harvest}개"
+        f"→ 신규 확보 {len(harvest)}개"
     )
 
-    # 음식점 프랜차이즈 제거 — 로컬 맛집 추천에 프랜차이즈는 노이즈. (카페 체인 포함)
-    before = len(places)
-    places = [p for p in places if not _is_franchise(p)]
-    if before != len(places):
-        log(f"[collect_places] 프랜차이즈 {before - len(places)}개 제거 → {len(places)}개")
+    # 프랜차이즈 제거 — 로컬 맛집 추천에 프랜차이즈는 노이즈(카페 체인 포함). base·수확 모두.
+    harvest = [p for p in harvest if not _is_franchise(p)]
+    base = [p for p in base if not _is_franchise(p)]
 
-    # 업종 1차 필터 — base(카카오)가 한 업종에 몰린 구체 쿼리면, 그 업종과 다른 수확
-    # 매장은 노이즈다(카페 검색에 딸려온 횟집 등) → 제거. 막연한 '맛집'이면 업종이
-    # 퍼져 있어 필터하지 않는다(우동=일식처럼 소수 업종 정답이 잘리지 않게). 카카오
-    # base는 쿼리 직접 결과라 건드리지 않고, 수확분에만 적용한다.
-    dominant = _dominant_cats(base)
+    # 도메인 필터 — base가 한 도메인에 몰린 구체 쿼리면 다른 도메인 수확은 노이즈다(음식점
+    # 검색에 딸려온 카페 등) → 제거. 막연한 요청이면 도메인이 퍼져 있어 필터하지 않는다.
+    # base는 쿼리 직접 결과라 건드리지 않고 수확분에만 적용한다.
+    dominant = _dominant_domain(base)
     if dominant:
-        before = len(places)
-        places = [
-            p for p in places
-            if p.get("source") != "web_harvest" or _lvl2(p["category"]) in dominant
-        ]
-        log(f"[collect_places] 업종 필터({sorted(dominant)}) 수확 {before - len(places)}개 제거")
+        before = len(harvest)
+        harvest = [p for p in harvest if _domain(p["category"]) == dominant]
+        log(f"[collect_places] 도메인 필터({dominant}) 수확 {before - len(harvest)}개 제거")
+
+    # 3) 후보 조립 — 수확(로컬 노포)을 앞에 두고 카카오 base로 CAP까지 채운다. CAP을 넘는
+    #    꼬리는 자르는데, 수확을 앞에 둬야 CAP에 밀려 잘리는 게 base 하위(노이즈)지 힘들게
+    #    건진 노포가 아니게 된다(전 질의 검증 결과 잘린 것은 하위 노이즈뿐, 정답 손실 없음).
+    n_harvest = len(harvest)
+    fill = [p for p in base if p["id"] not in {h["id"] for h in harvest}]
+    places = (harvest + fill)[: max(RERANK_KEEP * 3, n_harvest)]
+    log(f"[collect_places] 웹-우선 조립: 수확 {n_harvest} + 카카오 {len(places) - n_harvest} = {len(places)}")
 
     file_path = dump("collect_places", places, _run_id(tool_context))
 
@@ -236,6 +266,9 @@ async def collect_places(
     # 멀티턴에서는 되묻고 답을 받은 뒤에도 이 경로가 필요하다.
     tool_context.state["last_places_file"] = file_path
     tool_context.state["last_query"] = query
+    # 새 수집 라운드 시작 — 이전 라운드의 요약·읽음 기록을 비워 재호출 가드가 꼬이지 않게.
+    tool_context.state["info_result"] = None
+    tool_context.state["read_files"] = []
 
     payload = {
         "count": len(places),
@@ -298,6 +331,17 @@ async def collect_info(
             "message": "collect_places를 먼저 호출하세요. 이 툴을 다시 호출해도 같은 결과입니다.",
         }
 
+    # 재호출 가드: 이번 수집 라운드에서 이미 요약했으면 재수집(크롤·요약)하지 않고 이전
+    # 결과를 돌려준다. 무거운 재작업을 막고, summary_file을 읽어 최종 답으로 가도록 유도한다.
+    cached = tool_context.state.get("info_result")
+    if cached:
+        return {
+            **cached,
+            "already_collected": True,
+            "message": "이미 요약을 마쳤습니다. 재수집하지 말고 summary_file을 read_file로 "
+                       "읽어(아직 안 읽었다면) 최종 추천을 완성하세요.",
+        }
+
     places = load_json(places_file)
     run_id = _run_id(tool_context)
     t0 = time.perf_counter()  # 단계별 벽시계 계측용
@@ -305,13 +349,14 @@ async def collect_info(
     # --- 1) 매장별 블로그 스니펫 수집 (크롤링은 리랭크 뒤 상위만) ---
     # 도로명은 행정 표기라 실제 리뷰에서 쓰는 생활권 이름과 다르다("관천" vs "신림").
     # 그 매핑은 지역 상식이라 코드가 못 하므로 에이전트가 준 region_prefix를 쓴다.
-    # sim/date는 매장마다 유리한 쪽이 달라 사전 판단이 불가능하므로 둘 다 던지고 합친다.
+    # 카카오(다음) 블로그를 쓴다 — 로컬 노포 후기가 네이버보다 풍부한 경우가 많다.
+    # accuracy/recency는 매장마다 유리한 쪽이 달라 둘 다 던지고 합친다.
     queries = [f"{region_prefix} {p['name']}".strip() for p in places]
     raw = await asyncio.gather(
         *[
-            naver_search(q, kind="blog", display=10, sort=s)
+            daum_blog(q, display=10, sort=s)
             for q in queries
-            for s in ("sim", "date")
+            for s in ("accuracy", "recency")
         ]
     )
 
@@ -337,40 +382,57 @@ async def collect_info(
         log(f"[collect_info] 후기 미확보 {len(reasons)}개 → {dict(Counter(reasons.values()))}")
     t_snip = time.perf_counter()
 
-    # --- 2) HyDE 리랭크 — 요청으로 '기준 문서'를 생성(막연한 맛집이면 로컬맛집 신호,
-    # 구체 쿼리면 담백한 후기)해 임베딩하고, 각 매장 스니펫과 max 유사도로 상위만 남긴다.
-    hypo = (await llm_async(prompts.HYDE_REVIEW.format(user_query=user_query))).strip()
-    hypo = hypo or user_query
+    # --- 2) HyDE 리랭크 — 요청을 서로 다른 3개 각도(전통노포 / 인기웨이팅 / 미디어검증)의
+    # '기준 문서'로 생성해 임베딩한다. 단일 HyDE는 프레이밍 하나에 정답이 묻히지만(예:
+    # '노포' 톤에 웨이팅 인기집이 밀림), 여러 각도의 max로 보면 어느 한 각도만 맞아도
+    # 상위로 올라온다 — 11개 질문 검증에서 정답 top20 recall 77%→91%로 올랐다.
+    try:
+        facets = json.loads(
+            await llm_async(prompts.HYDE_MULTI.format(user_query=user_query), json_mode=True)
+        )
+        facets = [f.strip() for f in facets if isinstance(f, str) and f.strip()]
+    except (json.JSONDecodeError, TypeError):
+        facets = []
+    if not facets:  # facet 생성 실패 시 단일 HyDE로 폴백
+        single = (await llm_async(prompts.HYDE_REVIEW.format(user_query=user_query))).strip()
+        facets = [single or user_query]
 
+    # 매장별로 스니펫을 한 문서로 concat해 매장당 1벡터만 임베딩한다. 스니펫을 개별 임베딩하면
+    # (매장당 최대 RERANK_SNIPPETS개, 케이스당 수백 개) 임베딩 API 배치가 여러 번 도는데,
+    # concat하면 매장 수(~50)만 임베딩해 케이스당 1배치로 끝난다. 매장 점수는 그 매장 문서
+    # 벡터와 facet 3개의 max cos — 어느 한 각도만 맞아도 상위로. 후기 없는 매장은 -1(최하위).
     snip_texts, snip_owner = [], []
     for p in places:
-        for b in hits[p["name"]]:
-            snip_texts.append(f"{b['title']} {b['description']}")
+        joined = " ".join(f"{b['title']} {b['description']}" for b in hits[p["name"]]).strip()
+        if joined:
+            snip_texts.append(joined)
             snip_owner.append(p["name"])
-    vecs = await embed_texts([hypo] + snip_texts)
-    hypo_vec, snip_vecs = vecs[0], vecs[1:]
+    vecs = await embed_texts(facets + snip_texts)
+    facet_vecs, snip_vecs = vecs[: len(facets)], vecs[len(facets):]
 
-    score = {p["name"]: -1.0 for p in places}
+    cos_score = {p["name"]: -1.0 for p in places}
     for name, v in zip(snip_owner, snip_vecs):
-        score[name] = max(score[name], _cos(hypo_vec, v))
+        cos_score[name] = max(_cos(fv, v) for fv in facet_vecs)
 
-    ranked = sorted(places, key=lambda p: -score[p["name"]])
+    # 순수 HyDE 코사인으로 정렬한다. 수집 순서(웹-우선 조립)를 RRF로 섞어봤지만, 그건
+    # 유의미한 랭킹이 아니라 조립 순서일 뿐이라 노이즈에 가까워 뺐다.
+    ranked = sorted(places, key=lambda p: -cos_score[p["name"]])
     kept = ranked[:RERANK_KEEP]
     rank_of = {p["name"]: r for r, p in enumerate(kept, 1)}
 
     # 콘솔엔 남긴 것만, 전체 순위는 rerank_file에.
-    log(f"[collect_info] HyDE 가상문서: {hypo[:120]}")
+    log(f"[collect_info] HyDE facet {len(facets)}개, 대표: {facets[0][:100]}")
     log(f"[collect_info] 리랭크 {len(places)}→{len(kept)}")
     for r, p in enumerate(kept, 1):
-        log(f"   [{r:2}] {score[p['name']]:+.3f} {p['name']}")
+        log(f"   [{r:2}] cos={cos_score[p['name']]:+.3f} {p['name']}")
     ranking = [
         {"rank": r, "name": p["name"], "kept": rank_of.get(p["name"]) is not None,
-         "score": round(score[p["name"]], 4), "source": p.get("source", "")}
+         "cos": round(cos_score[p["name"]], 4), "source": p.get("source", "")}
         for r, p in enumerate(ranked, 1)
     ]
     rerank_file = dump(
         "info_rerank",
-        {"user_query": user_query, "hypo_review": hypo,
+        {"user_query": user_query, "hypo_facets": facets,
          "keep": RERANK_KEEP, "ranking": ranking},
         run_id,
     )
@@ -432,6 +494,32 @@ async def collect_info(
         }
         for n, r in zip(names, results)
     }
+
+    # 2차 스코어링 — 요약된 후보를 요청 적합도로 '전부' 점수화(LLM cross-encoder)해 최종 순위를
+    # 코드가 확정한다. 리랭크(임베딩)는 top RERANK_KEEP까지 넉넉히 남기고, 여기서 강한 LLM 점수로
+    # 재정렬한다. 에이전트에 맡기면 긴 목록을 게을리 평가(상위 몇 곳만)해 하위 정답이 평가조차 못
+    # 받고 탈락하므로(재현성도 낮음) 코드가 전수 스코어링을 강제한다. score 순으로 정렬해 남긴다.
+    if summaries:
+        items = "\n".join(
+            f"- {n}: {v.get('summary', '')} [강점] {' / '.join(v.get('strengths', []))}"
+            for n, v in summaries.items()
+        )
+        try:
+            scored = json.loads(
+                await llm_async(
+                    prompts.SELECT_SCORE.format(user_query=user_query, items=items),
+                    json_mode=True,
+                )
+            )
+        except (json.JSONDecodeError, TypeError):
+            scored = {}
+        for n, v in summaries.items():
+            s = scored.get(n)
+            raw = s.get("score", 0) if isinstance(s, dict) else (s or 0)
+            v["score"] = int(raw) if isinstance(raw, (int, float)) else 0
+            if isinstance(s, dict) and s.get("reason"):
+                v["select_reason"] = s["reason"]
+        summaries = dict(sorted(summaries.items(), key=lambda kv: -(kv[1].get("score") or 0)))
     summary_file = dump("info_summary", summaries, run_id)
     log(
         f"[collect_info] 단계별 벽시계: 스니펫수집 {t_snip - t0:.1f}s | "
@@ -439,7 +527,7 @@ async def collect_info(
         f"요약 {time.perf_counter() - t_scrape:.1f}s"
     )
 
-    return {
+    result = {
         "count": len(summaries),
         "no_info": len(kept) - len(summaries),
         "reranked_from": len(places),
@@ -447,6 +535,8 @@ async def collect_info(
         "rerank_file": rerank_file,
         "summary_file": summary_file,
     }
+    tool_context.state["info_result"] = result   # 재호출 가드용 캐시
+    return result
 
 
 # ---------------------------------------------------------------- collect_context
@@ -583,27 +673,42 @@ async def collect_context(
 
 # ---------------------------------------------------------------- read_file
 
-def read_file(file_path: str) -> dict:
-    """툴이 만든 결과 파일을 읽는다. 최종 답변을 쓰기 전에 반드시 호출한다.
+def read_file(tool_context: ToolContext, file_path: str) -> dict:
+    """툴이 만든 결과 파일을 읽는다. 최종 추천 매장을 확정하기 직전에 한 번만 호출한다.
 
     collect_info의 summary_file, collect_context의 context_file에 판단 근거가 들어있다.
     파일을 읽지 않고 답변을 지어내면 안 된다.
+
+    같은 파일을 이미 읽었으면 내용을 다시 싣지 않는다. 근거는 앞서 읽은 그대로이니
+    다시 읽지 말고 최종 답을 내라(반복해서 읽으면 컨텍스트만 불어난다).
 
     Args:
         file_path: 이전 툴이 반환한 file / summary_file / context_file 값.
 
     Returns:
-        {"content": ...} 파일 내용.
+        {"content": ...} 파일 내용. 이미 읽은 파일이면 {"already_read": True, "note": ...}.
     """
     path = Path(file_path)
     if not path.exists():
         return {"status": "error", "message": f"파일을 찾을 수 없습니다: {file_path}"}
     if not str(path.resolve()).startswith(str(TOOL_FILE_DIR.resolve())):
         return {"status": "error", "message": "허용되지 않은 경로입니다."}
+
+    # 재호출 가드: 이미 읽은 파일이면 5k짜리 내용을 이력에 또 붓지 않는다. 27B가 최종
+    # 판단 대신 파이프라인을 반복하면 read_file도 반복돼 컨텍스트가 32k를 넘겨 터진다.
+    read_files = tool_context.state.get("read_files", [])
+    if file_path in read_files:
+        return {
+            "already_read": True,
+            "note": "이미 읽은 파일입니다. 근거는 앞서 읽은 그대로이니 다시 수집·조회하지 "
+                    "말고 그 내용으로 최종 추천을 완성하세요.",
+        }
     try:
-        return {"content": load_json(str(path))}
+        content = load_json(str(path))
     except json.JSONDecodeError:
         return {"status": "error", "message": "파일을 읽을 수 없습니다."}
+    tool_context.state["read_files"] = read_files + [file_path]
+    return {"content": content}
 
 
 ALL_TOOLS = [get_today, collect_places, collect_info, collect_context, read_file]
